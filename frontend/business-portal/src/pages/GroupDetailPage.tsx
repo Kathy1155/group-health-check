@@ -19,6 +19,7 @@ function GroupDetailPage() {
   return (
     <div>
       <h2>團體詳細資料</h2>
+      <h2>test!!!!!!!!</h2>
       <p>團體 ID：{id}</p>
 
       <section style={{ marginTop: 20 }}>
