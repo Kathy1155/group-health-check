@@ -6,6 +6,7 @@ const ReservationDonePage: React.FC = () => {
   return (
     <div style={{ padding: '20px', textAlign: 'center' }}>
       <h1>預約完成頁面</h1>
+      <h2>測試測試</h2>
       <p>感謝您的預約！</p>
     </div>
   );
