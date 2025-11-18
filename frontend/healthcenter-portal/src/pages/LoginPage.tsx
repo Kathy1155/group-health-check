@@ -17,7 +17,7 @@ function LoginPage() {
 
   return (
     <div style={{ maxWidth: 360, margin: '0 auto' }}>
-      <h2>健檢中心後台登入</h2>
+      <h2>健檢中心後台登入思密達</h2>
 
       <form onSubmit={handleLogin}>
         <div>
