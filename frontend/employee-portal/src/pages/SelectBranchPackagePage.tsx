@@ -75,7 +75,7 @@ function SelectBranchPackagePage() {
         </div>
 
         {/* 右邊：套餐按鈕列表 */}
-        <div className="sbp-right">
+        <div className="sbp-form page-form">
           <div className="sbp-packages-header">
             <span>可選健檢套餐</span>
             <span className="sbp-branch-label">
@@ -117,23 +117,16 @@ function SelectBranchPackagePage() {
         </div>
       </div>
 
-      {/* 底部：上一步 / 下一步 */}
-      <div className="sbp-footer">
-        <button
-          type="button"
-          className="sbp-btn sbp-btn--secondary"
-          onClick={handlePrev}
-        >
-          上一步
-        </button>
-        <button
-          type="submit"
-          className="sbp-btn sbp-btn--primary"
-          disabled={!branch || !pkg}
-        >
-          下一步
-        </button>
-      </div>
+    <div className="form-footer">
+      <button type="button" className="btn btn-secondary" onClick={handlePrev}>
+        上一步
+      </button>
+      <button type="submit" className="btn btn-primary" disabled={!branch || !pkg}>
+        下一步
+      </button>
+    </div>
+
+
     </form>
   );
 }

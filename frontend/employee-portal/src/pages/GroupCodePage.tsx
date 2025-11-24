@@ -55,7 +55,7 @@ function GroupCodePage() {
   };
 
   return (
-    <form onSubmit={handleNext}>
+    <form onSubmit={handleNext} className="page-form">
       <h2>步驟 1：輸入團體代碼 / 身分證字號</h2>
 
       {/* 團體代碼輸入欄位 */}
@@ -94,9 +94,14 @@ function GroupCodePage() {
         )}
       </div>
 
-      <button type="submit" style={{ marginTop: "16px" }}>
-        下一步
-      </button>
+      {/* 按鈕區塊 */}
+      <div className="form-footer">
+        <button type="submit" className="btn btn-primary">
+          下一步
+        </button>
+      </div>
+
+
     </form>
   );
 }

@@ -1,9 +1,58 @@
+/* 根容器 */
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
 }
+
+/* App 外層容器 */
+.app-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: left;
+}
+
+/* Header 區塊 */
+.app-header {
+  margin-bottom: 2rem;      /* 標題區和下面內容拉開一點 */
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.4rem;
+  margin-bottom: 0.75rem;   /* 標題和進度條拉開 */
+}
+
+/* 進度條外層容器 */
+.progress-wrapper {
+  margin-top: 0.25rem;
+}
+
+/* 上方灰底條 */
+.progress-bar-bg {
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* 綠色進度條 */
+.progress-bar-fill {
+  height: 100%;
+  background-color: #4caf50;
+  transition: width 0.3s ease;
+}
+
+/* 下方步驟文字列 */
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;         /* 進度條與文字之間的距離 → 整個系統共用 */
+  font-size: 0.85rem;
+}
+
+/* 以下是你原本 Vite 模板的東西，保留也沒差，只是目前用不到 */
 
 .logo {
   height: 6em;
@@ -146,46 +195,58 @@
   color: #777;
 }
 
-/* 底部按鈕列 */
-
-.sbp-footer {
+/* 底部按鈕列（可讓上下步按鈕置中且留間距） */
+.sbp-footer,
+.form-footer {
   margin-top: 1.5rem;
   display: flex;
-  justify-content: space-between;
+  gap: 1rem;
+  justify-content: center;
 }
 
-.sbp-btn {
-  min-width: 90px;
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
+/* 通用按鈕基底樣式 */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
   font-size: 0.9rem;
   font-weight: 600;
-  border: none;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.sbp-btn--primary {
-  background-color: #00acc1;
+/* 主要按鈕（下一步）——藍色 */
+.btn-primary {
+  background-color: #007bff; /* 藍色 */
   color: #fff;
 }
 
-.sbp-btn--primary:disabled {
-  background-color: #bcdfe5;
-  cursor: not-allowed;
-}
-
-.sbp-btn--primary:not(:disabled):hover {
-  background-color: #0093a4;
+/* hover：深藍色 */
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3; /* 深藍色 */
   transform: translateY(-1px);
 }
 
-.sbp-btn--secondary {
+/* disabled：淡藍灰色 */
+.btn-primary:disabled {
+  background-color: #bcd0e0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 次要按鈕：例如「上一步」、「取消」 */
+.btn-secondary {
   background-color: #eee;
   color: #333;
+  border: 1px solid #aaa;
 }
 
-.sbp-btn--secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: #e0e0e0;
   transform: translateY(-1px);
+}
+
+/* 每一頁表單頂部與進度條的距離統一 */
+.page-form {
+  margin-top: 1rem;
 }
