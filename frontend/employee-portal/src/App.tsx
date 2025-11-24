@@ -41,7 +41,7 @@ function App() {
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '1rem' }}>
       <header style={{ marginBottom: '1rem' }}>
-        <h1>團體健檢預約系統 - 雇員前台</h1>
+        <h1>線上預約</h1>
 
         {/* 進度條區塊 */}
         <div>
