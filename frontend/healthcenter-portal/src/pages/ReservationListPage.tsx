@@ -1,70 +1,115 @@
-const mockReservations = [
-  {
-    id: 1001,
-    name: '林小安',
-    idNumber: 'A123456789',
-    branch: '台北院區',
-    date: '2025-01-12',
-    time: '09:00',
-    package: '一般健檢',
-    status: '待報到',
-  },
-  {
-    id: 1002,
-    name: '張育庭',
-    idNumber: 'B987654321',
-    branch: '台北院區',
-    date: '2025-01-12',
-    time: '10:00',
-    package: '心血管套餐',
-    status: '已完成',
-  },
-];
+import React, { useState } from "react";
+
 
 function ReservationListPage() {
+  const [date, setDate] = useState("");
+  const [timeSlot, setTimeSlot] = useState("");
+  const [customTime, setCustomTime] = useState("");
+  const [packageType, setPackageType] = useState("");
+  const [quota, setQuota] = useState("");
+
+  const handleSearch = () => {
+    if (!date || !timeSlot || !packageType) {
+      alert("請輸入搜尋條件");
+      return;
+    }
+
+    const payload = {
+      date,
+      timeSlot: timeSlot === "other" ? customTime : timeSlot,
+      packageType,
+      quota,
+    };
+
+    console.log("search payload = ", payload);
+
+    // TODO: call backend API
+    // fetch(`/api/reservation/list?date=${date}&slot=${payload.timeSlot}&pkg=${packageType}`)
+    //   .then(res => res.json())
+    //   .then(data => console.log(data));
+
+    alert("搜尋完成，請查看 Console Log");
+  };
+
   return (
-    <div>
-      <h2>預約查詢 / 狀態變更</h2>
+    <div className="container">
+      <h1 className="title">預約狀況查詢</h1>
 
-      <table border={1} cellPadding={6} style={{ borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>預約編號</th>
-            <th>姓名</th>
-            <th>身分證</th>
-            <th>院區</th>
-            <th>日期</th>
-            <th>時段</th>
-            <th>套餐</th>
-            <th>狀態</th>
-            <th>操作</th>
-          </tr>
-        </thead>
+      <div className="card">
+        {/* 日期 */}
+        <div className="row">
+          <label>日期：</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
 
-        <tbody>
-          {mockReservations.map((r) => (
-            <tr key={r.id}>
-              <td>{r.id}</td>
-              <td>{r.name}</td>
-              <td>{r.idNumber}</td>
-              <td>{r.branch}</td>
-              <td>{r.date}</td>
-              <td>{r.time}</td>
-              <td>{r.package}</td>
-              <td>{r.status}</td>
-              <td>
-                <button
-                  onClick={() => {
-                    alert(`變更預約 ${r.id} 狀態（之後串後端）`);
-                  }}
-                >
-                  修改狀態
-                </button>
-              </td>
-            </tr>
+        {/* 時段 */}
+        <div className="row">
+          <label>時段：</label>
+
+          <input
+            type="radio"
+            name="time"
+            value="8:00-10:00"
+            onChange={(e) => setTimeSlot(e.target.value)}
+            checked={timeSlot === "8:00-10:00"}
+          />
+          8：00～10：00
+
+          <input
+            type="radio"
+            name="time"
+            value="10:00-12:00"
+            onChange={(e) => setTimeSlot(e.target.value)}
+            checked={timeSlot === "10:00-12:00"}
+          />
+          10：00～12：00
+
+          <input
+            type="radio"
+            name="time"
+            value="other"
+            onChange={() => setTimeSlot("other")}
+            checked={timeSlot === "other"}
+          />
+          其他：
+          <input
+            type="text"
+            disabled={timeSlot !== "other"}
+            value={customTime}
+            onChange={(e) => setCustomTime(e.target.value)}
+          />
+        </div>
+
+        {/* 套餐 */}
+        <div className="row">
+          <label>套餐選擇：</label>
+          {["A", "B", "C", "D"].map((p) => (
+            <div key={p}>
+              <input
+                type="radio"
+                name="pkg"
+                value={p}
+                onChange={(e) => setPackageType(e.target.value)}
+                checked={packageType === p}
+              />
+              {p} 套餐
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+
+        <div className="buttonRow">
+          <button className="primaryBtn" onClick={handleSearch}>
+            查詢
+          </button>
+          <button className="dangerBtn" onClick={() => window.location.reload()}>
+            重設
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

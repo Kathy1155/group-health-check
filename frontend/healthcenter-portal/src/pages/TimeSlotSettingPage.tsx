@@ -1,84 +1,143 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-// 定義資料結構的 TypeScript 介面
-interface TimeSlot {
-  date: string;
-  branch: string;
-  quota: number;
-}
+function TimeSlotSettingPage() {
+  const navigate = useNavigate();
 
-// 初始模擬資料
-const initialMockData: TimeSlot[] = [
-  { date: '2025-01-10', branch: '台北院區', quota: 30 },
-  { date: '2025-01-10', branch: '新莊院區', quota: 20 },
-  { date: '2025-01-11', branch: '台北院區', quota: 28 },
-];
+  const [date, setDate] = useState("");
+  const [timeSlot, setTimeSlot] = useState("");
+  const [customTime, setCustomTime] = useState("");
+  const [packageType, setPackageType] = useState("");
+  const [quota, setQuota] = useState("");
 
-const TimeSlotSettingPage: React.FC = () => {
-  // 將模擬資料轉換為組件的狀態，使其可變動
-  const [data, setData] = useState<TimeSlot[]>(initialMockData);
-  
-  // 處理名額修改的邏輯
-  const handleQuotaChange = (itemToUpdate: TimeSlot) => {
-    // 彈出輸入框，並將當前名額轉為字串作為預設值
-    const newQuotaString = prompt('請輸入新的名額', itemToUpdate.quota.toString());
-
-    // 檢查使用者是否輸入了內容
-    if (newQuotaString !== null && newQuotaString.trim() !== '') {
-      const newQuota = parseInt(newQuotaString.trim(), 10);
-      
-      // 確保輸入的是有效的數字
-      if (!isNaN(newQuota) && newQuota >= 0) {
-        // 更新狀態
-        setData(prevData =>
-          prevData.map(item =>
-            // 找到需要更新的那一筆資料（使用 date 和 branch 作為唯一鍵）
-            item.date === itemToUpdate.date && item.branch === itemToUpdate.branch
-              ? { ...item, quota: newQuota } // 更新名額
-              : item // 保留其他資料不變
-          )
-        );
-      } else {
-        alert('名額必須是有效的數字！');
-      }
+  const handleSubmit = () => {
+    if (!date || !timeSlot || !packageType || !quota) {
+      alert("請完整填寫資料");
+      return;
     }
+
+    const payload = {
+      date,
+      timeSlot: timeSlot === "other" ? customTime : timeSlot,
+      packageType,
+      quota,
+    };
+
+    console.log("submit payload = ", payload);
+
+    // TODO: call backend API
+    // fetch("/api/timeslot/set-quota", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(payload),
+    // });
+
+    alert("已設定成功！");
   };
 
+  const handleClear = () => {
+    setDate("");
+    setTimeSlot("");
+    setCustomTime("");
+    setPackageType("");
+    setQuota("");
+  };
 
   return (
-    <div>
-      <h2>時段名額設定</h2>
+    <div className="container">
+      <h1 className="title">設定每日時段名額</h1>
 
-      <table border={1} cellPadding={6} style={{ borderCollapse: 'collapse', width: '600px' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#f2f2f2' }}>
-            <th>日期</th>
-            <th>院區</th>
-            <th>名額</th>
-            <th>操作</th>
-          </tr>
-        </thead>
+      <div className="card">
+        {/* 日期 */}
+        <div className="row">
+          <label>日期：</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
 
-        <tbody>
-          {data.map((item) => (
-            <tr key={item.date + item.branch}>
-              <td>{item.date}</td>
-              <td>{item.branch}</td>
-              <td>{item.quota}</td>
-              <td>
-                <button
-                  onClick={() => handleQuotaChange(item)} // 調用修改邏輯
-                  style={{ cursor: 'pointer', padding: '5px 10px' }}
-                >
-                  修改名額
-                </button>
-              </td>
-            </tr>
+        {/* 時段 */}
+        <div className="row">
+          <label>時段：</label>
+
+          <input
+            type="radio"
+            name="time"
+            value="8:00-10:00"
+            onChange={(e) => setTimeSlot(e.target.value)}
+            checked={timeSlot === "8:00-10:00"}
+          />
+          8：00～10：00
+
+          <input
+            type="radio"
+            name="time"
+            value="10:00-12:00"
+            onChange={(e) => setTimeSlot(e.target.value)}
+            checked={timeSlot === "10:00-12:00"}
+          />
+          10：00～12：00
+
+          <input
+            type="radio"
+            name="time"
+            value="other"
+            onChange={() => setTimeSlot("other")}
+            checked={timeSlot === "other"}
+          />
+          其他：
+          <input
+            type="text"
+            disabled={timeSlot !== "other"}
+            value={customTime}
+            onChange={(e) => setCustomTime(e.target.value)}
+            placeholder="例如：13:00-15:00"
+          />
+        </div>
+
+        {/* 套餐選擇 */}
+        <div className="row">
+          <label>套餐選擇：</label>
+
+          {["A", "B", "C", "D"].map((p) => (
+            <div key={p}>
+              <input
+                type="radio"
+                name="pkg"
+                value={p}
+                onChange={(e) => setPackageType(e.target.value)}
+                checked={packageType === p}
+              />
+              {p} 套餐
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
 
-      <button style={{ marginTop: 20, padding: '8px 15px' }}>新增日期時段</button>
+        {/* 名額 */}
+        <div className="row">
+          <label>人數：</label>
+          <select value={quota} onChange={(e) => setQuota(e.target.value)}>
+            <option value="">請選擇</option>
+            {[...Array(50)].map((_, i) => (
+              <option key={i} value={i + 1}>
+                {i + 1}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 按鈕 */}
+        <div className="buttonRow">
+          <button className="primaryBtn" onClick={handleSubmit}>
+            設定
+          </button>
+          <button className="dangerBtn" onClick={handleClear}>
+            清除表單
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

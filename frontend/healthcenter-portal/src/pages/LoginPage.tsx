@@ -5,19 +5,20 @@ function LoginPage() {
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
     // 之後串後端 /auth/login
     if (account.trim() && password.trim()) {
-      navigate('/packages');
+      navigate('/choose');
     }
   };
 
   return (
     <div style={{ maxWidth: 360, margin: '0 auto' }}>
-      <h2>健檢中心後台登入思密達</h2>
+      <h2>健檢中心後台登入</h2>
 
       <form onSubmit={handleLogin}>
         <div>
