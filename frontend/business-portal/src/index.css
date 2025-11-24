@@ -1,68 +1,348 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
+  color: #111827;
+  background-color: #f3f4f6;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+#root {
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+a {
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* ==== App layout & sidebar ==== */
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.app-main {
+  padding-bottom: 32px;
+}
+
+/* ==== Sidebar hover button ==== */
+
+.sidebar-hover-zone {
+  position: relative;
+}
+
+.hamburger-button {
+  width: 38px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hamburger-button span {
+  width: 18px;
+  height: 2px;
+  background-color: #1f2937;
+  border-radius: 2px;
+  display: block;
+}
+
+/* ==== The original nice sidebar ==== */
+
+.sidebar-flyout {
+  position: absolute;
+  top: 42px;
+  left: 0;
+  width: 190px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 8px 0;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.22);
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+  z-index: 20;
+  overflow: hidden; /* 避免 hover 背景凸出圓角 */
+}
+
+.sidebar-flyout.open {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* 點外面一下側拉選單會關閉 */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 10;
+}
+
+/* ==== 選單內容 ==== */
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  color: #111827;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.sidebar-link:hover {
+  background-color: #eff6ff;
+}
+
+.sidebar-link.active {
+  font-weight: 600;
+  background-color: #e0ecff;
+}
+
+.sidebar-logout {
+  color: #b91c1c;
+}
+
+.sidebar-logout:hover {
+  background-color: #fef2f2;
+}
+
+.sidebar-section-divider {
+  height: 1px;
+  margin: 4px 0;
+  background-color: #e5e7eb;
+}
+
+/* ==== Login page ==== */
+
+.login-page {
+  display: flex;
+  justify-content: center;
+  padding: 48px 16px 64px;
+}
+
+.login-card {
+  width: 420px;
+  max-width: 100%;
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 32px 40px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.login-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.login-form {
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+/* ==== 共用表單和頁面樣式 ==== */
+
+.page-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 64px;
+}
+
+.page-card {
+  width: 720px;
+  max-width: 100%;
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 32px 40px 40px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  text-align: left;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.page-form {
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 16px;
+}
+
+.form-row.single {
+  display: block;
+}
+
+.form-field {
+  flex: 1;
+  text-align: left;
+}
+
+.form-field-narrow {
+  max-width: 420px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 0.95rem;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+}
+
+.radio-group,
+.checkbox-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==== Buttons ==== */
+
+.primary-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background-color: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  background-color: #1d4ed8;
+}
+
+.secondary-button {
+  border-radius: 999px;
+  border: 1px solid #2563eb;
+  padding: 0.45rem 1.2rem;
+  font-size: 0.9rem;
+  background-color: #ffffff;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background-color: #eff6ff;
+}
+
+.form-actions-center {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.form-actions-center.gap {
+  gap: 12px;
+}
+
+.full-width-button {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Small screen responsiveness */
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 12px;
   }
-  a:hover {
-    color: #747bff;
+
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
-  button {
-    background-color: #f9f9f9;
+
+  .page-card {
+    padding: 24px 16px 28px;
+  }
+
+  .form-row {
+    display: block;
   }
 }
