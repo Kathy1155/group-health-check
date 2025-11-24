@@ -1,6 +1,7 @@
 import { Routes, Route, Link } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
+import ChoosePage from "./pages/ChoosePage";
 import PackageListPage from './pages/PackageListPage';
 import TimeSlotSettingPage from './pages/TimeSlotSettingPage';
 import ReservationListPage from './pages/ReservationListPage';
@@ -20,6 +21,7 @@ function App() {
       </header>
 
       <Routes>
+        <Route path="/choose" element={<ChoosePage />} />
         <Route path="/" element={<LoginPage />} />
         <Route path="/packages" element={<PackageListPage />} />
         <Route path="/timeslots" element={<TimeSlotSettingPage />} />
