@@ -1,33 +1,130 @@
-// src/App.tsx (修正後 - 僅為結構微調)
-// ⚠️ 注意: 不需要從這裡移除 Routes 或 Link 的 import，因為它們仍然是 App 組件內部的必要元件
+import { useState } from 'react';
+import {
+  Routes,
+  Route,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 
-import { Routes, Route, Link } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-import GroupListPage from './pages/GroupListPage';
-import GroupDetailPage from './pages/GroupDetailPage';
-import ReservationOverviewPage from './pages/ReservationOverviewPage';
+import GroupCreatePage from './pages/GroupCreatePage';
+import PackageBranchSettingPage from './pages/PackageBranchSettingPage';
+import RosterUploadPage from './pages/RosterUploadPage';
+
+function AppLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    setSidebarOpen(false);
+    navigate('/');
+  };
+
+  const closeSidebar = () => setSidebarOpen(false);
+
+  return (
+    <div className="app-shell">
+      {sidebarOpen && (
+        <div className="sidebar-backdrop" onClick={closeSidebar} />
+      )}
+
+      <header className="app-header">
+        {/* 左上角三條線 + 側拉選單 */}
+        <div className="sidebar-hover-zone">
+          <button
+            type="button"
+            className="hamburger-button"
+            aria-label="開啟功能選單"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <aside
+            className={`sidebar-flyout ${sidebarOpen ? 'open' : ''}`}
+            aria-hidden={!sidebarOpen}
+          >
+            <nav className="sidebar-nav">
+              <NavLink
+                to="/business/groups/new"
+                className={({ isActive }) =>
+                  'sidebar-link' + (isActive ? ' active' : '')
+                }
+                onClick={closeSidebar}
+              >
+                新增團體資料
+              </NavLink>
+
+              <NavLink
+                to="/business/package-branches"
+                className={({ isActive }) =>
+                  'sidebar-link' + (isActive ? ' active' : '')
+                }
+                onClick={closeSidebar}
+              >
+                指定套餐院區
+              </NavLink>
+
+              <NavLink
+                to="/business/roster/upload"
+                className={({ isActive }) =>
+                  'sidebar-link' + (isActive ? ' active' : '')
+                }
+                onClick={closeSidebar}
+              >
+                上傳團體名冊
+              </NavLink>
+
+              <div className="sidebar-section-divider" />
+
+              <button
+                type="button"
+                className="sidebar-link sidebar-logout"
+                onClick={handleLogout}
+              >
+                登出
+              </button>
+            </nav>
+          </aside>
+        </div>
+
+        <h1 className="app-title">
+          團體健檢預約系統 - 業務中心後台
+        </h1>
+      </header>
+
+      <main className="app-main">
+        <Outlet key={location.pathname} />
+      </main>
+    </div>
+  );
+}
 
 function App() {
   return (
-    // ⚠️ 備註: 這裡不再需要 BrowserRouter，因為它已移到 main.tsx
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1rem' }}>
-      <header style={{ marginBottom: '1rem' }}>
-        <h1>團體健檢預約系統 - 業務中心後台</h1>
-        <nav style={{ fontSize: '0.9rem' }}>
-          {/* 確認 Link 元件的路徑是正確的 */}
-          <Link to="/groups">團體管理</Link> |{' '}
-          <Link to="/reservations">預約總覽</Link>
-        </nav>
-      </header>
+    <Routes>
+      {/* 登入頁（無 sidebar） */}
+      <Route path="/" element={<LoginPage />} />
 
-      <Routes>
-        {/* 確保根路徑 "/" 渲染了有效的元件 */}
-        <Route path="/" element={<LoginPage />} /> 
-        <Route path="/groups" element={<GroupListPage />} />
-        <Route path="/groups/:id" element={<GroupDetailPage />} />
-        <Route path="/reservations" element={<ReservationOverviewPage />} />
-      </Routes>
-    </div>
+      {/* 登入後共用 layout */}
+      <Route element={<AppLayout />}>
+        <Route path="/business" element={<GroupCreatePage />} />
+        <Route path="/business/groups/new" element={<GroupCreatePage />} />
+        <Route
+          path="/business/package-branches"
+          element={<PackageBranchSettingPage />}
+        />
+        <Route
+          path="/business/roster/upload"
+          element={<RosterUploadPage />}
+        />
+      </Route>
+    </Routes>
   );
 }
 
