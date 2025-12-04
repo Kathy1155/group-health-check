@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchGroupByCode } from "../api/groupsApi";
+import type { GroupDto } from "../api/groupsApi";
 
 function GroupCodePage() {
   // 使用者輸入
@@ -34,24 +36,31 @@ function GroupCodePage() {
 
     if (hasError) return; // 有錯就先不要往下呼叫後端
 
-    // 2. 模擬呼叫後端驗證團體與員工
-    // TODO: 之後接上後端 API 時，把下面這段假資料改成真正的 fetch / axios
-    const mockResponse = mockValidate(groupCode, idNumber);
-    const { groupValid, employeeInList } = mockResponse;
+    try {
+      // 2-1. 向後端查詢團體資料
+      const group: GroupDto | null = await fetchGroupByCode(groupCode);
 
-    // 3. 根據「後端回傳結果」設定錯誤/警告文字
-    if (!groupValid) {
-      setGroupError("查無此團體代碼，請確認是否輸入正確或洽窗口。");
-      return; // 團體代碼無效就直接擋掉，不往下走
+      if (!group) {
+        setGroupError("查無此團體代碼，請確認是否輸入正確或洽窗口。");
+        return; // 團體代碼無效就直接擋掉，不往下走
+      }
+
+      // 2-2. 員工名冊目前仍用前端假驗證（之後可以改成呼叫後端）
+      const employeeInList = mockValidateEmployee(idNumber);
+
+      if (!employeeInList) {
+        setEmployeeWarning("您不在團體名冊中，請確認資料或洽聯絡人。");
+        return;
+      }
+
+      // 3. 都通過才導到下一步，並把 group 帶到下一頁
+      navigate("/select-branch-package", {
+        state: { group, idNumber },
+      });
+    } catch (error) {
+      console.error(error);
+      setGroupError("系統發生錯誤，請稍後再試。");
     }
-
-    if (!employeeInList) {
-      setEmployeeWarning("您不在團體名冊中，請確認資料或洽聯絡人。");
-      return;
-    }
-
-    // 4. 都通過才導到下一步
-    navigate("/select-branch-package");
   };
 
   return (
@@ -100,24 +109,18 @@ function GroupCodePage() {
           下一步
         </button>
       </div>
-
-
     </form>
   );
 }
 
 /**
- * 假的驗證函式，只是為了讓你現在測試前端邏輯、顯示錯誤訊息。
- * 之後要接後端時，把這整個函式刪掉，改成呼叫真正的 API。
+ * 假的「員工名冊驗證」函式，
+ * 之後要接後端時，把這整個換掉就好。
  */
-function mockValidate(groupCode: string, idNumber: string) {
-  // 假設：團體代碼 "AAAAAAAAAA" 是不存在的
-  const groupValid = groupCode !== "AAAAAAAAAA";
-
+function mockValidateEmployee(idNumber: string) {
   // 假設：身分證 "BBBBBBBBBB" 不在名冊
   const employeeInList = idNumber !== "BBBBBBBBBB";
-
-  return { groupValid, employeeInList };
+  return employeeInList;
 }
 
 export default GroupCodePage;
