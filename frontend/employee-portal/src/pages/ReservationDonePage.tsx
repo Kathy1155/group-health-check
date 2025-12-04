@@ -1,12 +1,99 @@
 import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+
+type DonePageState = {
+  reservationNo: string;
+  groupName: string;
+  branchId: number;
+  packageId: number;
+  date: string;
+  slot: string;
+  personalInfo: {
+    groupCode: string;
+    name: string;
+    idNumber: string;
+    phone: string;
+  };
+};
 
 const ReservationDonePage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const state = location.state as DonePageState | null;
+
+  // 沒有上一頁帶來的 state：給一個簡單 fallback
+  if (!state) {
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <h1 style={{ marginBottom: "1rem" }}>預約結果</h1>
+        <p style={{ fontSize: "1.1rem", marginBottom: "1.5rem" }}>
+          已完成預約流程。如需再次預約，請回首頁重新操作。
+        </p>
+        <button
+          className="btn btn-primary"
+          onClick={() => navigate("/")}
+          style={{ marginTop: "1rem" }}
+        >
+          回首頁
+        </button>
+      </div>
+    );
+  }
+
+  const { reservationNo, groupName, date, slot, personalInfo } = state;
+
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
-      <h1 style={{ marginBottom: "1rem" }}>預約完成✅</h1>
+      <h1 style={{ marginBottom: "1rem" }}>預約完成！</h1>
 
+      {/* 新增：預約摘要資訊區塊 */}
+      <div
+        style={{
+          maxWidth: "520px",
+          margin: "0 auto 1.5rem",
+          textAlign: "left",
+          lineHeight: 1.7,
+          fontSize: "1rem",
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+          padding: "1rem 1.25rem",
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <div>
+          <strong>預約編號：</strong>
+          {reservationNo}
+        </div>
+        <div>
+          <strong>團體名稱：</strong>
+          {groupName}
+        </div>
+        <div>
+          <strong>受檢者姓名：</strong>
+          {personalInfo.name}
+        </div>
+        <div>
+          <strong>身分證字號：</strong>
+          {personalInfo.idNumber}
+        </div>
+        <div>
+          <strong>聯絡電話：</strong>
+          {personalInfo.phone}
+        </div>
+        <div>
+          <strong>預約日期：</strong>
+          {date}
+        </div>
+        <div>
+          <strong>預約時段：</strong>
+          {slot}
+        </div>
+      </div>
+
+      {/* 保留你原本的說明文字 */}
       <p style={{ fontSize: "1.1rem", marginBottom: "1.5rem" }}>
-        您的預約資料已提交。  
+        您的預約資料已提交。✅
         <br />
         請記得前往您的 Email 收取「驗證信件」，並完成驗證後才算正式完成預約。
       </p>
@@ -39,6 +126,14 @@ const ReservationDonePage: React.FC = () => {
       <p style={{ marginTop: "2rem", fontSize: "0.95rem", color: "#555" }}>
         若有任何問題，請聯絡您的團體窗口或健檢中心。
       </p>
+
+      <button
+        className="btn btn-primary"
+        onClick={() => navigate("/")}
+        style={{ marginTop: "1.5rem" }}
+      >
+        回首頁
+      </button>
     </div>
   );
 };
