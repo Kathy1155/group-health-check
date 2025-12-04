@@ -1,42 +1,54 @@
-import { Routes, Route } from 'react-router-dom';
+// src/App.tsx (健檢中心獨立專案)
 
-// 引入所有需要的頁面元件
+import { Routes, Route, Navigate } from 'react-router-dom'; // 引入 Navigate 用於重定向
+import './App.css';
+// import './index.css';
+
+// 健檢中心元件
 import LoginPage from './pages/LoginPage';
-// 引入功能選擇頁面 (假設檔案名為 ChoosePage.tsx)
-import ChoosePage from './pages/ChoosePage'; 
-import PackageListPage from './pages/PackageListPage'; 
-import TimeSlotSettingPage from './pages/TimeSlotSettingPage';
-import ReservationListPage from './pages/ReservationListPage';
-import DailyReportPage from './pages/DailyReportPage';
-
+import CheckupCenterLayout from './pages/CheckupCenterLayout'; 
+import TimeSlotSettingPage from './pages/TimeSlotSettingPage'; 
+import ReservationListPage from './pages/ReservationListPage'; 
+import DailyReportPage from './pages/DailyReportPage'; 
+import DefaultHomePage from './pages/DefaultHomePage'; 
 
 function App() {
+  
+  // 健檢中心的登入成功後，預設導航到 DefaultHomePage
+  // 登入成功後，會被導航到 /center/
+  const CHECKUP_DEFAULT_PATH = "/center"; 
+
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1rem' }}>
+    <Routes>
+      {/* 登入頁面：作為起始頁 (使用 /) */}
+      <Route 
+        path="/" 
+        element={<LoginPage title="健檢中心員工登入" successPath={CHECKUP_DEFAULT_PATH} />} 
+      />
       
-      {/* 移除 <header> 和 <nav>，因為您要求登入前不顯示上排的標籤頁。
-          現在所有頁面都是獨立的，沒有共用的導航列。 */}
-      
-      <Routes>
-        {/* 1. 根路徑 / : 初始頁面為登入頁面 */}
-        <Route path="/" element={<LoginPage />} />
+      {/* 登入後共用 layout：所有功能頁面都在此架構內 */}
+      <Route path="/center" element={<CheckupCenterLayout />}>
         
-        {/* 2. 登入成功後導向功能選擇頁面 (ChoosePage.tsx 應該導向此路徑) */}
-        <Route path="/selection" element={<ChoosePage />} />
+        {/* 1. 設置 index 路由，使其成為 /center 的默認頁面 */}
+        {/* 當路徑是 /center/ 時，顯示 DefaultHomePage */}
+        <Route index element={<DefaultHomePage />} /> 
 
-        {/* 3. 功能一：設定每日時段名額
-           - 將路徑改為 /time-slot，與 ChoosePage.tsx 中的 navigate("/time-slot") 一致 */}
-        <Route path="/time-slot" element={<TimeSlotSettingPage />} /> 
+        {/* 2. 時段與預約管理 */}
+        <Route path="time-slot" element={<TimeSlotSettingPage />} />
+        <Route path="reservation" element={<ReservationListPage />} />
         
-        {/* 4. 功能二：預約狀況查詢
-           - 將路徑改為 /reservation，與 ChoosePage.tsx 中的 navigate("/reservation") 一致 */}
-        <Route path="/reservation" element={<ReservationListPage />} /> 
+        {/* 3. 報表與系統設定 */}
+        <Route path="daily-report" element={<DailyReportPage />} /> 
 
-        {/* 其他功能頁面 (如果仍需要保留) */}
-        <Route path="/packages" element={<PackageListPage />} />
-        <Route path="/report" element={<DailyReportPage />} />
-      </Routes>
-    </div>
+        {/* 4. 處理未匹配到的路由：導航回默認首頁 */}
+        {/* 這樣任何不正確的子路徑都會導航回功能選擇介面 */}
+        <Route path="*" element={<Navigate to="/center" replace />} />
+      </Route>
+
+      {/* 處理不正確的頂層路由，例如有人輸入 /xyz，將其導航回登入頁 */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+
+    </Routes>
   );
 }
 
