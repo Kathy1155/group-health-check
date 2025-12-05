@@ -1,3 +1,4 @@
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { useState } from 'react';
 
 type Branch = 'A院區' | 'B院區' | 'C院區' | 'D院區';
@@ -20,6 +21,14 @@ const PackageBranchSettingPage: React.FC = () => {
   const [selectedPackage, setSelectedPackage] = useState<string>('A套餐');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [status, setStatus] = useState<PackageStatus>('active');
+
+    // 有沒有未儲存的變更
+    // 只要進到 Step 2（可以編輯套餐院區）就視為有未儲存內容
+  const isDirty = step === 2;
+
+  // 套用關閉/重整提醒
+  useUnsavedChangesWarning(isDirty);
+
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();

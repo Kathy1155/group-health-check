@@ -1,3 +1,4 @@
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 import { useState } from 'react';
 
 interface GroupInfo {
@@ -17,6 +18,14 @@ const RosterUploadPage: React.FC = () => {
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  // 有沒有未儲存的變更：
+  // 只有在 Step 2 且已經選了檔案時，才提醒離開
+  const isDirty = step === 2 && !!file;
+
+  // 套用關閉/重整提醒
+  useUnsavedChangesWarning(isDirty);
+
 
   const handleConfirmCode = (e: React.FormEvent) => {
     e.preventDefault();

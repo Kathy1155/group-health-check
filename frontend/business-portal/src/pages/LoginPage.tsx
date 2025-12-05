@@ -9,12 +9,21 @@ function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // TODO: 之後接後端 /auth/login 驗證
+    // TODO：之後改成呼叫後端驗證
     if (account.trim() && password.trim()) {
-      // 登入成功後導向業務中心 - 新增團體資料
-      navigate('/business/groups/new');
+      const code = account.trim();
+
+      // 暫時用員工代碼當顯示名稱，先存到 localStorage
+      // 之後如果後端有回傳員工姓名，就改成存真正的名字即可
+      localStorage.setItem('employeeDisplayName', code);
+
+      // 登入成功 → 導向功能選擇界面
+      navigate('/business');
     }
   };
+
+
+
 
   return (
     <div className="login-page">
