@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
+import BusinessHomePage from './pages/BusinessHomePage';
 import GroupCreatePage from './pages/GroupCreatePage';
 import PackageBranchSettingPage from './pages/PackageBranchSettingPage';
 import RosterUploadPage from './pages/RosterUploadPage';
@@ -46,51 +47,53 @@ function AppLayout() {
           </button>
 
           <aside
-            className={`sidebar-flyout ${sidebarOpen ? 'open' : ''}`}
-            aria-hidden={!sidebarOpen}
-          >
-            <nav className="sidebar-nav">
-              <NavLink
-                to="/business/groups/new"
-                className={({ isActive }) =>
-                  'sidebar-link' + (isActive ? ' active' : '')
-                }
-                onClick={closeSidebar}
-              >
-                新增團體資料
-              </NavLink>
+  className={`sidebar-flyout ${sidebarOpen ? 'open' : ''}`}
+  aria-hidden={!sidebarOpen}
+>
+  <nav className="sidebar-nav">
 
-              <NavLink
-                to="/business/package-branches"
-                className={({ isActive }) =>
-                  'sidebar-link' + (isActive ? ' active' : '')
-                }
-                onClick={closeSidebar}
-              >
-                指定套餐院區
-              </NavLink>
+    <NavLink
+      to="/business/groups/new"
+      className={({ isActive }) =>
+        'sidebar-link' + (isActive ? ' active' : '')
+      }
+      onClick={closeSidebar}
+    >
+      新增團體資料
+    </NavLink>
 
-              <NavLink
-                to="/business/roster/upload"
-                className={({ isActive }) =>
-                  'sidebar-link' + (isActive ? ' active' : '')
-                }
-                onClick={closeSidebar}
-              >
-                上傳團體名冊
-              </NavLink>
+    <NavLink
+      to="/business/package-branches"
+      className={({ isActive }) =>
+        'sidebar-link' + (isActive ? ' active' : '')
+      }
+      onClick={closeSidebar}
+    >
+      指定套餐院區
+    </NavLink>
 
-              <div className="sidebar-section-divider" />
+    <NavLink
+      to="/business/roster/upload"
+      className={({ isActive }) =>
+        'sidebar-link' + (isActive ? ' active' : '')
+      }
+      onClick={closeSidebar}
+    >
+      上傳團體名冊
+    </NavLink>
 
-              <button
-                type="button"
-                className="sidebar-link sidebar-logout"
-                onClick={handleLogout}
-              >
-                登出
-              </button>
-            </nav>
-          </aside>
+    <div className="sidebar-section-divider" />
+
+    <button
+      type="button"
+      className="sidebar-link sidebar-logout"
+      onClick={handleLogout}
+    >
+      登出
+    </button>
+  </nav>
+</aside>
+
         </div>
 
         <h1 className="app-title">
@@ -113,7 +116,10 @@ function App() {
 
       {/* 登入後共用 layout */}
       <Route element={<AppLayout />}>
-        <Route path="/business" element={<GroupCreatePage />} />
+        {/* 功能選擇界面作為預設頁 */}
+        <Route path="/business" element={<BusinessHomePage />} />
+
+        {/* 三個實際功能頁 */}
         <Route path="/business/groups/new" element={<GroupCreatePage />} />
         <Route
           path="/business/package-branches"

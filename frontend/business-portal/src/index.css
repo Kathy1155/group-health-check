@@ -346,3 +346,37 @@ button {
     display: block;
   }
 }
+/* 功能選擇界面專用 */
+
+.page-welcome {
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.vertical-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.text-link-button {
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: #6b7280;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.text-link-button:hover {
+  color: #4b5563;
+}
+
+.logout-center {
+  text-align: center;
+  margin-top: 20px;
+}
+
