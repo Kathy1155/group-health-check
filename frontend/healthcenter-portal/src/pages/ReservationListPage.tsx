@@ -1,6 +1,6 @@
-// src/pages/ReservationListPage.tsx - MODIFIED: 整合 DailyReportPage 功能
+// src/pages/ReservationListPage.tsx - MODIFIED: 串接 Reservations API
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; 
 
 // --- 介面和假資料定義 ---
 type ReservationStatus = '已預約' | '已報到' | '已取消';
@@ -16,14 +16,7 @@ interface Reservation {
     status: ReservationStatus;
 }
 
-const initialReservations: Reservation[] = [
-    { id: 1, name: '林小安', idNumber: 'A123456789', phone: '0912-345-678', date: '2025-12-08', timeSlot: '8:00-10:00', packageType: 'A', status: '已預約' },
-    { id: 2, name: '張育庭', idNumber: 'B987654321', phone: '0922-333-222', date: '2025-12-08', timeSlot: '10:00-12:00', packageType: 'B', status: '已報到' },
-    { id: 3, name: '陳小華', idNumber: 'C100000000', phone: '0933-111-000', date: '2025-12-09', timeSlot: '8:00-10:00', packageType: 'A', status: '已取消' },
-    { id: 4, name: '王大明', idNumber: 'D111222333', phone: '0944-555-666', date: '2025-12-09', timeSlot: '13:00-15:00', packageType: 'C', status: '已預約' },
-    { id: 5, name: '李美美', idNumber: 'E999888777', phone: '0955-999-888', date: '2025-12-10', timeSlot: '8:00-10:00', packageType: 'D', status: '已預約' },
-];
-
+// 假資料已移至後端 Service，這裡只需要選項定義
 const TIME_SLOT_OPTIONS = [
     { value: "8:00-10:00", label: "8:00 - 10:00" },
     { value: "10:00-12:00", label: "10:00 - 12:00" },
@@ -31,9 +24,15 @@ const TIME_SLOT_OPTIONS = [
 ];
 
 const STATUS_OPTIONS: ReservationStatus[] = ['已預約', '已報到', '已取消'];
+const ALL_STATUSES: ReservationStatus[] = ['已預約', '已報到', '已取消'];
+const EXPORT_STATUS_OPTIONS = ALL_STATUSES;
 
+// API 端點
+const API_ENDPOINT = '/api/reservations'; 
 
 // --- 修改狀態彈窗元件 (保持不變) ---
+// ... (ModifyModal 結構省略，請確保您使用上一個正確的版本)
+
 interface ModifyModalProps {
     isOpen: boolean;
     reservation: Reservation | null;
@@ -63,7 +62,7 @@ const ModifyModal: React.FC<ModifyModalProps> = ({
                 maxWidth: '450px', width: '90%', boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
             }}>
                 <h3 style={{ fontSize: '1.4rem', color: '#1f2937', marginBottom: '20px', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
-                    📝 修改預約狀態
+                    修改預約狀態
                 </h3>
                 <p style={{ marginBottom: '10px' }}>
                     預約人: {reservation.name} ({reservation.idNumber})
@@ -99,6 +98,7 @@ const ModifyModal: React.FC<ModifyModalProps> = ({
         </div>
     );
 };
+// --- 修改狀態彈窗元件結束 ---
 
 
 // --- 主要元件 ReservationListPage ---
@@ -109,22 +109,61 @@ function ReservationListPage() {
   const [packageType, setPackageType] = useState("");
   const [reservationStatus, setReservationStatus] = useState("all"); 
 
-  const [reservations, setReservations] = useState<Reservation[]>(initialReservations);
+  // 預約清單狀態 (現在從 API 載入)
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loadingStatus, setLoadingStatus] = useState<'loading' | 'success' | 'error'>('loading');
+
   const [searchResults, setSearchResults] = useState<Reservation[] | null>(null);
+  const [exportFilter, setExportFilter] = useState<ReservationStatus[]>(ALL_STATUSES);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [tempStatus, setTempStatus] = useState<ReservationStatus>('已預約'); 
-  const ALL_STATUSES: ReservationStatus[] = ['已預約', '已報到', '已取消'];
-  const [exportFilter, setExportFilter] = useState<ReservationStatus[]>(ALL_STATUSES);
-  // 匯出狀態選項 (用於 Checkboxes)
-  const EXPORT_STATUS_OPTIONS = ALL_STATUSES;
+  
+  const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean) => {
+    setExportFilter(prev => {
+        if (isChecked) {
+            return [...prev, status];
+        } else {
+            return prev.filter(s => s !== status);
+        }
+    });
+  };
 
-  // 搜尋邏輯 (保持不變)
+  // --- 頁面載入時：發送 GET 請求獲取所有預約 ---
+  const fetchReservations = async () => {
+    try {
+        const response = await fetch(API_ENDPOINT);
+        if (!response.ok) {
+            throw new Error(`無法載入預約資料 (HTTP ${response.status})`);
+        }
+        const data: Reservation[] = await response.json(); 
+        setReservations(data);
+        setLoadingStatus('success');
+    } catch (error) {
+        console.error("載入預約資料失敗:", error);
+        setLoadingStatus('error');
+    }
+  };
+
+  useEffect(() => {
+    fetchReservations();
+  }, []); 
+
+  // 重新載入數據的工具函數 (用於修改後更新清單)
+  const refetchData = () => {
+    setLoadingStatus('loading');
+    fetchReservations();
+    // 清空查詢結果，讓使用者重新查詢
+    setSearchResults(null);
+  }
+  
+  // 搜尋邏輯 (使用 loaded reservations 數據進行篩選)
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault(); 
     if (!date) { alert("請選擇查詢日期"); return; }
     
+    // ... (篩選邏輯保持不變)
     const effectiveTimeSlot = timeSlot === "other" ? customTime : timeSlot;
     const effectivePackage = packageType;
     const effectiveStatus = reservationStatus;
@@ -140,42 +179,27 @@ function ReservationListPage() {
     setSearchResults(results);
   };
   
-// 匯出功能 - 針對當前查詢結果
-const handleExport = () => {
-    
-    if (!searchResults || searchResults.length === 0) {
-        alert("沒有查詢結果可以匯出。請先執行查詢。");
-        return;
-    }
+  // 匯出功能 (保持不變)
+  const handleExport = () => {
+      // ... (匯出邏輯保持不變)
+      if (!searchResults || searchResults.length === 0) {
+          alert("沒有查詢結果可以匯出。請先執行查詢。");
+          return;
+      }
 
-    // 過濾當前查詢結果中，符合 exportFilter 狀態的資料
-    const dataToExport = searchResults.filter(res => exportFilter.includes(res.status));
-    
-    // 檢查是否有選中的狀態
-    if (exportFilter.length === 0) {
-        alert("請選擇至少一個預約狀態進行匯出。");
-        return;
-    }
+      const dataToExport = searchResults.filter(res => exportFilter.includes(res.status));
+      
+      if (exportFilter.length === 0) {
+          alert("請選擇至少一個預約狀態進行匯出。");
+          return;
+      }
 
-    if (dataToExport.length > 0) {
-        alert(`正在匯出 ${dataToExport.length} 筆（狀態為: ${exportFilter.join('、')}）的 CSV 檔案...`);
-        // 實際應用中，後端會根據這裡的篩選條件來產生報表
-    } else {
-        alert(`當前查詢結果中，找不到符合您選擇的狀態 (${exportFilter.join('、')}) 的資料可以匯出。`);
-    }
-};
-
-const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean) => {
-    setExportFilter(prev => {
-        if (isChecked) {
-            // 如果被選中，加入陣列
-            return [...prev, status];
-        } else {
-            // 如果被取消選中，從陣列中移除
-            return prev.filter(s => s !== status);
-        }
-    });
-};
+      if (dataToExport.length > 0) {
+          alert(`正在匯出 ${dataToExport.length} 筆（狀態為: ${exportFilter.join('、')}）的 CSV 檔案...`);
+      } else {
+          alert(`當前查詢結果中，找不到符合您選擇的狀態 (${exportFilter.join('、')}) 的資料可以匯出。`);
+      }
+  };
   
   // 重設表單 (保持不變)
   const handleReset = () => {
@@ -187,75 +211,63 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
     setSearchResults(null);
   };
 
-  // 開啟修改彈窗 (保持不變)
+  // 開啟/關閉彈窗 (保持不變)
   const openModifyModal = (reservation: Reservation) => {
     setEditingReservation(reservation);
-    setTempStatus(reservation.status); 
+    setTempStatus(reservation.status as ReservationStatus); 
     setIsModalOpen(true);
   };
-
-  // 關閉修改彈窗 (保持不變)
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingReservation(null);
   };
   
-  // 儲存修改後的狀態 (保持修正後的版本)
-  const handleSaveModification = (id: number, newStatus: ReservationStatus) => {
-    const updatedReservations = reservations.map(res => 
-        res.id === id ? { ...res, status: newStatus } : res
-    ) as Reservation[];
-    setReservations(updatedReservations);
-    
-    if (searchResults) {
-        const updatedResults = searchResults.map(res => 
-            res.id === id ? { ...res, status: newStatus } : res
-        ) as Reservation[]; 
-        setSearchResults(updatedResults);
+  // --- 儲存修改後的狀態 (PATCH API) ---
+  const handleSaveModification = async (id: number, newStatus: ReservationStatus) => {
+    try {
+        const response = await fetch(`${API_ENDPOINT}/${id}`, {
+            method: 'PATCH', // 使用 PATCH 方法更新狀態
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `狀態更新失敗 (HTTP ${response.status})`);
+        }
+
+        // 成功後重新獲取清單，確保數據是最新的
+        refetchData(); 
+        
+        alert(`預約 #${id} 狀態已成功修改為：${newStatus}`);
+        closeModal();
+
+    } catch (err) {
+        alert(`狀態更新失敗：${err instanceof Error ? err.message : '未知錯誤'}`);
     }
-    
-    alert(`預約 #${id} 狀態已成功修改為：${newStatus}`);
-    closeModal();
   };
 
-  // 取消預約邏輯 (保持修正後的版本)
-  const handleCancel = (reservation: Reservation) => {
-      const isConfirmed = window.confirm(
-          `⚠️ 您確定要取消 ${reservation.name} 於 ${reservation.date} ${reservation.timeSlot} 的預約嗎？`
-      );
-      
-    if (isConfirmed) {
-        const updatedReservations = reservations.map(res => 
-        res.id === reservation.id 
-            ? { ...res, status: '已取消' as ReservationStatus } 
-            : res
+  // --- 取消預約邏輯 (PATCH API) ---
+  const handleCancel = async (reservation: Reservation) => {
+    const isConfirmed = window.confirm(
+        `⚠️您確定要取消 ${reservation.name} 於 ${reservation.date} ${reservation.timeSlot} 的預約嗎？`
     );
     
-    setReservations(updatedReservations);
-          
-    if (searchResults) {
-        const updatedResults = searchResults.map(res => 
-            res.id === reservation.id 
-                ? { ...res, status: '已取消' as ReservationStatus }
-                : res
-        );
-        setSearchResults(updatedResults);
+    if (isConfirmed) {
+        try {
+            await handleSaveModification(reservation.id, '已取消'); // 重用狀態修改邏輯
+        } catch (error) {
+            // 錯誤已在 handleSaveModification 內處理
+        }
     }
-    
-    alert(`預約 #${reservation.id} 已成功取消。`);
-      }
   };
 
   // 根據狀態設定文字顏色 (保持不變)
   const getStatusColor = (status: ReservationStatus) => {
       switch (status) {
-          case '已報到':
-              return '#10b981'; 
-          case '已取消':
-              return '#ef4444'; 
-          case '已預約':
-          default:
-              return '#2563eb'; 
+          case '已報到': return '#10b981'; 
+          case '已取消': return '#ef4444'; 
+          case '已預約': default: return '#2563eb'; 
       }
   };
 
@@ -264,12 +276,13 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
   return (
     <div className="page-container">
       <div className="page-card">
-        <h2 className="page-title">預約狀況查詢</h2>
+        <h2 className="page-title">預約狀況查詢及修改</h2>
         
-        {/* 查詢表單 */}
+        {/* 查詢表單 (保持不變) */}
         <form className="page-form" onSubmit={handleSearch}>
+            {/* ... (表單內容保持不變) ... */}
             
-            {/* 第一行：日期、時段 (保持不變) */}
+            {/* 第一行：日期、時段 */}
             <div className="form-row">
                 
                 <div className="form-field form-field-narrow">
@@ -281,6 +294,7 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
                         onChange={(e) => setDate(e.target.value)}
                         className="form-input"
                         required
+                        disabled={loadingStatus !== 'success'}
                     />
                 </div>
 
@@ -292,13 +306,10 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
                         onChange={(e) => setTimeSlot(e.target.value)}
                         className="form-select"
                         required
+                        disabled={loadingStatus !== 'success'}
                     >
                         <option value="all">所有時段</option>
-                        {TIME_SLOT_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
+                        {TIME_SLOT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                         <option value="other">其他 (手動輸入)</option>
                     </select>
                 </div>
@@ -306,133 +317,76 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
                 {timeSlot === "other" && (
                     <div className="form-field form-field-narrow">
                         <label className="form-label" htmlFor="customTime">手動輸入時段：</label>
-                        <input
-                            id="customTime"
-                            type="text"
-                            value={customTime}
-                            onChange={(e) => setCustomTime(e.target.value)}
-                            className="form-input"
-                            placeholder="例如：15:00-17:00"
-                            required
-                        />
+                        <input id="customTime" type="text" value={customTime} onChange={(e) => setCustomTime(e.target.value)} className="form-input" placeholder="例如：15:00-17:00" required/>
                     </div>
                 )}
             </div>
 
-            {/* 第二行：套餐、狀態 (保持不變) */}
+            {/* 第二行：套餐、狀態 */}
             <div className="form-row">
                 
                 <div className="form-field">
                     <label className="form-label">套餐類型：</label>
                     <div className="radio-group radio-group-column"> 
-                        <label>
-                            <input
-                                type="radio"
-                                name="pkg"
-                                value="all"
-                                onChange={() => setPackageType("all")}
-                                checked={packageType === "all" || packageType === ""}
-                            />
-                            所有套餐
-                        </label>
-                        {["A", "B", "C", "D"].map((p) => (
-                            <label key={p}>
-                            <input
-                                type="radio"
-                                name="pkg"
-                                value={p}
-                                onChange={(e) => setPackageType(e.target.value)}
-                                checked={packageType === p}
-                            />
-                            {p} 套餐
-                            </label>
-                        ))}
+                        <label><input type="radio" name="pkg" value="all" onChange={() => setPackageType("all")} checked={packageType === "all" || packageType === ""} disabled={loadingStatus !== 'success'}/>所有套餐</label>
+                        {["A", "B", "C", "D"].map((p) => (<label key={p}><input type="radio" name="pkg" value={p} onChange={(e) => setPackageType(e.target.value)} checked={packageType === p} disabled={loadingStatus !== 'success'}/>{p} 套餐</label>))}
                     </div>
                 </div>
 
                 <div className="form-field form-field-narrow">
                     <label className="form-label" htmlFor="status">預約狀態：</label>
-                    <select
-                        id="status"
-                        value={reservationStatus}
-                        onChange={(e) => setReservationStatus(e.target.value)}
-                        className="form-select"
-                        required
-                    >
+                    <select id="status" value={reservationStatus} onChange={(e) => setReservationStatus(e.target.value)} className="form-select" required disabled={loadingStatus !== 'success'}>
                         <option value="all">所有狀態</option>
-                        {STATUS_OPTIONS.map((status) => (
-                            <option key={status} value={status}>{status}</option>
-                        ))}
+                        {STATUS_OPTIONS.map((status) => (<option key={status} value={status}>{status}</option>))}
                     </select>
                 </div>
 
             </div>
 
 
-            {/* 按鈕 - 僅保留查詢和重設 */}
+            {/* 按鈕 */}
             <div className="form-actions-center gap">
-                <button 
-                    type="submit"
-                    className="primary-button"
-                >
+                <button type="submit" className="primary-button" disabled={loadingStatus !== 'success'}>
                     查詢
                 </button>
                 
-                <button 
-                    type="button"
-                    onClick={handleReset}
-                    className="secondary-button"
-                >
+                <button type="button" onClick={handleReset} className="secondary-button" disabled={loadingStatus !== 'success'}>
                     重設
                 </button>
             </div>
         </form>
 
         
-        {/* 查詢結果顯示區域 */}
-{searchResults && (
-    <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
-        
-        {/* 標題與匯出控制區塊 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>
-                查詢結果 ({searchResults.length} 筆)
-            </h3>
-            
-            {/* 匯出篩選與按鈕 - 替換為 Checkboxes */}
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <label className="form-label" style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>
-                    匯出狀態：
-                </label>
-                
-                {/* Checkboxes Group */}
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    {EXPORT_STATUS_OPTIONS.map(status => (
-                        <label key={status} style={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem' }}>
-                            <input
-                                type="checkbox"
-                                value={status}
-                                checked={exportFilter.includes(status)}
-                                onChange={(e) => handleExportFilterChange(status, e.target.checked)}
-                                style={{ marginRight: '4px' }}
-                            />
-                            {status}
-                        </label>
-                    ))}
-                </div>
+        {/* 載入/錯誤訊息 */}
+        {loadingStatus === 'loading' && <p style={{ textAlign: 'center', marginTop: '30px', color: '#6b7280' }}>預約資料載入中...</p>}
+        {loadingStatus === 'error' && <p style={{ textAlign: 'center', marginTop: '30px', color: '#dc2626' }}>❌ 無法連接後端，請檢查服務是否運行。</p>}
 
-                <button 
-                    type="button"
-                    onClick={handleExport}
-                    className="secondary-button"
-                    // 當前無結果時或沒有選擇任何狀態時，按鈕禁用
-                    disabled={searchResults.length === 0 || exportFilter.length === 0}
-                    style={{ marginLeft: '10px' }}
-                >
-                    匯出 CSV ({exportFilter.length} 項)
-                </button>
-            </div>
-        </div>
+        
+        {/* 查詢結果顯示區域 */}
+        {loadingStatus === 'success' && searchResults && (
+            <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>🔍 查詢結果 ({searchResults.length} 筆)</h3>
+                    
+                    {/* 匯出篩選與按鈕 */}
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                        <label className="form-label" style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>匯出狀態：</label>
+                        
+                        {/* Checkboxes Group */}
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            {EXPORT_STATUS_OPTIONS.map(status => (
+                                <label key={status} style={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem' }}>
+                                    <input type="checkbox" value={status} checked={exportFilter.includes(status)} onChange={(e) => handleExportFilterChange(status, e.target.checked)} style={{ marginRight: '4px' }}/>
+                                    {status}
+                                </label>
+                            ))}
+                        </div>
+
+                        <button type="button" onClick={handleExport} className="secondary-button" disabled={searchResults.length === 0 || exportFilter.length === 0} style={{ marginLeft: '10px' }}>
+                            匯出 CSV ({exportFilter.length} 項)
+                        </button>
+                    </div>
+                </div>
 
                 {searchResults.length > 0 ? (
                     <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', textAlign: 'left' }}>
@@ -449,40 +403,13 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
                             {searchResults.map((res) => (
                                 <tr key={res.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                                     <td style={{ padding: '8px' }}>{res.name}</td>
-                                    <td style={{ padding: '8px', fontSize: '0.9rem' }}>
-                                        {res.idNumber} / <br/>{res.phone}
-                                    </td>
-                                    <td style={{ padding: '8px', fontSize: '0.9rem' }}>
-                                        {res.timeSlot} ({res.packageType} 套餐)
-                                    </td>
-                                    <td style={{ padding: '8px', textAlign: 'center', fontWeight: 600, color: getStatusColor(res.status) }}>
-                                        {res.status}
-                                    </td>
+                                    <td style={{ padding: '8px', fontSize: '0.9rem' }}>{res.idNumber} / <br/>{res.phone}</td>
+                                    <td style={{ padding: '8px', fontSize: '0.9rem' }}>{res.timeSlot} ({res.packageType} 套餐)</td>
+                                    <td style={{ padding: '8px', textAlign: 'center', fontWeight: 600, color: getStatusColor(res.status as ReservationStatus) }}>{res.status}</td>
                                     <td style={{ padding: '8px', textAlign: 'center' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
-                                            <button 
-                                                type="button" 
-                                                className="secondary-button" 
-                                                onClick={() => openModifyModal(res)}
-                                                style={{ padding: '5px 10px', fontSize: '0.85rem' }}
-                                            >
-                                                修改狀態
-                                            </button>
-                                            <button 
-                                                type="button" 
-                                                className="secondary-button" 
-                                                onClick={() => handleCancel(res)}
-                                                style={{ 
-                                                    padding: '5px 10px', 
-                                                    fontSize: '0.85rem', 
-                                                    backgroundColor: res.status === '已取消' ? '#f3f4f6' : '#fef2f2',
-                                                    color: res.status === '已取消' ? '#9ca3af' : '#ef4444',
-                                                    cursor: res.status === '已取消' ? 'not-allowed' : 'pointer'
-                                                }}
-                                                disabled={res.status === '已取消'}
-                                            >
-                                                取消預約
-                                            </button>
+                                            <button type="button" className="secondary-button" onClick={() => openModifyModal(res)} style={{ padding: '5px 10px', fontSize: '0.85rem' }}>修改狀態</button>
+                                            <button type="button" className="secondary-button" onClick={() => handleCancel(res)} style={{ padding: '5px 10px', fontSize: '0.85rem', backgroundColor: res.status === '已取消' ? '#f3f4f6' : '#fef2f2', color: res.status === '已取消' ? '#9ca3af' : '#ef4444', cursor: res.status === '已取消' ? 'not-allowed' : 'pointer'}} disabled={res.status === '已取消'}>取消預約</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -490,9 +417,7 @@ const handleExportFilterChange = (status: ReservationStatus, isChecked: boolean)
                         </tbody>
                     </table>
                 ) : (
-                    <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>
-                        找不到符合條件的預約記錄。
-                    </p>
+                    <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>找不到符合條件的預約記錄。</p>
                 )}
             </div>
         )}
