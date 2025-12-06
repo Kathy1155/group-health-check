@@ -8,8 +8,8 @@ import './App.css';
 import LoginPage from './pages/LoginPage';
 import CheckupCenterLayout from './pages/CheckupCenterLayout'; 
 import TimeSlotSettingPage from './pages/TimeSlotSettingPage'; 
+import TimeSlotViewPage from './pages/TimeSlotViewPage';
 import ReservationListPage from './pages/ReservationListPage'; 
-import DailyReportPage from './pages/DailyReportPage'; 
 import DefaultHomePage from './pages/DefaultHomePage'; 
 
 function App() {
@@ -35,10 +35,9 @@ function App() {
 
         {/* 2. 時段與預約管理 */}
         <Route path="time-slot" element={<TimeSlotSettingPage />} />
+        <Route path="time-slot-view" element={<TimeSlotViewPage />} />
         <Route path="reservation" element={<ReservationListPage />} />
         
-        {/* 3. 報表與系統設定 */}
-        <Route path="daily-report" element={<DailyReportPage />} /> 
 
         {/* 4. 處理未匹配到的路由：導航回默認首頁 */}
         {/* 這樣任何不正確的子路徑都會導航回功能選擇介面 */}

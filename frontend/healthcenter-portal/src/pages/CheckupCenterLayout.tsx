@@ -17,14 +17,13 @@ const navLinks = [
       title: '時段與套餐管理',
       links: [
         { to: 'time-slot', label: '設定每日時段名額' },
-        // { to: '/branch-config', label: '院區與套餐設定' },
+        { to: 'time-slot-view', label: '時段名額查詢' }
       ],
     },
     {
       title: '預約管理及報表',
       links: [
-        { to: 'reservation', label: '預約狀況查詢' },
-        { to: 'daily-report', label: '每日受檢報表' },
+        { to: 'reservation', label: '預約狀況查詢與匯出報表' },
       ],
     },
 ];
