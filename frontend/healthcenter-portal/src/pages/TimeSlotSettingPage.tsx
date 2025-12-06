@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 
-// *** 請修改此處為您的實際後端 API 位址 ***
-const API_ENDPOINT = 'https://jsonplaceholder.typicode.com/posts'; 
+// 請修改此處為您的實際後端 API 位址 
+const API_ENDPOINT = '/api/timeslots'; 
 
 function TimeSlotSettingPage() {
   const [date, setDate] = useState("");
