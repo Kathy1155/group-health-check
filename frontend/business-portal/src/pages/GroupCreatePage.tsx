@@ -21,8 +21,8 @@ const GroupCreatePage: React.FC = () => {
   // 套用離開提醒
   useUnsavedChangesWarning(isDirty);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
     const payload = {
       groupName,
@@ -32,6 +32,18 @@ const GroupCreatePage: React.FC = () => {
       contactEmail,
       status,
     };
+
+    const res = await fetch('http://localhost:3000/groups', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await res.json();
+  console.log("新增成功", result);
+  alert('新增成功（目前為後端假資料）');
 
     console.log('暫存送出的資料（新增團體）', payload);
     alert('儲存成功（目前為前端假資料）');
