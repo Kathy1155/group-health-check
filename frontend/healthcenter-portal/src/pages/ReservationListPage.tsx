@@ -2,6 +2,31 @@
 
 import React, { useState, useEffect } from "react"; 
 
+// 輔助函數：將 JSON 陣列轉換為 CSV 字串
+const convertToCsv = (data: Reservation[]): string => {
+    if (data.length === 0) return "";
+    
+    // 1. 定義標題列 (CSV Header)
+    const headers = ["姓名", "身分證", "電話", "日期", "時段", "套餐", "狀態"];
+    
+    // 2. 將標題列轉為 CSV 格式 (用逗號分隔)
+    const headerRow = headers.join(',');
+    
+    // 3. 轉換數據行
+    const dataRows = data.map(item => [
+        item.name,
+        item.idNumber,
+        item.phone,
+        item.date,
+        item.timeSlot,
+        item.packageType,
+        item.status
+    ].map(field => `"${field}"`).join(',')); // 用雙引號包裹字段，防止內容中的逗號出錯
+    
+    // 4. 合併標題和數據行，用換行符 (\n) 分隔
+    return [headerRow, ...dataRows].join('\n');
+};
+
 // --- 介面和假資料定義 ---
 type ReservationStatus = '已預約' | '已報到' | '已取消';
 
@@ -180,26 +205,56 @@ function ReservationListPage() {
   };
   
   // 匯出功能 (保持不變)
-  const handleExport = () => {
-      // ... (匯出邏輯保持不變)
-      if (!searchResults || searchResults.length === 0) {
-          alert("沒有查詢結果可以匯出。請先執行查詢。");
-          return;
-      }
+const handleExport = () => {
+    if (!searchResults || searchResults.length === 0) {
+        alert("沒有查詢結果可以匯出。請先執行查詢。");
+        return;
+    }
+    
+    // 篩選出符合使用者選擇狀態的數據
+    const dataToExport = searchResults.filter(res => exportFilter.includes(res.status));
 
-      const dataToExport = searchResults.filter(res => exportFilter.includes(res.status));
-      
-      if (exportFilter.length === 0) {
-          alert("請選擇至少一個預約狀態進行匯出。");
-          return;
-      }
+    if (exportFilter.length === 0) {
+        alert("請選擇至少一個預約狀態進行匯出。");
+        return;
+    }
 
-      if (dataToExport.length > 0) {
-          alert(`正在匯出 ${dataToExport.length} 筆（狀態為: ${exportFilter.join('、')}）的 CSV 檔案...`);
-      } else {
-          alert(`當前查詢結果中，找不到符合您選擇的狀態 (${exportFilter.join('、')}) 的資料可以匯出。`);
-      }
-  };
+    if (dataToExport.length === 0) {
+        alert("當前查詢結果中，找不到符合您選擇的狀態的資料可以匯出。");
+        return;
+    }
+
+    // 核心邏輯：將數據轉為 CSV 並觸發下載
+    try {
+        const csvString = convertToCsv(dataToExport);
+
+        // 創建 Blob 物件 (用於下載的二進制數據)
+        const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvString], { type: 'text/csv;charset=utf-8;' });
+        // [0xef, 0xbb, 0xbf] 是 UTF-8 BOM，確保 Excel 打開時中文不亂碼
+
+        // 創建下載連結
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // 設定下載檔案名稱
+        const dateString = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '');
+        a.download = `預約報表_${dateString}.csv`; 
+        
+        // 模擬點擊下載
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url); // 釋放創建的 URL
+
+        // 提示使用者
+        alert(`已成功匯出 ${dataToExport.length} 筆 CSV 檔案到您的電腦。`);
+
+    } catch (e) {
+        console.error("CSV 匯出失敗:", e);
+        alert("檔案匯出過程中發生錯誤。");
+    }
+};
   
   // 重設表單 (保持不變)
   const handleReset = () => {
