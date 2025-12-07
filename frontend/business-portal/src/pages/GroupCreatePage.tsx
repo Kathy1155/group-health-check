@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning.ts';
 
 const GroupCreatePage: React.FC = () => {
   const [groupName, setGroupName] = useState('');
@@ -7,6 +8,18 @@ const GroupCreatePage: React.FC = () => {
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+
+  // 有沒有被修改但還沒儲存
+  const isDirty =
+    groupName !== '' ||
+    groupCode !== '' ||
+    contactName !== '' ||
+    contactPhone !== '' ||
+    contactEmail !== '' ||
+    status !== 'active';
+
+  // 套用離開提醒
+  useUnsavedChangesWarning(isDirty);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +36,7 @@ const GroupCreatePage: React.FC = () => {
     console.log('暫存送出的資料（新增團體）', payload);
     alert('儲存成功（目前為前端假資料）');
 
-    // 先簡單清空表單
+    // 儲存成功後清空表單 → isDirty 變回 false，就不再跳警告
     setGroupName('');
     setGroupCode('');
     setContactName('');
