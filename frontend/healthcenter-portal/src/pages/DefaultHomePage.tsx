@@ -7,17 +7,13 @@ const USER_NAME = '陳醫師'; // 您的假想使用者名稱
 // 功能按鈕配置 (您可以根據您的路由來修改 to 的路徑)
 const featureButtons = [
   { label: '設定每日時段名額', to: 'time-slot', className: 'primary-button' },
-  { label: '預約狀況查詢', to: 'reservation', className: 'primary-button' },
-  { label: '每日受檢報表', to: 'daily-report', className: 'primary-button' },
+  { label: '時段名額查詢', to: 'time-slot-view', className: 'primary-button' },
+  { label: '預約狀況查詢及修改', to: 'reservation', className: 'primary-button' },
 ];
 
 function DefaultHomePage() {
   const navigate = useNavigate();
-
-  // 註：實際的登出邏輯應該在 CheckupCenterLayout 中處理，
-  // 但這裡的按鈕可以簡單導航到登出頁面或根目錄。
   const handleLogout = () => {
-    // 這裡通常是呼叫一個登出 API 或清空 token 的動作
     navigate('/'); 
   };
 
