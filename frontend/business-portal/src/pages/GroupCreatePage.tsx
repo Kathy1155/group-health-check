@@ -21,41 +21,54 @@ const GroupCreatePage: React.FC = () => {
   // 套用離開提醒
   useUnsavedChangesWarning(isDirty);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
 
-    const payload = {
-      groupName,
-      groupCode,
-      contactName,
-      contactPhone,
-      contactEmail,
-      status,
-    };
+  const payload = {
+    groupName,
+    groupCode,
+    contactName,
+    contactPhone,
+    contactEmail,
+    status,
+  };
 
-    const res = await fetch('http://localhost:3000/groups', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  console.log('暫存送出的資料（新增團體）', payload);
 
-  const result = await res.json();
-  console.log("新增成功", result);
-  alert('新增成功（目前為後端假資料）');
+  try {
+    const response = await fetch('http://localhost:3000/groups', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-    console.log('暫存送出的資料（新增團體）', payload);
-    alert('儲存成功（目前為前端假資料）');
+    // 如果後端回傳不是 2xx，當作失敗處理
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('後端回傳錯誤狀態：', response.status, text);
+      alert('儲存失敗，請稍後再試（後端回傳錯誤）');
+      return;
+    }
 
-    // 儲存成功後清空表單 → isDirty 變回 false，就不再跳警告
+    const result = await response.json();
+    console.log('新增成功（後端回傳）', result);
+    alert('儲存成功（目前為後端假資料）');
+
+    // 儲存成功後清空欄位
     setGroupName('');
     setGroupCode('');
     setContactName('');
     setContactPhone('');
     setContactEmail('');
     setStatus('active');
-  };
+  } catch (error) {
+    console.error('呼叫後端失敗（可能是後端沒跑或網路錯誤）', error);
+    alert('無法連線到伺服器，請確認後端是否有啟動');
+  }
+};
+
 
   return (
     <div className="page-container">
