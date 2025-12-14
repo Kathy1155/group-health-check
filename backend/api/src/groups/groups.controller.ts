@@ -6,13 +6,19 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Get()
-  findAll() {
+  findAll(): any {
     return this.groupsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): any {
     return this.groupsService.findOne(+id);
+  }
+
+  // 新增：用團體代碼查詢
+  @Get('code/:code')
+  findByCode(@Param('code') code: string): any {
+    return this.groupsService.findByCode(code);
   }
 
   @Post()
@@ -26,7 +32,7 @@ export class GroupsController {
       contactEmail: string;
       status?: 'active' | 'inactive';
     },
-  ) {
+  ): any {
     return this.groupsService.create(body);
   }
 }

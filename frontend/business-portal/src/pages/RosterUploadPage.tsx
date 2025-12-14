@@ -1,16 +1,11 @@
-import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
+import React from 'react';
 import { useState } from 'react';
+import { useUnsavedChangesWarning } from '../hooks/useUnsavedChangesWarning';
 
 interface GroupInfo {
   code: string;
   name: string;
 }
-
-// 假資料：模擬依團體代碼查詢團體名稱
-const mockGroups: Record<string, GroupInfo> = {
-  A0001: { code: 'A0001', name: 'A公司' },
-  B0001: { code: 'B0001', name: 'B公司' },
-};
 
 const RosterUploadPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2>(1);
@@ -19,15 +14,12 @@ const RosterUploadPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  // 有沒有未儲存的變更：
-  // 只有在 Step 2 且已經選了檔案時，才提醒離開
+  // 只有在 Step 2 且已選檔案時，才視為有未儲存變更
   const isDirty = step === 2 && !!file;
-
-  // 套用關閉/重整提醒
   useUnsavedChangesWarning(isDirty);
 
-
-  const handleConfirmCode = (e: React.FormEvent) => {
+  // Step1：確認團體代碼 → 向後端查詢
+  const handleConfirmCode = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const trimmed = groupCodeInput.trim();
@@ -36,16 +28,38 @@ const RosterUploadPage: React.FC = () => {
       return;
     }
 
-    const found = mockGroups[trimmed];
+    try {
+      const res = await fetch(
+        `http://localhost:3000/groups/code/${encodeURIComponent(trimmed)}`
+      );
 
-    if (!found) {
-      alert('查無此團體代碼（目前使用假資料）');
-      setGroupInfo(null);
-      return;
+      if (res.status === 404) {
+        alert('查無此團體代碼');
+        setGroupInfo(null);
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('後端回傳錯誤');
+      }
+
+      const data = await res.json();
+
+      setGroupInfo({
+        code: data.groupCode ?? trimmed,
+        name: data.name ?? '',
+      });
+
+      setStep(2);
+    } catch (err) {
+      console.error('查詢團體資料失敗', err);
+      alert('查詢團體資料失敗，請稍後再試');
     }
+  };
 
-    setGroupInfo(found);
-    setStep(2);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
   };
 
   const handleBack = () => {
@@ -54,7 +68,8 @@ const RosterUploadPage: React.FC = () => {
     setFileInputKey((k) => k + 1);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  // Step2：儲存（假上傳：只送 groupCode + fileName 給後端）
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!groupInfo) {
@@ -66,16 +81,56 @@ const RosterUploadPage: React.FC = () => {
       return;
     }
 
-    console.log('準備上傳名冊檔案', {
-      groupInfo,
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.csv')) {
+      alert('目前僅接受 CSV 檔（副檔名必須是 .csv）');
+      return;
+    }
+
+    const payload = {
+      groupCode: groupInfo.code,
       fileName: file.name,
-    });
+    };
 
-    alert('上傳並儲存成功（目前為前端假資料）');
+    console.log('暫存送出的資料（上傳團體名冊）', payload);
 
-    // 成功後清空檔案選擇，但留在 Step2，方便重新上傳
-    setFile(null);
-    setFileInputKey((k) => k + 1);
+    try {
+      const res = await fetch('http://localhost:3000/roster', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 400) {
+        const text = await res.text();
+        console.error('後端 400：', text);
+        alert('上傳失敗：目前僅接受 CSV 檔案');
+        return;
+      }
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('後端錯誤：', res.status, text);
+        alert('上傳失敗，請稍後再試');
+        return;
+      }
+
+      const result = await res.json();
+      console.log('上傳成功（後端回傳）', result);
+      alert('上傳並儲存成功（目前為後端假資料）');
+
+      // 成功後：回到 Step1 並清空所有欄位
+      setStep(1);
+      setGroupCodeInput('');
+      setGroupInfo(null);
+      setFile(null);
+      setFileInputKey((k) => k + 1);
+    } catch (error) {
+      console.error('呼叫後端失敗（可能是後端沒跑或網路錯誤）', error);
+      alert('無法連線到伺服器，請確認後端是否有啟動');
+    }
   };
 
   return (
@@ -83,6 +138,7 @@ const RosterUploadPage: React.FC = () => {
       <div className="page-card">
         <h2 className="page-title">上傳團體名冊界面</h2>
 
+        {/* Step 1：輸入團體代碼 */}
         {step === 1 && (
           <form className="page-form" onSubmit={handleConfirmCode}>
             <div className="form-row single">
@@ -95,11 +151,11 @@ const RosterUploadPage: React.FC = () => {
                   className="form-input"
                   value={groupCodeInput}
                   onChange={(e) => setGroupCodeInput(e.target.value)}
+                  placeholder="例如 A0001"
                 />
               </div>
             </div>
 
-            {/* 確定按鈕寬度與輸入欄位一致 */}
             <div className="form-actions-center">
               <button
                 type="submit"
@@ -111,6 +167,7 @@ const RosterUploadPage: React.FC = () => {
           </form>
         )}
 
+        {/* Step 2：顯示團體名稱 + 上傳檔案 */}
         {step === 2 && groupInfo && (
           <form className="page-form" onSubmit={handleSave}>
             <div className="form-row single">
@@ -130,9 +187,9 @@ const RosterUploadPage: React.FC = () => {
                   key={fileInputKey}
                   id="rosterFile"
                   type="file"
-                  onChange={(e) =>
-                    setFile(e.target.files ? e.target.files[0] : null)
-                  }
+                  className="form-input"
+                  accept=".csv"
+                  onChange={handleFileChange}
                 />
               </div>
             </div>
