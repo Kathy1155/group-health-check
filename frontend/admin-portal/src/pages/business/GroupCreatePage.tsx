@@ -33,7 +33,7 @@ const GroupCreatePage: React.FC = () => {
       status,
     };
 
-    const res = await fetch('http://localhost:3000/groups', {
+    const res = await fetch('/api/groups', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -41,12 +41,17 @@ const GroupCreatePage: React.FC = () => {
     body: JSON.stringify(payload),
   });
 
-  const result = await res.json();
-  console.log("新增成功", result);
-  alert('新增成功（目前為後端假資料）');
+  if (!res.ok) {
+  const text = await res.text();
+  console.error('新增失敗：', res.status, text);
+  alert('新增失敗，請稍後再試');
+  return;
+}
 
-    console.log('暫存送出的資料（新增團體）', payload);
-    alert('儲存成功（目前為前端假資料）');
+const result = await res.json().catch(() => ({}));
+console.log('新增成功', result);
+alert('新增成功');
+
 
     // 儲存成功後清空表單 → isDirty 變回 false，就不再跳警告
     setGroupName('');

@@ -1,7 +1,7 @@
 import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import { useState } from 'react';
 
-type Branch = 'A院區' | 'B院區' | 'C院區' | 'D院區';
+type Branch = '仁愛院區' | '中興院區' | '和平院區' | '忠孝院區';
 type PackageStatus = 'active' | 'inactive';
 
 interface PackageSetting {
@@ -9,35 +9,73 @@ interface PackageSetting {
   status: PackageStatus;
 }
 
-// 假資料：之後可改為從後端取得
-const mockPackageSettings: Record<string, PackageSetting> = {
-  A套餐: { branches: ['A院區', 'C院區'], status: 'active' },
-  B套餐: { branches: ['B院區'], status: 'inactive' },
-  C套餐: { branches: [], status: 'active' },
+// 套餐顯示文字 → 後端代碼（固定）
+const PACKAGE_CODES: Record<string, string> = {
+  'A套餐': 'A',
+  'B套餐': 'B',
+  'C套餐': 'C',
+  'D套餐': 'D',
+  'E套餐': 'E',
 };
+
+const ALL_PACKAGES = Object.keys(PACKAGE_CODES);
+const ALL_BRANCHES: Branch[] = ['仁愛院區', '中興院區', '和平院區', '忠孝院區'];
 
 const PackageBranchSettingPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedPackage, setSelectedPackage] = useState<string>('A套餐');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [status, setStatus] = useState<PackageStatus>('active');
+  const [initial, setInitial] = useState<PackageSetting | null>(null);
 
-    // 有沒有未儲存的變更
-    // 只要進到 Step 2（可以編輯套餐院區）就視為有未儲存內容
-  const isDirty = step === 2;
+  const isDirty =
+    step === 2 &&
+    !!initial &&
+    (initial.status !== status ||
+      initial.branches.length !== branches.length ||
+      initial.branches.some((b) => !branches.includes(b)));
 
-  // 套用關閉/重整提醒
   useUnsavedChangesWarning(isDirty);
 
+  const handleNext = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  const handleNext = (e: React.FormEvent) => {
-    e.preventDefault();
+  const code = PACKAGE_CODES[selectedPackage];
+  if (!code) {
+    alert('套餐代碼不存在');
+    return;
+  }
 
-    const current = mockPackageSettings[selectedPackage];
-    setBranches(current?.branches ?? []);
-    setStatus(current?.status ?? 'active');
+  try {
+    const res = await fetch(`/api/packages/${code}/settings`);
+
+    if (res.ok) {
+      const data = await res.json();
+      setBranches(data.branches ?? []);
+      setStatus(data.status ?? 'active');
+      setInitial({
+        branches: data.branches ?? [],
+        status: data.status ?? 'active',
+      });
+    } else if (res.status === 404) {
+      // 從沒設定過的套餐 → 用預設值
+      setBranches([]);
+      setStatus('active');
+      setInitial({ branches: [], status: 'active' });
+    } else {
+      const text = await res.text();
+      console.error('讀取設定失敗', res.status, text);
+      alert('讀取套餐設定失敗');
+      return;
+    }
+
     setStep(2);
-  };
+  } catch (err) {
+    console.error('連線失敗', err);
+    alert('無法連線到後端，請確認後端是否啟動');
+  }
+};
+
 
   const toggleBranch = (branch: Branch) => {
     setBranches((prev) =>
@@ -47,20 +85,42 @@ const PackageBranchSettingPage: React.FC = () => {
     );
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload: PackageSetting = {
+    const code = PACKAGE_CODES[selectedPackage];
+    if (!code) {
+      alert('套餐代碼不存在');
+      return;
+    }
+
+    const payload = {
       branches,
       status,
     };
 
-    console.log('暫存送出的資料（指定套餐院區）', {
-      packageName: selectedPackage,
-      ...payload,
-    });
+    try {
+      const res = await fetch(`/api/packages/${code}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    alert('儲存成功（目前為前端假資料）');
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('儲存失敗：', res.status, text);
+        alert('儲存失敗，請稍後再試');
+        return;
+      }
+
+      alert(`套餐 ${selectedPackage} 設定儲存成功`);
+      setInitial({ branches, status });
+
+      setStep(1);
+    } catch (err) {
+      console.error('連線失敗：', err);
+      alert('無法連線到後端，請確認後端是否啟動');
+    }
   };
 
   const handleBack = () => {
@@ -85,14 +145,15 @@ const PackageBranchSettingPage: React.FC = () => {
                   value={selectedPackage}
                   onChange={(e) => setSelectedPackage(e.target.value)}
                 >
-                  <option value="A套餐">A套餐</option>
-                  <option value="B套餐">B套餐</option>
-                  <option value="C套餐">C套餐</option>
+                  {ALL_PACKAGES.map((pkg) => (
+                    <option key={pkg} value={pkg}>
+                      {pkg}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            {/* 下一步置中，寬度與欄位一致 */}
             <div className="form-actions-center">
               <button type="submit" className="primary-button full-width-button">
                 下一步
@@ -115,18 +176,16 @@ const PackageBranchSettingPage: React.FC = () => {
               <div className="form-field">
                 <div className="form-label">施作院區：</div>
                 <div className="checkbox-column">
-                  {(['A院區', 'B院區', 'C院區', 'D院區'] as Branch[]).map(
-                    (branch) => (
-                      <label key={branch} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={branches.includes(branch)}
-                          onChange={() => toggleBranch(branch)}
-                        />
-                        {branch}
-                      </label>
-                    ),
-                  )}
+                  {ALL_BRANCHES.map((branch) => (
+                    <label key={branch} className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={branches.includes(branch)}
+                        onChange={() => toggleBranch(branch)}
+                      />
+                      {branch}
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -155,7 +214,6 @@ const PackageBranchSettingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 下方有「上一步」＋「儲存」 */}
             <div className="form-actions-center gap">
               <button
                 type="button"

@@ -34,7 +34,18 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   const role = getRole();
- const USER_NAME = '陳醫師';
+
+function getDisplayName() {
+  return (
+    localStorage.getItem("employeeDisplayName") ||
+    localStorage.getItem("displayName") ||
+    localStorage.getItem("name") ||
+    ""
+  );
+}
+
+const USER_NAME = getDisplayName();
+
 
   const title = useMemo(() => {
     if (role === "business") return "團體健檢預約系統 - 業務中心後台";
@@ -48,7 +59,6 @@ export default function AdminLayout() {
         {
           title: "業務中心",
           links: [
-            { to: "/admin/business", label: "功能選擇介面" },
             { to: "/admin/business/groups/new", label: "新增團體資料" },
             { to: "/admin/business/package-branches", label: "指定套餐院區" },
             { to: "/admin/business/roster/upload", label: "上傳團體名冊" },
@@ -114,12 +124,13 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        <h1 className="app-title">{title}</h1>
+        <div className="app-title-block">
+          <h1 className="app-title">{title}</h1>
+          {USER_NAME && (
+            <div className="app-welcome">{USER_NAME} 歡迎您！</div>
+          )}
+        </div>
 
-        {/* 右側歡迎字（可有可無，不影響排版） */}
-        {USER_NAME && (
-          <div className="welcome-message">{USER_NAME} 歡迎您！</div>
-        )}
       </header>
 
       <aside

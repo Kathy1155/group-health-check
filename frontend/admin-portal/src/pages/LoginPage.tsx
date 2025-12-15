@@ -6,12 +6,14 @@ type Role = "business" | "center" | "admin";
 export default function LoginPage() {
   const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("business");
+  const [role, setRole] = useState<Role | "">("");
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!account.trim() || !password.trim()) return;
+    if (!role) { alert("請先選擇角色"); return;
+  }
 
     localStorage.setItem("employeeDisplayName", account.trim());
     localStorage.setItem("role", role);
@@ -53,16 +55,25 @@ export default function LoginPage() {
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
             >
+              <option value="" disabled>
+                請選擇角色
+              </option>
               <option value="business">業務中心</option>
               <option value="center">健檢中心</option>
               <option value="admin">管理者（全權）</option>
             </select>
+
           </div>
 
           <div className="login-actions-center">
-            <button className="primary-button" type="submit">
+            <button
+              className="primary-button"
+              type="button"
+              onClick={handleLogin}
+            >
               登入
             </button>
+
           </div>
         </form>
       </div>

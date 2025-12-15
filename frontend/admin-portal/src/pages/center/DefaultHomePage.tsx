@@ -31,10 +31,6 @@ function DefaultHomePage() {
             功能選擇介面
           </h2>
 
-          <p style={{ fontSize: '1.1rem', color: '#6b7280', marginBottom: '32px' }}>
-            {USER_NAME} - 歡迎您 ~
-          </p>
-
           <div
             style={{
               display: 'flex',

@@ -6,13 +6,9 @@ interface GroupInfo {
   name: string;
 }
 
-// 假資料：模擬依團體代碼查詢團體名稱
-const mockGroups: Record<string, GroupInfo> = {
-  A0001: { code: 'A0001', name: 'A公司' },
-  B0001: { code: 'B0001', name: 'B公司' },
-};
 
 const RosterUploadPage: React.FC = () => {
+  const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [groupCodeInput, setGroupCodeInput] = useState('');
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
@@ -27,26 +23,42 @@ const RosterUploadPage: React.FC = () => {
   useUnsavedChangesWarning(isDirty);
 
 
-  const handleConfirmCode = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmCode = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const trimmed = groupCodeInput.trim();
-    if (!trimmed) {
-      alert('請先輸入團體代碼');
-      return;
-    }
+  const trimmed = groupCodeInput.trim();
+  if (!trimmed) {
+    alert('請先輸入團體代碼');
+    return;
+  }
 
-    const found = mockGroups[trimmed];
+  try {
+    const res = await fetch(`/api/groups/code/${encodeURIComponent(trimmed)}`);
 
-    if (!found) {
-      alert('查無此團體代碼（目前使用假資料）');
+    if (res.status === 404) {
+      alert('查無此團體代碼');
       setGroupInfo(null);
       return;
     }
 
-    setGroupInfo(found);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('查詢失敗：', res.status, text);
+      alert('查詢失敗，請稍後再試');
+      return;
+    }
+
+    const data = await res.json();
+    setGroupInfo({
+      code: data.groupCode ?? trimmed,
+      name: data.name ?? '',
+    });
     setStep(2);
-  };
+  } catch (err) {
+    console.error('呼叫後端失敗：', err);
+    alert('無法連線到伺服器，請確認後端是否有啟動');
+  }
+};
 
   const handleBack = () => {
     setStep(1);
@@ -54,29 +66,60 @@ const RosterUploadPage: React.FC = () => {
     setFileInputKey((k) => k + 1);
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!groupInfo) {
-      alert('請先輸入並確認團體代碼');
-      return;
-    }
-    if (!file) {
-      alert('請選擇要上傳的名冊檔案');
-      return;
-    }
+  if (!groupInfo) {
+    alert('請先輸入並確認團體代碼');
+    return;
+  }
+  if (!file) {
+    alert('請選擇要上傳的名冊檔案');
+    return;
+  }
 
-    console.log('準備上傳名冊檔案', {
-      groupInfo,
+  // 儲存前再擋一次（保險）
+  const lowerName = file.name.toLowerCase();
+  if (!lowerName.endsWith('.csv')) {
+    alert('目前僅接受 CSV 檔（副檔名必須是 .csv）');
+    return;
+  }
+
+  setIsSaving(true);
+  try {
+    // 目前先做「假上傳」：只送 groupCode + fileName
+    // 之後要真的傳檔再改成 FormData
+    const payload = {
+      groupCode: groupInfo.code,
       fileName: file.name,
+    };
+
+    const res = await fetch('/api/roster', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
-    alert('上傳並儲存成功（目前為前端假資料）');
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('上傳失敗：', res.status, text);
+      alert('上傳失敗，請稍後再試');
+      return;
+    }
+
+    alert('上傳並儲存成功（已呼叫後端 API）');
 
     // 成功後清空檔案選擇，但留在 Step2，方便重新上傳
     setFile(null);
     setFileInputKey((k) => k + 1);
-  };
+  } catch (err) {
+    console.error('呼叫後端失敗：', err);
+    alert('無法連線到伺服器，請確認後端是否有啟動');
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 
   return (
     <div className="page-container">
@@ -130,10 +173,26 @@ const RosterUploadPage: React.FC = () => {
                   key={fileInputKey}
                   id="rosterFile"
                   type="file"
-                  onChange={(e) =>
-                    setFile(e.target.files ? e.target.files[0] : null)
-                  }
+                  accept=".csv,text/csv"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    if (!f) {
+                      setFile(null);
+                      return;
+                    }
+
+                    const lower = f.name.toLowerCase();
+                    if (!lower.endsWith('.csv')) {
+                      alert('目前僅接受 CSV 檔（副檔名必須是 .csv）');
+                      e.target.value = '';
+                      setFile(null);
+                      return;
+                    }
+
+                    setFile(f);
+                  }}
                 />
+
               </div>
             </div>
 
@@ -145,9 +204,10 @@ const RosterUploadPage: React.FC = () => {
               >
                 上一步
               </button>
-              <button type="submit" className="primary-button">
-                儲存
+              <button type="submit" className="primary-button" disabled={isSaving}>
+                {isSaving ? '儲存中...' : '儲存'}
               </button>
+
             </div>
           </form>
         )}
