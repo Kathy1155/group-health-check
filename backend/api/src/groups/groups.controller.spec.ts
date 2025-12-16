@@ -1,18 +1,28 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { GroupsController } from './groups.controller';
+// backend/api/src/groups/groups.controller.ts
+import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import { GroupsService } from './groups.service';
 
-describe('GroupsController', () => {
-  let controller: GroupsController;
+@Controller('groups')
+export class GroupsController {
+  constructor(private readonly groupsService: GroupsService) {}
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [GroupsController],
-    }).compile();
+  @Get()
+  findAll() {
+    return this.groupsService.findAll();
+  }
 
-    controller = module.get<GroupsController>(GroupsController);
-  });
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.groupsService.findOne(+id);
+  }
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-});
+  // GET /api/groups/by-code?code=FUBON2025
+  @Get('by-code')
+  findByCode(@Query('code') code: string) {
+    const group = this.groupsService.findByCode(code);
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+    return group;
+  }
+}
