@@ -11,6 +11,7 @@ type SlotPageState = {
     contactName: string;
     idNumber: string;
   };
+  idNumber: string;
   branchId: number;
   packageId: number;
 };
@@ -27,16 +28,22 @@ function SelectTimeSlotPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const state = location.state as SlotPageState | null;
+  const state = location.state as SlotPageState | undefined;
 
-  console.log("SelectTimeSlotPage location.state = ", state);
-
-  // 如果沒有從上一頁帶到資料（直接打網址進來），請使用者重走流程
-  if (!state) {
-    return <p>沒有從上一頁帶到資料，請重新從首頁開始預約。</p>;
+  // ⭐ 防呆：沒有從上一頁正確進來
+  if (!state?.group || !state.branchId || !state.packageId) {
+    return (
+      <div className="page-form">
+        <h2>資料遺失</h2>
+        <p>請從預約流程重新開始。</p>
+        <button type="button" onClick={() => navigate("/")}>
+          回首頁
+        </button>
+      </div>
+    );
   }
 
-  const { group, branchId, packageId } = state;
+  const { group, idNumber, branchId, packageId } = state;
 
   // 當日期改變時，向後端查詢可預約時段
   useEffect(() => {
@@ -62,21 +69,18 @@ function SelectTimeSlotPage() {
       })
       .finally(() => {
         setLoadingSlots(false);
-        // 日期變更時清空原本選擇的時段
         setSlot("");
       });
   }, [date, branchId, packageId]);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!date || !slot) return;
 
-    // 之後可加：呼叫後端保留名額 API（POST /reservations 或 /timeslots/hold）
-    // 先把目前已經選好的資訊一起帶到填寫資料那一頁
     navigate("/fill-profile", {
       state: {
         group,
+        idNumber,
         branchId,
         packageId,
         date,
@@ -86,13 +90,9 @@ function SelectTimeSlotPage() {
   };
 
   const handlePrev = () => {
-    // 回到上一頁（保留 state）
     navigate(-1);
-    // 如果你堅持用 path 也可以：
-    // navigate("/select-branch-package", { state });
   };
 
-  // 依據目前狀態決定下拉選單第一行的提示文字
   const renderSlotPlaceholder = () => {
     if (!date) return "請先選日期";
     if (loadingSlots) return "載入中...";
@@ -103,8 +103,9 @@ function SelectTimeSlotPage() {
   return (
     <form onSubmit={handleNext} className="page-form">
       <h2>步驟 3：選擇日期與時段</h2>
+      <p>團體名稱：{group.name}</p>
 
-      {/* 日期選擇（使用 HTML5 Date Picker） */}
+      {/* 日期選擇 */}
       <div style={{ marginTop: "1rem" }}>
         <label>
           日期：
@@ -118,7 +119,7 @@ function SelectTimeSlotPage() {
         </label>
       </div>
 
-      {/* 時段選擇（改成用後端回傳的 slots） */}
+      {/* 時段選擇 */}
       <div style={{ marginTop: "1rem" }}>
         <label>
           時段：
@@ -139,18 +140,14 @@ function SelectTimeSlotPage() {
         </label>
       </div>
 
-      {/* 若有錯誤訊息，顯示在下方（方便 debug / 使用者知道狀況） */}
       {slotsError && date && (
-        <p style={{ color: "darkred", marginTop: "0.5rem" }}>{slotsError}</p>
+        <p style={{ color: "darkred", marginTop: "0.5rem" }}>
+          {slotsError}
+        </p>
       )}
 
-      {/* 下方按鈕列 */}
       <div className="form-footer">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handlePrev}
-        >
+        <button type="button" className="btn btn-secondary" onClick={handlePrev}>
           上一步
         </button>
         <button

@@ -250,3 +250,132 @@
 .page-form {
   margin-top: 1rem;
 }
+/* ===== 表單共用美化（employee-portal）===== */
+
+.page-form {
+  margin-top: 1rem;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+}
+
+.page-form h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.35rem;
+}
+
+.page-form h3 {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.form-hint {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0.25rem 0 1rem;
+  line-height: 1.5;
+}
+
+/* 區塊視覺分隔 */
+.form-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+.form-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* 一行一欄位：左 label、右 input */
+.form-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  max-width: 720px;
+}
+
+.form-grid label {
+  font-weight: 600;
+  color: #333;
+}
+
+/* input/select/textarea 統一外觀 */
+.page-form input,
+.page-form select,
+.page-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  outline: none;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.page-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.page-form input:focus,
+.page-form select:focus,
+.page-form textarea:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 0 3px rgba(102, 175, 233, 0.18);
+}
+
+/* 唯讀/disabled 更像「確認資料」 */
+.page-form input:disabled,
+.page-form select:disabled,
+.page-form textarea:disabled {
+  background: #f6f7f9;
+  color: #444;
+  border-color: #e2e2e2;
+}
+
+/* 表單 footer 靠右更像一般系統 */
+.form-footer {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* 按鈕更像系統元件 */
+.btn {
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.page-form input::placeholder,
+.page-form textarea::placeholder {
+  color: #999;
+  font-size: 0.85rem;
+}
+/* 病史：改成直向堆疊（每列 label 在上、欄位在下） */
+.form-stack {
+  max-width: 720px;
+}
+
+.form-row {
+  margin-bottom: 0.9rem;
+}
+
+.form-row label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.35rem;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+}
+

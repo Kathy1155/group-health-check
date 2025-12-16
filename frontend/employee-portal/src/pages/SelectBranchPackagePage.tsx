@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { fetchGroupOptions } from "../api/groupOptionsApi";
 import type { GroupOptionDto } from "../api/groupOptionsApi";
 
-
 type GroupInState = {
   id: number;
   code: string;
@@ -12,11 +11,19 @@ type GroupInState = {
   idNumber: string;
 };
 
+type LocationState = {
+  group: GroupInState;
+  idNumber: string;
+  groupCode: string;
+};
+
 function SelectBranchPackagePage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const group = location.state?.group as GroupInState | undefined;
+  const state = location.state as LocationState | undefined;
+  const group = state?.group;
+  const idNumber = state?.idNumber;
 
   const [options, setOptions] = useState<GroupOptionDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,9 +34,9 @@ function SelectBranchPackagePage() {
     null
   );
 
-  // 如果沒有 group（例如直接輸入網址），導回首頁
+  // ⭐ 防呆：如果沒有必要 state，直接導回首頁
   useEffect(() => {
-    if (!group) {
+    if (!group || !idNumber) {
       navigate("/");
       return;
     }
@@ -44,15 +51,16 @@ function SelectBranchPackagePage() {
         setError("無法取得院區與套餐資料");
         setLoading(false);
       });
-  }, [group, navigate]);
+  }, [group, idNumber, navigate]);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedBranchId || !selectedPackageId) return;
+    if (!selectedBranchId || !selectedPackageId || !group || !idNumber) return;
 
     navigate("/select-slot", {
       state: {
         group,
+        idNumber,
         branchId: selectedBranchId,
         packageId: selectedPackageId,
       },
@@ -88,19 +96,17 @@ function SelectBranchPackagePage() {
               onChange={(e) => {
                 const value = e.target.value;
                 setSelectedBranchId(value ? Number(value) : "");
-                setSelectedPackageId(null); // 換院區時清空套餐
+                setSelectedPackageId(null);
               }}
               className="sbp-select"
               required
             >
               <option value="">請選擇院區</option>
-              {branches.map(
-                (b: GroupOptionDto["branches"][number]) => (
-                  <option key={b.branchId} value={b.branchId}>
-                    {b.branchName}
-                  </option>
-                )
-              )}
+              {branches.map((b) => (
+                <option key={b.branchId} value={b.branchId}>
+                  {b.branchName}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -126,33 +132,27 @@ function SelectBranchPackagePage() {
             )}
 
             {currentBranch &&
-              currentBranch.packages.map(
-                (
-                  p: GroupOptionDto["branches"][number]["packages"][number]
-                ) => {
-                  const active = selectedPackageId === p.packageId;
+              currentBranch.packages.map((p) => {
+                const active = selectedPackageId === p.packageId;
 
-                  return (
-                    <button
-                      key={p.packageId}
-                      type="button"
-                      className={[
-                        "sbp-package-btn",
-                        "sbp-package-btn--available",
-                        active ? "sbp-package-btn--active" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      onClick={() => setSelectedPackageId(p.packageId)}
-                    >
-                      <div className="sbp-package-main">{p.packageName}</div>
-                      <div className="sbp-package-sub">
-                        {/* 之後可放套餐簡介 */}
-                      </div>
-                    </button>
-                  );
-                }
-              )}
+                return (
+                  <button
+                    key={p.packageId}
+                    type="button"
+                    className={[
+                      "sbp-package-btn",
+                      "sbp-package-btn--available",
+                      active ? "sbp-package-btn--active" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => setSelectedPackageId(p.packageId)}
+                  >
+                    <div className="sbp-package-main">{p.packageName}</div>
+                    <div className="sbp-package-sub"></div>
+                  </button>
+                );
+              })}
           </div>
         </div>
       </div>

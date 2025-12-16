@@ -7,6 +7,8 @@ import FillProfilePage from "./pages/FillProfilePage";
 import ReservationDonePage from "./pages/ReservationDonePage";
 import ReservationLookupPage from "./pages/ReservationLookupPage";  // ← 把這行加回來
 import "./App.css";
+import OtpVerifyPage from "./pages/OtpVerifyPage";
+
 
 function App() {
   const location = useLocation();
@@ -83,6 +85,7 @@ function App() {
       </header>
 
     <Routes>
+      <Route path="/otp" element={<OtpVerifyPage />} />
       <Route path="/" element={<HomePage />} />
       <Route path="/reserve" element={<GroupCodePage />} />
       <Route
