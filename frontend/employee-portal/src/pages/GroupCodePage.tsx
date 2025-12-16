@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchGroupByCode } from "../api/groupsApi";
 import type { GroupDto } from "../api/groupsApi";
+import { requestOtp } from "../api/verificationsApi";
 
 function GroupCodePage() {
   // 使用者輸入
@@ -11,6 +12,9 @@ function GroupCodePage() {
   // 錯誤 / 警告訊息
   const [groupError, setGroupError] = useState<string | null>(null);
   const [employeeWarning, setEmployeeWarning] = useState<string | null>(null);
+
+  // 新增：OTP 請求中狀態（避免連點）
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -34,7 +38,9 @@ function GroupCodePage() {
       hasError = true;
     }
 
-    if (hasError) return; // 有錯就先不要往下呼叫後端
+    if (hasError) return;
+
+    setLoading(true);
 
     try {
       // 2-1. 向後端查詢團體資料
@@ -42,10 +48,10 @@ function GroupCodePage() {
 
       if (!group) {
         setGroupError("查無此團體代碼，請確認是否輸入正確或洽窗口。");
-        return; // 團體代碼無效就直接擋掉，不往下走
+        return;
       }
 
-      // 2-2. 員工名冊目前仍用前端假驗證（之後可以改成呼叫後端）
+      // 2-2. 員工名冊目前仍用前端假驗證（之後可改成呼叫後端）
       const employeeInList = mockValidateEmployee(idNumber);
 
       if (!employeeInList) {
@@ -53,13 +59,29 @@ function GroupCodePage() {
         return;
       }
 
-      // 3. 都通過才導到下一步，並把 group 帶到下一頁
-      navigate("/select-branch-package", {
-        state: { group, idNumber },
+      // 3. 改成：先向後端請求寄送 OTP
+      // 注意：如果你後端已加 globalPrefix('api')，且前端 .env 是 .../api，這裡才能打得到
+      const { verificationId } = await requestOtp({
+        groupCode,
+        idNumber,
+      });
+
+      // 4. 導到 OTP 頁，並把必要資訊帶過去
+      // OTP 頁驗證成功後，才放行進 SelectBranchPackagePage
+      navigate("/otp", {
+        state: {
+          verificationId,
+          group,
+          idNumber,
+          groupCode,
+        },
       });
     } catch (error) {
       console.error(error);
-      setGroupError("系統發生錯誤，請稍後再試。");
+      // 這裡不要暴露太精準（避免被枚舉），給使用者通用訊息
+      setGroupError("資料驗證失敗或系統忙碌，請稍後再試。");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,9 +98,9 @@ function GroupCodePage() {
             onChange={(e) => setGroupCode(e.target.value.toUpperCase())}
             maxLength={10}
             required
+            disabled={loading}
           />
         </label>
-        {/* 團體代碼錯誤訊息（紅字） */}
         {groupError && (
           <p style={{ color: "red", marginTop: "4px" }}>{groupError}</p>
         )}
@@ -93,9 +115,9 @@ function GroupCodePage() {
             onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
             maxLength={10}
             required
+            disabled={loading}
           />
         </label>
-        {/* 員工名冊警告文字（可以用橘色視為警告） */}
         {employeeWarning && (
           <p style={{ color: "darkorange", marginTop: "4px" }}>
             {employeeWarning}
@@ -105,8 +127,8 @@ function GroupCodePage() {
 
       {/* 按鈕區塊 */}
       <div className="form-footer">
-        <button type="submit" className="btn btn-primary">
-          下一步
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? "寄送驗證碼中..." : "下一步"}
         </button>
       </div>
     </form>

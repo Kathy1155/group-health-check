@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { resendReservationConfirmationEmail } from "../api/notificationsApi";
 
 type DonePageState = {
   reservationNo: string;
@@ -43,11 +44,40 @@ const ReservationDonePage: React.FC = () => {
 
   const { reservationNo, groupName, date, slot, personalInfo } = state;
 
+  // 重寄驗證信的 UI 狀態
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  const onResend = async () => {
+    setSending(true);
+    setSent(false);
+    setSendError(null);
+
+    try {
+      await resendReservationConfirmationEmail({
+        reservationNo,
+        groupName,
+        name: personalInfo.name,
+        idNumber: personalInfo.idNumber,
+        phone: personalInfo.phone,
+        date,
+        slot,
+      });
+      setSent(true);
+    } catch (e) {
+      console.error(e);
+      setSendError("重新寄送失敗，請稍後再試。");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
       <h1 style={{ marginBottom: "1rem" }}>預約完成！</h1>
 
-      {/* 新增：預約摘要資訊區塊 */}
+      {/* 預約摘要資訊區塊 */}
       <div
         style={{
           maxWidth: "520px",
@@ -91,12 +121,36 @@ const ReservationDonePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 保留你原本的說明文字 */}
-      <p style={{ fontSize: "1.1rem", marginBottom: "1.5rem" }}>
+      {/* 說明文字 */}
+      <p style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
         您的預約資料已提交。✅
         <br />
         請記得前往您的 Email 收取「驗證信件」，並完成驗證後才算正式完成預約。
       </p>
+
+      {/* 重寄驗證信 */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onResend}
+          disabled={sending}
+        >
+          {sending ? "寄送中..." : "重新寄送驗證信"}
+        </button>
+
+        {sent && (
+          <p style={{ marginTop: "0.75rem", color: "green" }}>
+            已重新寄送驗證信（請看後端終端機 log）
+          </p>
+        )}
+
+        {sendError && (
+          <p style={{ marginTop: "0.75rem", color: "crimson" }}>
+            {sendError}
+          </p>
+        )}
+      </div>
 
       <hr style={{ margin: "2rem 0" }} />
 

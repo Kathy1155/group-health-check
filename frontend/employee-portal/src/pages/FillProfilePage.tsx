@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchRosterProfile } from "../api/rosterApi";
 
 // 從 Step3 帶過來的型別
 type FromSlotPageState = {
@@ -10,52 +11,64 @@ type FromSlotPageState = {
     contactName: string;
     idNumber: string;
   };
+  idNumber: string;
   branchId: number;
   packageId: number;
   date: string;
   slot: string;
 };
 
-// 假的團體名冊資料：之後可以改成從後端撈資料
+// 假的團體名冊資料（備用）
 const mockParticipant = {
-  groupCode: "FB12345678",   // 比較像團體代碼
+  groupCode: "FB12345678",
   name: "王小明",
-  idNumber: "A123456789",    // 比較像身分證
+  idNumber: "A123456789",
   phone: "0912345678",
   birthday: "1998-07-03",
 };
-
 
 function FillProfilePage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const fromSlot = location.state as FromSlotPageState | null;
+  const fromSlot = location.state as FromSlotPageState | undefined;
 
-  // 如果完全沒有上一頁資料（使用者直接打網址進來）
-  if (!fromSlot) {
-    return <p>預約流程資訊遺失，請從首頁重新開始預約。</p>;
+  // 防呆：沒有從正確流程進來
+  if (
+    !fromSlot ||
+    !fromSlot.group ||
+    !fromSlot.branchId ||
+    !fromSlot.packageId ||
+    !fromSlot.date ||
+    !fromSlot.slot
+  ) {
+    return (
+      <div className="page-form">
+        <h2>預約流程中斷</h2>
+        <p>預約資訊遺失，請從首頁重新開始預約。</p>
+        <button type="button" onClick={() => navigate("/")}>
+          回首頁
+        </button>
+      </div>
+    );
   }
 
-  const { group, branchId, packageId, date, slot } = fromSlot;
+  const { group, idNumber, branchId, packageId, date, slot } = fromSlot;
 
-  // 個人基本資料（優先用上一頁帶來的團體資訊／名冊資料）
+  // 個人基本資料（唯讀顯示）
   const [personalInfo, setPersonalInfo] = useState({
-    // 團體代碼：用 group.code，找不到才用假的
     groupCode: group.code ?? mockParticipant.groupCode,
-
-    // 下面幾個暫時先用假名冊資料，之後會改成從後端帶
-    name: mockParticipant.name,
-    idNumber: mockParticipant.idNumber,
-    phone: mockParticipant.phone,
-    birthday: mockParticipant.birthday,
+    name: "",
+    idNumber: idNumber ?? mockParticipant.idNumber,
+    phone: "",
+    birthday: "",
   });
 
+  // 讀取名冊狀態
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
-  // 是否正在編輯個人資料
-  const [isEditing, setIsEditing] = useState(false);
-
-  // 個人病史表單
+  // 個人病史（可填）
   const [medicalHistory, setMedicalHistory] = useState({
     bloodType: "",
     allergy: "",
@@ -64,15 +77,62 @@ function FillProfilePage() {
     medication: "",
   });
 
+  // 進頁面就撈名冊資料帶入
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        setLoadingProfile(true);
+        setProfileError(null);
+
+        const data = await fetchRosterProfile(group.code, idNumber);
+
+        if (!alive) return;
+
+        if (!data) {
+          setPersonalInfo({
+            groupCode: group.code ?? mockParticipant.groupCode,
+            name: mockParticipant.name,
+            idNumber: idNumber ?? mockParticipant.idNumber,
+            phone: mockParticipant.phone,
+            birthday: mockParticipant.birthday,
+          });
+          setProfileError("查無名冊資料，請確認團體代碼與身分證字號是否正確。");
+          return;
+        }
+
+        setPersonalInfo({
+          groupCode: data.groupCode ?? group.code,
+          name: data.name ?? "",
+          idNumber: data.idNumber ?? idNumber,
+          phone: data.phone ?? "",
+          birthday: data.birthday ?? "",
+        });
+      } catch (e) {
+        if (!alive) return;
+
+        setPersonalInfo({
+          groupCode: group.code ?? mockParticipant.groupCode,
+          name: mockParticipant.name,
+          idNumber: idNumber ?? mockParticipant.idNumber,
+          phone: mockParticipant.phone,
+          birthday: mockParticipant.birthday,
+        });
+        setProfileError("名冊資料載入失敗，請稍後再試或洽團體聯絡人。");
+      } finally {
+        if (!alive) return;
+        setLoadingProfile(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [group.code, idNumber]);
+
   const handlePrev = () => {
     navigate(-1);
-  };
-
-  const handlePersonalChange = (
-    field: keyof typeof personalInfo,
-    value: string
-  ) => {
-    setPersonalInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleHistoryChange = (
@@ -82,29 +142,9 @@ function FillProfilePage() {
     setMedicalHistory((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleToggleEdit = () => {
-    if (!isEditing) {
-      setIsEditing(true);
-      return;
-    }
-
-    const confirmed = window.confirm("是否確認儲存並完成修改？");
-    if (confirmed) {
-      setIsEditing(false);
-      console.log("已確認修改個人資料：", personalInfo);
-      // 之後如果要接後端，也可以在這邊呼叫「更新個人資料」API
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 之後這裡可以改成送到後端建立 Reservation + MedicalProfile
-    console.log("送出個人資料：", personalInfo);
-    console.log("送出個人病史：", medicalHistory);
-    console.log("預約資訊：", { group, branchId, packageId, date, slot });
-
-    // 目前用「假預約編號」，之後接後端就從 response 拿
     const fakeReservationNo = "R20251224001";
 
     navigate("/done", {
@@ -116,214 +156,116 @@ function FillProfilePage() {
         date,
         slot,
         personalInfo,
+        medicalHistory,
       },
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="page-form">
-      <h2>步驟 4：填寫基本資料與病史</h2>
+      <h2>步驟 4：確認基本資料與填寫病史</h2>
 
-      {/* 區塊一：個人基本資料 */}
-            <section style={{ marginTop: "1rem" }}>
+      {/* 個人基本資料 */}
+      <section className="form-section">
         <h3>一、個人基本資料</h3>
-        <p style={{ fontSize: "0.9rem", color: "#666" }}>
-          以下資料為團體聯絡人提供，如有需要可按「修改資料」進行更新。
+
+        <p className="form-hint">
+          以下資料由團體名冊帶入，無法於線上修改。若資料有誤，請告知團體聯絡人或至現場櫃檯協助更正。
         </p>
 
-        <div style={{ marginTop: "0.75rem" }}>
-          {/* 團體代碼 */}
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              團體代碼：
-              <input
-                value={personalInfo.groupCode}
-                onChange={(e) =>
-                  handlePersonalChange("groupCode", e.target.value)
-                }
-                disabled={!isEditing}
-                style={{ marginLeft: "0.5rem", padding: "0.3rem" }}
-              />
-            </label>
-          </div>
+        {loadingProfile && <p className="form-hint">名冊資料載入中…</p>}
 
-          {/* 姓名 */}
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              姓名：
-              <input
-                value={personalInfo.name}
-                onChange={(e) => handlePersonalChange("name", e.target.value)}
-                disabled={!isEditing}
-                style={{ marginLeft: "0.5rem", padding: "0.3rem" }}
-                required
-              />
-            </label>
-          </div>
+        {profileError && (
+          <p className="form-hint" style={{ color: "#b00020" }}>
+            {profileError}
+          </p>
+        )}
 
-          {/* 身分證字號 */}
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              身分證字號：
-              <input
-                value={personalInfo.idNumber}
-                onChange={(e) =>
-                  handlePersonalChange("idNumber", e.target.value.toUpperCase())
-                }
-                disabled={!isEditing}
-                style={{ marginLeft: "0.5rem", padding: "0.3rem" }}
-                maxLength={10}
-                required
-              />
-            </label>
-          </div>
+        <div className="form-grid">
+          <label>團體代碼</label>
+          <input value={personalInfo.groupCode} disabled />
 
-          {/* 聯絡電話 */}
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              聯絡電話：
-              <input
-                value={personalInfo.phone}
-                onChange={(e) =>
-                  handlePersonalChange("phone", e.target.value)
-                }
-                disabled={!isEditing}
-                style={{ marginLeft: "0.5rem", padding: "0.3rem" }}
-                required
-              />
-            </label>
-          </div>
+          <label>姓名</label>
+          <input value={personalInfo.name} disabled required />
 
-          {/* 生日（新增） */}
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              生日：
-              <input
-                type="date"
-                value={personalInfo.birthday}
-                onChange={(e) =>
-                  handlePersonalChange("birthday", e.target.value)
-                }
-                disabled={!isEditing}
-                style={{ marginLeft: "0.5rem", padding: "0.3rem" }}
-                required
-              />
-            </label>
-          </div>
+          <label>身分證字號</label>
+          <input value={personalInfo.idNumber} disabled />
 
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ marginTop: "0.5rem" }}
-            onClick={handleToggleEdit}
-          >
-            {isEditing ? "完成修改" : "修改資料"}
-          </button>
+          <label>聯絡電話</label>
+          <input value={personalInfo.phone} disabled required />
+
+          <label>生日</label>
+          <input type="date" value={personalInfo.birthday} disabled required />
         </div>
       </section>
 
-      {/* 區塊二：個人病史表單 */}
-      <section style={{ marginTop: "1.5rem" }}>
+      {/* 病史 */}
+      <section className="form-section">
         <h3>二、個人病史</h3>
-        <p style={{ fontSize: "0.9rem", color: "#666" }}>
-          請依實際狀況填寫，供醫師於檢查前評估參考。
-        </p>
-
-        <div style={{ marginTop: "0.75rem" }}>
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              血型：
-              <select
-                value={medicalHistory.bloodType}
-                onChange={(e) =>
-                  handleHistoryChange("bloodType", e.target.value)
-                }
-                style={{ marginLeft: "0.5rem", padding: "0.3rem" }}
-              >
-                <option value="">請選擇血型</option>
-                <option value="A">A 型</option>
-                <option value="B">B 型</option>
-                <option value="O">O 型</option>
-                <option value="AB">AB 型</option>
-                <option value="unknown">不清楚</option>
-              </select>
-            </label>
+        <div className="form-stack">
+          <div className="form-row">
+            <label>血型</label>
+            <select
+              value={medicalHistory.bloodType}
+              onChange={(e) => handleHistoryChange("bloodType", e.target.value)}
+            >
+              <option value="">請選擇</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="O">O</option>
+              <option value="AB">AB</option>
+              <option value="unknown">不清楚</option>
+            </select>
           </div>
 
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              過敏史：
-              <input
-                value={medicalHistory.allergy}
-                onChange={(e) =>
-                  handleHistoryChange("allergy", e.target.value)
-                }
-                style={{ marginLeft: "0.5rem", padding: "0.3rem", width: "60%" }}
-                placeholder="例如：藥物、食物、環境等"
-              />
-            </label>
+          <div className="form-row">
+            <label>過敏史</label>
+            <input
+              value={medicalHistory.allergy}
+              onChange={(e) => handleHistoryChange("allergy", e.target.value)}
+              placeholder="例：海鮮、花生、藥物（無則免填）"
+            />
           </div>
 
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              家族病史：
-              <input
-                value={medicalHistory.familyHistory}
-                onChange={(e) =>
-                  handleHistoryChange("familyHistory", e.target.value)
-                }
-                style={{ marginLeft: "0.5rem", padding: "0.3rem", width: "60%" }}
-                placeholder="例如：父母或兄弟姐妹有心臟病、糖尿病等"
-              />
-            </label>
+          <div className="form-row">
+            <label>家族病史</label>
+            <input
+              value={medicalHistory.familyHistory}
+              onChange={(e) => handleHistoryChange("familyHistory", e.target.value)}
+              placeholder="例：父親高血壓、母親糖尿病（無則免填）"
+            />
           </div>
 
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              慢性疾病：
-              <input
-                value={medicalHistory.chronicDisease}
-                onChange={(e) =>
-                  handleHistoryChange("chronicDisease", e.target.value)
-                }
-                style={{ marginLeft: "0.5rem", padding: "0.3rem", width: "60%" }}
-                placeholder="例如：高血壓、糖尿病、氣喘等"
-              />
-            </label>
+          <div className="form-row">
+            <label>慢性疾病</label>
+            <input
+              value={medicalHistory.chronicDisease}
+              onChange={(e) => handleHistoryChange("chronicDisease", e.target.value)}
+              placeholder="例：高血壓、糖尿病、氣喘（無則免填）"
+            />
           </div>
 
-          <div style={{ marginBottom: "0.5rem" }}>
-            <label>
-              服用藥物：
-              <textarea
-                value={medicalHistory.medication}
-                onChange={(e) =>
-                  handleHistoryChange("medication", e.target.value)
-                }
-                rows={3}
-                style={{
-                  marginLeft: "0.5rem",
-                  padding: "0.3rem",
-                  width: "60%",
-                  verticalAlign: "top",
-                }}
-                placeholder="請填寫目前規律或長期服用的藥物名稱、劑量等"
-              />
-            </label>
+          <div className="form-row">
+            <label>服用藥物</label>
+            <textarea
+              value={medicalHistory.medication}
+              onChange={(e) => handleHistoryChange("medication", e.target.value)}
+              placeholder="例：血壓藥、胰島素、長期用藥（無則免填）"
+            />
           </div>
         </div>
+
       </section>
 
-      {/* 底部按鈕列 */}
       <div className="form-footer">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handlePrev}
-        >
+        <button type="button" className="btn btn-secondary" onClick={handlePrev}>
           上一步
         </button>
-        <button type="submit" className="btn btn-primary">
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loadingProfile}
+        >
           送出預約
         </button>
       </div>
