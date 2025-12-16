@@ -379,3 +379,84 @@
   width: 100%;
 }
 
+/* =========================
+   Step2 layout: desktop 固定左右欄，mobile 才堆疊
+   class: sbp-layout
+========================= */
+
+/* 桌機（含一般筆電）：左右兩欄 */
+@media (min-width: 768px) {
+  .sbp-layout {
+    display: grid !important;
+    grid-template-columns: 260px minmax(0, 1fr) !important; /* 左欄固定，右欄吃剩下 */
+    gap: 16px !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* 左右欄都允許縮小，避免撐爆 */
+  .sbp-layout > * {
+    min-width: 0 !important;
+  }
+
+  /* 右側套餐卡片不要莫名其妙撐到整頁 */
+  .sbp-layout .package-list,
+  .sbp-layout .package-panel,
+  .sbp-layout .package-card,
+  .sbp-layout .sbp-right,
+  .sbp-layout .right-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* 桌機不需要限制高度，取消手機那種 max-height */
+  .sbp-layout .package-list {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 左邊說明文字：桌機正常橫排 */
+  .sbp-layout p,
+  .sbp-layout .hint,
+  .sbp-layout .help-text {
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+/* 手機：上下堆疊（你剛剛成功的那段） */
+@media (max-width: 767px) {
+  .sbp-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .sbp-layout > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  .sbp-layout .package-list,
+  .sbp-layout .package-panel,
+  .sbp-layout .package-card,
+  .sbp-layout .sbp-right,
+  .sbp-layout .right-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    float: none !important;
+    overflow-x: hidden !important;
+    max-height: 280px !important;
+    overflow-y: auto !important;
+  }
+}
