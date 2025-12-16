@@ -5,15 +5,14 @@ import SelectBranchPackagePage from "./pages/SelectBranchPackagePage";
 import SelectTimeSlotPage from "./pages/SelectTimeSlotPage";
 import FillProfilePage from "./pages/FillProfilePage";
 import ReservationDonePage from "./pages/ReservationDonePage";
-import ReservationLookupPage from "./pages/ReservationLookupPage";  // ← 把這行加回來
-import "./App.css";
+import ReservationLookupPage from "./pages/ReservationLookupPage";
 import OtpVerifyPage from "./pages/OtpVerifyPage";
-
+import "./App.css";
 
 function App() {
   const location = useLocation();
 
-  // 只有這幾個 path 算是「流程中的步驟」
+  /* ===== 預約流程頁面 ===== */
   const stepPaths = [
     "/reserve",
     "/select-branch-package",
@@ -24,9 +23,9 @@ function App() {
 
   const steps = [
     { path: "/reserve", label: "團體代碼" },
-    { path: "/select-branch-package", label: "選院區與套餐" },
-    { path: "/select-slot", label: "選日期與時段" },
-    { path: "/fill-profile", label: "填寫資料與病史" },
+    { path: "/select-branch-package", label: "選院區與健檢套餐" },
+    { path: "/select-slot", label: "選擇日期與時段" },
+    { path: "/fill-profile", label: "填寫基本資料與病史" },
   ];
 
   const inWizard = stepPaths.includes(location.pathname);
@@ -34,12 +33,15 @@ function App() {
   let currentStepIndex = steps.findIndex(
     (step) => step.path === location.pathname
   );
+
   if (location.pathname === "/done") {
     currentStepIndex = steps.length - 1;
   }
+
   if (currentStepIndex < 0) currentStepIndex = 0;
 
   const totalSteps = steps.length;
+
   const progressPercent =
     location.pathname === "/done"
       ? 100
@@ -50,9 +52,10 @@ function App() {
       <header className="app-header">
         <h1 className="app-title">線上預約</h1>
 
-        {/* 只有在流程中才顯示進度條 */}
+        {/* ===== 進度條（只有在流程中才顯示） ===== */}
         {inWizard && (
           <div className="progress-wrapper">
+            {/* 進度條 */}
             <div className="progress-bar-bg">
               <div
                 className="progress-bar-fill"
@@ -60,17 +63,17 @@ function App() {
               />
             </div>
 
-            <div className="progress-steps">
+            {/* ===== 桌機版：完整步驟 ===== */}
+            <div className="progress-steps progress-desktop">
               {steps.map((step, index) => {
                 const isCurrent = index === currentStepIndex;
                 const isDone = index < currentStepIndex;
-                const color = isCurrent ? "#4caf50" : isDone ? "#333" : "#888";
 
                 return (
                   <span
                     key={step.path}
                     style={{
-                      color,
+                      color: isCurrent ? "#4caf50" : isDone ? "#333" : "#888",
                       fontWeight: isCurrent ? 600 : 400,
                       whiteSpace: "nowrap",
                     }}
@@ -80,29 +83,39 @@ function App() {
                 );
               })}
             </div>
+
+            {/* ===== 手機版：精簡進度 ===== */}
+            <div className="progress-mobile">
+              <div className="progress-meta">
+                步驟 {currentStepIndex + 1} / {totalSteps}
+              </div>
+              <div className="progress-title">
+                {steps[currentStepIndex]?.label}
+              </div>
+            </div>
           </div>
         )}
       </header>
 
-    <Routes>
-      <Route path="/otp" element={<OtpVerifyPage />} />
-      <Route path="/" element={<HomePage />} />
-      <Route path="/reserve" element={<GroupCodePage />} />
-      <Route
-        path="/select-branch-package"
-        element={<SelectBranchPackagePage />}
-      />
-      <Route path="/select-slot" element={<SelectTimeSlotPage />} />
-      <Route path="/fill-profile" element={<FillProfilePage />} />
-      <Route path="/done" element={<ReservationDonePage />} />
+      {/* ===== Routes ===== */}
+      <Routes>
+        <Route path="/otp" element={<OtpVerifyPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/reserve" element={<GroupCodePage />} />
+        <Route
+          path="/select-branch-package"
+          element={<SelectBranchPackagePage />}
+        />
+        <Route path="/select-slot" element={<SelectTimeSlotPage />} />
+        <Route path="/fill-profile" element={<FillProfilePage />} />
+        <Route path="/done" element={<ReservationDonePage />} />
 
-      {/* 查詢預約頁：之後會接後端 */}
-      <Route
-        path="/reservation-lookup"
-        element={<ReservationLookupPage />}
-      />
-    </Routes>
-
+        {/* 查詢預約 */}
+        <Route
+          path="/reservation-lookup"
+          element={<ReservationLookupPage />}
+        />
+      </Routes>
     </div>
   );
 }

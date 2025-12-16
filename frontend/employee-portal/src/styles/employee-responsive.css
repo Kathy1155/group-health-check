@@ -1,0 +1,416 @@
+/* =========================
+   Global safe guards
+========================= */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+* { box-sizing: border-box; }
+
+img, table { max-width: 100%; }
+
+.card, .panel, .box { max-width: 100%; }
+
+/* =========================
+   employee-portal mobile-first
+========================= */
+.page-form {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page-form h1 {
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0 0 12px;
+}
+
+.page-form h2 {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 0 0 10px;
+}
+
+.page-form h3 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.page-form p,
+.page-form li,
+.page-form label {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.page-form p { margin: 6px 0; }
+
+.page-form label {
+  display: block;
+  margin-top: 12px;
+}
+
+.page-form input,
+.page-form select,
+.page-form textarea {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font-size: 16px; /* 避免 iOS 放大 */
+}
+
+.page-form input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+.page-form textarea { resize: vertical; }
+
+/* form-row（若你有用） */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.form-row label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+}
+
+/* =========================
+   Buttons
+========================= */
+.form-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* 手機：交換按鈕順序 */
+@media (max-width: 767px) {
+  .form-footer { flex-direction: column-reverse; }
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #cfcfcf;
+  background: #f3f3f3;
+  color: #111;
+}
+
+.btn-primary {
+  background: #1677ff;
+  border-color: #1677ff;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #f3f3f3;
+  border-color: #cfcfcf;
+  color: #111;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* =========================
+   Progress (App.tsx progress-wrapper)
+========================= */
+.progress-wrapper {
+  max-width: 100%;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.progress-wrapper * { min-width: 0; }
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e9ecef;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.progress-desktop {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.progress-mobile { display: none; }
+
+@media (max-width: 767px) {
+  .progress-desktop { display: none; }
+  .progress-mobile { display: block; margin-top: 6px; }
+
+  .progress-meta { font-size: 12px; color: #666; margin-bottom: 2px; }
+  .progress-title { font-size: 14px; font-weight: 700; color: #111; }
+}
+
+/* =========================
+   Step2: two-col -> single column on mobile
+   (前提：你的 JSX 有加 two-col / package-list)
+========================= */
+@media (max-width: 767px) {
+  .two-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+
+  .two-col > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .package-list {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    overflow-x: hidden;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+}
+
+/* =========================
+   iPhone SE / small phones tuning (<= 375px)
+========================= */
+@media (max-width: 375px) {
+  .page-form {
+    max-width: 340px;
+    padding: 12px;
+  }
+
+  .page-form h1 { font-size: 20px; }
+  .page-form h2 { font-size: 18px; }
+  .page-form h3 { font-size: 16px; }
+
+  .page-form p,
+  .page-form li,
+  .page-form label {
+    font-size: 13px;
+  }
+
+  .btn {
+    padding: 11px 12px;
+    font-size: 15px;
+  }
+
+  .progress-meta { font-size: 11px; }
+  .progress-title { font-size: 13px; }
+}
+
+/* =========================
+   Desktop restore
+========================= */
+@media (min-width: 768px) {
+  .page-form {
+    padding: 24px;
+    max-width: 640px;
+  }
+
+  .page-form h1 { font-size: 28px; }
+  .page-form h2 { font-size: 24px; }
+
+  .page-form p,
+  .page-form li,
+  .page-form label {
+    font-size: 16px;
+  }
+
+  .form-footer {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .form-footer .btn {
+    width: auto;
+    min-width: 120px;
+  }
+}
+
+/* ========= Last line of defense ========= */
+.app-container,
+.app-header,
+.progress-wrapper,
+.page-form {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-container *,
+.app-header *,
+.progress-wrapper *,
+.page-form * {
+  min-width: 0;
+}
+
+.page-form input,
+.page-form select,
+.page-form textarea,
+.page-form button {
+  max-width: 100%;
+}
+
+.page-form,
+.progress-wrapper {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================
+   Done page styles
+========================= */
+.done-title {
+  text-align: center;
+  font-size: 22px;
+  margin: 10px 0 14px;
+  letter-spacing: 1px;
+}
+
+.done-card {
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.done-row {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.done-row:last-child { border-bottom: none; }
+
+.done-label {
+  width: 96px;
+  flex: 0 0 auto;
+  color: #666;
+  font-size: 13px;
+}
+
+.done-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.done-message {
+  margin-top: 14px;
+  text-align: center;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.done-success { color: #1b8a3b; font-size: 13px; }
+.done-error { color: crimson; font-size: 13px; }
+
+.done-notes {
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.done-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.done-footer-hint {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+}
+
+@media (max-width: 375px) {
+  .done-title { font-size: 20px; }
+  .done-label { width: 86px; }
+  .done-notes ul { font-size: 13px; }
+}
+/* =========================
+   FIX Step2: sbp-layout 手機版改成上下排列
+   （解決左側文字被擠成一字一行）
+========================= */
+@media (max-width: 767px) {
+  .sbp-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* sbp-layout 直接底下的每個區塊，都吃滿寬 */
+  .sbp-layout > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* 右側套餐區：限制高度可滑 */
+  .sbp-layout .package-list,
+  .sbp-layout .package-panel,
+  .sbp-layout .package-card,
+  .sbp-layout .sbp-right,
+  .sbp-layout .right-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    float: none !important;
+    overflow-x: hidden !important;
+    max-height: 280px !important;
+    overflow-y: auto !important;
+  }
+
+  /* 左側說明文字：禁止被擠成直排 */
+  .sbp-layout p,
+  .sbp-layout .hint,
+  .sbp-layout .help-text,
+  .sbp-layout .sbp-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+}
