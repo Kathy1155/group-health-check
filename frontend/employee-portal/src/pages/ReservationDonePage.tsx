@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { resendReservationConfirmationEmail } from "../api/notificationsApi";
 
@@ -13,6 +13,7 @@ type DonePageState = {
     groupCode: string;
     name: string;
     idNumber: string;
+    birthday: string;
     phone: string;
   };
 };
@@ -42,7 +43,50 @@ const ReservationDonePage: React.FC = () => {
     );
   }
 
-  const { reservationNo, groupName, date, slot, personalInfo } = state;
+  const {
+  reservationNo,
+  groupName,
+  branchId,
+  packageId,
+  date,
+  slot,
+  personalInfo,
+} = state;
+
+const branchNameMap: Record<number, string> = {
+  1: "忠孝院區",
+  2: "仁愛院區",
+  3: "和平婦幼院區",
+  4: "中興院區",
+  5: "陽明院區",
+  6: "松德院區",
+  7: "林森中醫院區",
+};
+
+const packageNameMap: Record<number, string> = {
+  101: "健檢套餐 A",
+  102: "健檢套餐 B",
+  103: "健檢套餐 C",
+  104: "健檢套餐 D",
+  105: "健檢套餐 E",
+};
+
+useEffect(() => {
+  const key = `reservation:${personalInfo.idNumber}:${personalInfo.birthday}`;
+
+  const mockLookupResult = {
+    name: personalInfo.name,
+    groupName,
+    branchName: branchNameMap[branchId] ?? `院區代碼 ${branchId}`,
+    packageName: packageNameMap[packageId] ?? `套餐代碼 ${packageId}`,
+    date,
+    slot,
+    status: "已預約✅",
+  };
+
+  localStorage.setItem(key, JSON.stringify(mockLookupResult));
+}, [personalInfo, groupName, branchId, packageId, date, slot]);
+
 
   // 重寄驗證信的 UI 狀態
   const [sending, setSending] = useState(false);

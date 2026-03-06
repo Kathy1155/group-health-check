@@ -1,5 +1,7 @@
 // src/pages/ReservationLookupPage.tsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   lookupReservation,
   type ReservationLookupDto,
@@ -8,6 +10,7 @@ import {
 type LookupResult = ReservationLookupDto;
 
 function ReservationLookupPage() {
+  const navigate = useNavigate();
   const [idNumber, setIdNumber] = useState("");
   const [birthday, setBirthday] = useState(""); // YYYY-MM-DD
 
@@ -35,9 +38,17 @@ function ReservationLookupPage() {
     setLoading(true);
 
     try {
-      // 呼叫真正後端 API
+      // 呼叫真正後端 API（之後連後端時再更改）
+    const key = `reservation:${idNumber}:${birthday}`;
+    const cached = localStorage.getItem(key);
+
+    if (cached) {
+      const data = JSON.parse(cached);
+      setResult(data);
+    } else {
       const data = await lookupReservation(idNumber, birthday);
       setResult(data);
+    }
     } catch (err: any) {
       if (err instanceof Error && err.message === "NOT_FOUND") {
         setError("查無符合條件的預約資料，請確認輸入是否正確。");
@@ -131,8 +142,17 @@ function ReservationLookupPage() {
             {result.status}
           </p>
         </div>
+        
       )}
-    </div>
+      <div style={{ marginTop: "1.5rem" }}>
+      <button
+        className="btn btn-secondary"
+        onClick={() => navigate("/")}
+      >
+        回首頁
+      </button>
+      </div>
+      </div>
   );
 }
 
