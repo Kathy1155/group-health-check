@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
+import { createGroup } from '../../api/groupsApi';
 
 const GroupCreatePage: React.FC = () => {
   const [groupName, setGroupName] = useState('');
@@ -8,6 +9,11 @@ const GroupCreatePage: React.FC = () => {
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [errors, setErrors] = useState({
+  groupCode: '',
+  contactPhone: '',
+  contactEmail: '',
+});
 
   // 有沒有被修改但還沒儲存
   const isDirty =
@@ -21,46 +27,85 @@ const GroupCreatePage: React.FC = () => {
   // 套用離開提醒
   useUnsavedChangesWarning(isDirty);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateForm = () => {
+  const newErrors = {
+    groupCode: '',
+    contactPhone: '',
+    contactEmail: '',
+  };
+
+  // 團體代碼：前兩碼英文字母 + 後八碼數字
+  const groupCodeRegex = /^[A-Z]{2}\d{8}$/;
+  if (!groupCodeRegex.test(groupCode)) {
+    newErrors.groupCode =
+  '團體代碼格式錯誤，需為前兩碼大寫英文字母、後八碼數字，例如：AB12345678';
+  }
+
+  // 聯絡電話：10 碼數字
+  const phoneRegex = /^\d{10}$/;
+  if (!phoneRegex.test(contactPhone)) {
+    newErrors.contactPhone = '聯絡電話格式錯誤，請輸入 10 碼數字。';
+  }
+
+  // 電子郵件格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(contactEmail)) {
+    newErrors.contactEmail = '電子郵件格式錯誤，請輸入正確的 Email。';
+  }
+
+  setErrors(newErrors);
+
+  return !newErrors.groupCode && !newErrors.contactPhone && !newErrors.contactEmail;
+};
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
 
-    const payload = {
-      groupName,
-      groupCode,
-      contactName,
-      contactPhone,
-      contactEmail,
-      status,
-    };
+  const isValid = validateForm();
+  if (!isValid) return;
 
-    const res = await fetch('/api/groups', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  const payload = {
+    groupName,
+    groupCode,
+    contactName,
+    contactPhone: `+886${contactPhone}`,
+    contactEmail,
+    status,
+  };
 
-  if (!res.ok) {
-  const text = await res.text();
-  console.error('新增失敗：', res.status, text);
-  alert('新增失敗，請稍後再試');
-  return;
-}
+  try {
+    const result = await createGroup(payload);
+    console.log('新增成功', result);
+    alert('新增成功');
 
-const result = await res.json().catch(() => ({}));
-console.log('新增成功', result);
-alert('新增成功');
-
-
-    // 儲存成功後清空表單 → isDirty 變回 false，就不再跳警告
     setGroupName('');
     setGroupCode('');
     setContactName('');
     setContactPhone('');
     setContactEmail('');
     setStatus('active');
-  };
+    setErrors({
+      groupCode: '',
+      contactPhone: '',
+      contactEmail: '',
+    });
+  } catch (err: any) {
+    console.error('新增失敗：', err);
+
+    if (err instanceof Error) {
+      alert(err.message);
+    } else {
+      alert('新增失敗，請稍後再試');
+    }
+    if (err instanceof Error && err.message.includes('團體代碼已存在')) {
+      setErrors((prev) => ({
+        ...prev,
+        groupCode: '此團體代碼已被使用，請重新輸入。',
+      }));
+      return;
+    }
+  }
+};
 
   return (
     <div className="page-container">
@@ -86,13 +131,27 @@ alert('新增成功');
               <label className="form-label" htmlFor="groupCode">
                 團體代碼：
               </label>
+
               <input
                 id="groupCode"
                 className="form-input"
                 value={groupCode}
-                onChange={(e) => setGroupCode(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, '');
+                  setGroupCode(value);
+                }}
+                placeholder="例如：AB12345678"
+                maxLength={10}
                 required
               />
+
+              {errors.groupCode && (
+                <p style={{ color: 'red', marginTop: 4, fontSize: '14px' }}>
+                  {errors.groupCode}
+                </p>
+              )}
             </div>
           </div>
 
@@ -114,13 +173,23 @@ alert('新增成功');
               <label className="form-label" htmlFor="contactPhone">
                 聯絡人電話：
               </label>
-              <input
-                id="contactPhone"
-                className="form-input"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>+886</span>
+                <input
+                  id="contactPhone"
+                  className="form-input"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="請輸入 10 碼數字"
+                  maxLength={10}
+                  required
+                />
+              </div>
+              {errors.contactPhone && (
+                <p style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}>
+                  {errors.contactPhone}
+                </p>
+              )}
             </div>
           </div>
 
@@ -135,8 +204,14 @@ alert('新增成功');
                 className="form-input"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="例如：example@gmail.com"
                 required
               />
+              {errors.contactEmail && (
+                <p style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}>
+                  {errors.contactEmail}
+                </p>
+              )}
             </div>
 
             <div className="form-field">

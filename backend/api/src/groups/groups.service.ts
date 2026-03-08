@@ -1,79 +1,65 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-
-type GroupStatus = 'active' | 'inactive';
-
-interface GroupMock {
-  id: number;
-  name: string;        // 團體名稱
-  groupCode: string;   // 團體代碼
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  status: GroupStatus;
-}
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { GroupEntity } from './group.entity';
 
 @Injectable()
 export class GroupsService {
-  private mockGroups: GroupMock[] = [
-    {
-      id: 1,
-      name: '富邦人壽年度健檢',
-      groupCode: 'A0001',
-      contactName: '王小明',
-      contactPhone: '0911111111',
-      contactEmail: 'fubon@example.com',
-      status: 'active',
-    },
-    {
-      id: 2,
-      name: '公司A 員工健檢',
-      groupCode: 'B0001',
-      contactName: '林美玉',
-      contactPhone: '0922222222',
-      contactEmail: 'companya@example.com',
-      status: 'active',
-    },
-  ];
+  constructor(
+    @InjectRepository(GroupEntity)
+    private readonly groupRepo: Repository<GroupEntity>,
+  ) {}
 
-  findAll() {
-    return this.mockGroups;
+  async findAll() {
+    return this.groupRepo.find({ order: { groupId: 'DESC' as any } });
   }
 
-  findOne(id: number) {
-    return this.mockGroups.find((g) => g.id === id);
+  async findOne(id: number) {
+    const found = await this.groupRepo.findOne({ where: { groupId: id } });
+    if (!found) throw new NotFoundException('查無此團體');
+    return found;
   }
 
-  // 新增團體資料（給「新增團體資料」頁面用）
-  create(data: {
+  async findByCode(code: string) {
+    const found = await this.groupRepo.findOne({ where: { groupCode: code } });
+    if (!found) throw new NotFoundException('查無此團體代碼');
+    return found;
+  }
+
+  async create(body: {
     groupName: string;
     groupCode: string;
     contactName: string;
     contactPhone: string;
     contactEmail: string;
-    status?: GroupStatus;
+    status?: 'active' | 'inactive';
   }) {
-    const newId = this.mockGroups.length + 1;
+    const entity = this.groupRepo.create({
+      groupName: body.groupName,
+      groupCode: body.groupCode,
+      contactName: body.contactName,
+      contactPhone: body.contactPhone,
+      contactEmail: body.contactEmail,
+      groupIsDisable: body.status === 'inactive' ? 1 : 0,
+      createByUserId: null,
+      updateByUserId: null,
+    });
 
-    const newGroup: GroupMock = {
-      id: newId,
-      name: data.groupName,
-      groupCode: data.groupCode,
-      contactName: data.contactName,
-      contactPhone: data.contactPhone,
-      contactEmail: data.contactEmail,
-      status: data.status ?? 'active',
-    };
+    try {
+      return await this.groupRepo.save(entity);
+    } catch (err: any) {
+      console.error('新增 group 失敗：', err);
 
-    this.mockGroups.push(newGroup);   // ← 這裡把新團體加進來
-    return newGroup;
-  }
+      if (err?.code === 'ER_DUP_ENTRY') {
+        throw new ConflictException('團體代碼已存在');
+      }
 
-  // 依團體代碼查詢（給上傳名冊 Step1）
-  findByCode(code: string) {
-    const found = this.mockGroups.find((g) => g.groupCode === code);
-    if (!found) {
-      throw new NotFoundException('查無此團體代碼');
+      throw new InternalServerErrorException('新增團體失敗');
     }
-    return found;
   }
 }
