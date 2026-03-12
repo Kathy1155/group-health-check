@@ -78,7 +78,6 @@ const RosterUploadPage: React.FC = () => {
     return;
   }
 
-  // 儲存前再擋一次（保險）
   const lowerName = file.name.toLowerCase();
   if (!lowerName.endsWith('.csv')) {
     alert('目前僅接受 CSV 檔（副檔名必須是 .csv）');
@@ -87,29 +86,30 @@ const RosterUploadPage: React.FC = () => {
 
   setIsSaving(true);
   try {
-    // 目前先做「假上傳」：只送 groupCode + fileName
-    // 之後要真的傳檔再改成 FormData
-    const payload = {
-      groupCode: groupInfo.code,
-      fileName: file.name,
-    };
+    const formData = new FormData();
+    formData.append('groupCode', groupInfo.code);
+    formData.append('file', file);
 
-    const res = await fetch('/api/roster', {
+    const res = await fetch('/api/roster/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: formData,
     });
 
+    const data = await res.json().catch(() => null);
+
     if (!res.ok) {
-      const text = await res.text();
-      console.error('上傳失敗：', res.status, text);
-      alert('上傳失敗，請稍後再試');
+      console.error('上傳失敗：', res.status, data);
+
+      if (data?.details && Array.isArray(data.details)) {
+        alert(`${data.message}\n\n${data.details.join('\n')}`);
+      } else {
+        alert(data?.message ?? '上傳失敗，請稍後再試');
+      }
       return;
     }
 
-    alert('上傳並儲存成功（已呼叫後端 API）');
+    alert(`上傳並匯入成功，共 ${data.count} 筆`);
 
-    // 成功後清空檔案選擇，但留在 Step2，方便重新上傳
     setFile(null);
     setFileInputKey((k) => k + 1);
   } catch (err) {
