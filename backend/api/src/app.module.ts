@@ -10,7 +10,7 @@ import { GroupsModule } from './groups/groups.module';
 import { PackagesModule } from './packages/packages.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { TimeslotsModule } from './timeslots/timeslots.module';
-import { RosterModule } from './roster/roster.module';
+import { RosterModule } from './roster/roster.module';   // 新增這行
 
 @Module({
   imports: [
@@ -34,7 +34,7 @@ import { RosterModule } from './roster/roster.module';
     PackagesModule,
     ReservationsModule,
     TimeslotsModule,
-    RosterModule,
+    RosterModule,   // 再把它放進 imports 陣列
   ],
   controllers: [AppController],
   providers: [AppService],

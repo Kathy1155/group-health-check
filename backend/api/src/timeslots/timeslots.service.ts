@@ -1,50 +1,44 @@
-// src/timeslots/timeslots.service.ts
+import { Injectable } from '@nestjs/common';
 
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { CreateTimeslotDto } from 'src/timeslots/dto/create-timeslot.dto';
-
-
-
-// 接口必須與前端顯示的結構一致
-export interface TimeSlot {
-    date: string; 
-    timeSlot: string; 
-    packageType: string; 
-    quota: number; 
+export interface TimeslotItem {
+  slotId: number;
+  time: string;      // 顯示用字串，例如 "08:00–10:00"
+  capacity: number;  // 總名額
+  remaining: number; // 剩餘名額
 }
 
 @Injectable()
 export class TimeslotsService {
-    // 這是記憶體內儲存的陣列
-    private timeSlots: TimeSlot[] = []; 
+  // 先固定兩個時段：08:00–10:00、10:00–12:00
+  private baseSlots: TimeslotItem[] = [
+    {
+      slotId: 1,
+      time: '08:00–10:00',
+      capacity: 10,
+      remaining: 7,
+    },
+    {
+      slotId: 2,
+      time: '10:00–12:00',
+      capacity: 10,
+      remaining: 4,
+    },
+  ];
 
-    /**
-     * POST /timeslots 時呼叫
-     */
-    create(createTimeslotDto: CreateTimeslotDto): TimeSlot {
-        // *** 修正: 這裡進行數字轉換和驗證 ***
-        const quotaNumber = Number(createTimeslotDto.quota);
+  findByCondition(
+    branchId: number,
+    packageId: number,
+    date: string,
+  ): { branchId: number; packageId: number; date: string; slots: TimeslotItem[] } {
+    const keyDate = date.substring(0, 10); // 先保留 YYYY-MM-DD，之後接資料庫會用到
 
-        if (isNaN(quotaNumber) || quotaNumber <= 0) {
-            // 在 Service 或 Controller 應該拋出 NestJS 錯誤，這裡使用標準錯誤
-            throw new BadRequestException('名額必須是有效的數字且大於零');
-        }
-
-        const newTimeSlot: TimeSlot = {
-            ...createTimeslotDto,
-            quota: quotaNumber, // 使用轉換後的數字
-        };
-        
-        this.timeSlots.push(newTimeSlot);
-        console.log(`後端成功儲存新的時段名額：`, newTimeSlot);
-        return newTimeSlot;
-    }
-
-    /**
-     * GET /timeslots 時呼叫，返回所有已儲存的時段名額
-     */
-    findAll(): TimeSlot[] {
-        console.log(`後端響應 GET /timeslots 查詢。目前儲存筆數: ${this.timeSlots.length}`);
-        return this.timeSlots;
-    }
+    // 雛形階段：先不管 branch / package / date，
+    // 統一回傳兩個固定時段，確定前端流程、畫面沒問題
+    return {
+      branchId,
+      packageId,
+      date: keyDate,
+      slots: this.baseSlots,
+    };
+  }
 }

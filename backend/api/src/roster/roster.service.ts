@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import {
   BadRequestException,
   Injectable,
@@ -8,6 +9,25 @@ import { Repository } from 'typeorm';
 import { parse } from 'csv-parse/sync';
 import { GroupEntity } from '../groups/group.entity';
 import { GroupParticipantEntity } from './group-participant.entity';
+=======
+import { Injectable } from '@nestjs/common';
+
+export interface RosterRecord {
+  id: number;
+  groupCode: string;
+  fileName: string;
+  uploadedAt: Date;
+}
+>>>>>>> Stashed changes
+
+// ✅ 名冊中的「員工基本資料」
+export interface RosterMember {
+  groupCode: string;
+  idNumber: string;
+  name: string;
+  phone: string;
+  birthday: string; // YYYY-MM-DD
+}
 
 @Injectable()
 export class RosterService {
@@ -15,9 +35,37 @@ export class RosterService {
     @InjectRepository(GroupEntity)
     private readonly groupRepo: Repository<GroupEntity>,
 
+<<<<<<< Updated upstream
     @InjectRepository(GroupParticipantEntity)
     private readonly participantRepo: Repository<GroupParticipantEntity>,
   ) {}
+=======
+  // ✅ 假名冊資料：先讓前端可以查到資料（之後再換成 DB）
+  private members: RosterMember[] = [
+    {
+      groupCode: 'FB12345678',
+      idNumber: 'A123456789',
+      name: '王小明',
+      phone: '0912345678',
+      birthday: '2020-07-03',
+    },
+    {
+      groupCode: 'FB12345678',
+      idNumber: 'B234567890',
+      name: '陳小華',
+      phone: '0922333444',
+      birthday: '1997-05-12',
+    },
+  ];
+
+  saveUpload(data: { groupCode: string; fileName: string }) {
+    const record: RosterRecord = {
+      id: this.nextId++,
+      groupCode: data.groupCode,
+      fileName: data.fileName,
+      uploadedAt: new Date(),
+    };
+>>>>>>> Stashed changes
 
   private normalizeGender(value: string): 'Male' | 'Female' | null {
   const raw = value.trim().toUpperCase();
@@ -212,4 +260,15 @@ const medicalProfileIdRaw = String(row.medical_profile_id ?? '').trim();
       count: participants.length,
     };
   }
+<<<<<<< Updated upstream
+=======
+
+  // ✅ 讓前端可用 groupCode + idNumber 查到該員工基本資料
+  findOneByGroupAndId(groupCode: string, idNumber: string): RosterMember | null {
+    const member = this.members.find(
+      (m) => m.groupCode === groupCode && m.idNumber === idNumber,
+    );
+    return member ?? null;
+  }
+>>>>>>> Stashed changes
 }
