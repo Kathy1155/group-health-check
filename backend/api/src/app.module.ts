@@ -10,14 +10,13 @@ import { GroupsModule } from './groups/groups.module';
 import { PackagesModule } from './packages/packages.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { TimeslotsModule } from './timeslots/timeslots.module';
-import { RosterModule } from './roster/roster.module';   // 新增這行
+import { RosterModule } from './roster/roster.module';
+import { VerificationsModule } from './verifications/verifications.module';
 
 @Module({
   imports: [
-    // 讀取 backend/api/.env
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // MySQL 連線（使用 .env）
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST,
@@ -34,7 +33,8 @@ import { RosterModule } from './roster/roster.module';   // 新增這行
     PackagesModule,
     ReservationsModule,
     TimeslotsModule,
-    RosterModule,   // 再把它放進 imports 陣列
+    RosterModule,
+    VerificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
