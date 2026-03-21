@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 
 // *** 修正 API 端點：與 POST 使用相同的 GET 地址 ***
-const API_ENDPOINT = '/api/timeslots'; 
+const API_ENDPOINT = 'http://localhost:3000/api/timeslots'; 
 
 // --- 介面和工具函數 ---
 

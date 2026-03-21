@@ -53,7 +53,7 @@ const ALL_STATUSES: ReservationStatus[] = ['已預約', '已報到', '已取消'
 const EXPORT_STATUS_OPTIONS = ALL_STATUSES;
 
 // API 端點
-const API_ENDPOINT = '/api/reservations'; 
+const API_ENDPOINT = 'http://localhost:3000/api/reservations'; 
 
 interface ModifyModalProps {
     isOpen: boolean;

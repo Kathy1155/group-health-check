@@ -1,24 +1,68 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { TimeslotsService } from './timeslots.service';
 
 @Controller('timeslots')
 export class TimeslotsController {
   constructor(private readonly timeslotsService: TimeslotsService) {}
 
+  // 員工前台：依 branchId / packageId / date 查詢可預約時段
   @Get()
   findByCondition(
     @Query('branchId') branchId: string,
     @Query('packageId') packageId: string,
     @Query('date') date: string,
   ) {
-    if (!branchId || !packageId || !date) {
-      throw new BadRequestException('branchId, packageId, date 為必填參數');
+    // 如果三個參數都有帶，就走前台查詢邏輯
+    if (branchId && packageId && date) {
+      return this.timeslotsService.findByCondition(
+        Number(branchId),
+        Number(packageId),
+        date,
+      );
     }
 
-    return this.timeslotsService.findByCondition(
-      Number(branchId),
-      Number(packageId),
-      date,
-    );
+    // 如果都沒帶參數，就回傳健檢中心後台已設定的名額清單
+    if (!branchId && !packageId && !date) {
+      return this.timeslotsService.findAllAdmin();
+    }
+
+    throw new BadRequestException('branchId, packageId, date 為必填參數');
+  }
+
+  // 健檢中心後台：新增每日時段名額
+  @Post()
+  create(
+    @Body()
+    body: {
+      date: string;
+      timeSlot: string;
+      packageType: string;
+      quota: number;
+    },
+  ) {
+    const { date, timeSlot, packageType, quota } = body;
+
+    if (!date || !timeSlot || !packageType || quota === undefined) {
+      throw new BadRequestException(
+        'date, timeSlot, packageType, quota 為必填欄位',
+      );
+    }
+
+    return {
+      message: '時段名額已成功設定',
+      data: this.timeslotsService.create({
+        date,
+        timeSlot,
+        packageType,
+        quota: Number(quota),
+      }),
+    };
   }
 }
