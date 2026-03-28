@@ -1,32 +1,40 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Put,
+} from '@nestjs/common';
 import { PackagesService } from './packages.service';
+import { UpdatePackageBranchesDto } from './dto/update-package-branches.dto';
 
-@Controller('packages')
+@Controller()
 export class PackagesController {
   constructor(private readonly packagesService: PackagesService) {}
 
-  // 取得所有套餐（給下拉選單用）
-  @Get()
-  findAll(): any {
-    return this.packagesService.findAll();
+  @Get('packages')
+  findAllPackages() {
+    return this.packagesService.findAllPackages();
   }
 
-  // 取得單一套餐目前的院區設定
-  @Get(':code/settings')
-  findSettings(@Param('code') code: string): any {
-    return this.packagesService.findSettings(code);
+  @Get('branches')
+  findAllBranches() {
+    return this.packagesService.findAllBranches();
   }
 
-  // 更新某一個套餐的院區設定
-  @Put(':code/settings')
-  updateSettings(
-    @Param('code') code: string,
-    @Body()
-    body: {
-      branches: string[];
-      status: 'active' | 'inactive';
-    },
-  ): any {
-    return this.packagesService.updateSettings(code, body);
+  @Get('packages/:packageId/branches')
+  findPackageBranches(
+    @Param('packageId', ParseIntPipe) packageId: number,
+  ) {
+    return this.packagesService.findPackageBranches(packageId);
+  }
+
+  @Put('packages/:packageId/branches')
+  savePackageBranches(
+    @Param('packageId', ParseIntPipe) packageId: number,
+    @Body() dto: UpdatePackageBranchesDto,
+  ) {
+    return this.packagesService.savePackageBranches(packageId, dto);
   }
 }

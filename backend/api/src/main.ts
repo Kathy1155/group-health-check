@@ -1,8 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(
+  new ValidationPipe({
+    whitelist: true, // 只允許 DTO 裡有的欄位
+    transform: true, // 自動轉型（搭配 @Type）
+  }),
+);
 
   // 統一在路徑前加上 /api
   app.setGlobalPrefix('api');

@@ -1,79 +1,153 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+import { HealthExaminationPackageEntity } from './entities/health-examination-package.entity';
+import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
+import { BranchPackageEntity } from '../branch-packages/entities/branch-package.entity';
+import { UpdatePackageBranchesDto } from './dto/update-package-branches.dto';
 
-export type PackageStatus = 'active' | 'inactive';
-
-export interface PackageMock {
-  id: number;
-  code: string;      // 套餐代碼，例如 'A'
-  name: string;      // 套餐名稱，例如 'A套餐'
-  branches: string[]; // 目前可施作院區
-  status: PackageStatus;
+function mapDbStatusToApiStatus(
+  status: 'open' | 'closed',
+): 'active' | 'inactive' {
+  return status === 'open' ? 'active' : 'inactive';
 }
 
 @Injectable()
 export class PackagesService {
-  // 假資料：之後可以改成連資料庫
-  private mockPackages: PackageMock[] = [
-    {
-      id: 1,
-      code: 'A',
-      name: 'A套餐',
-      branches: ['A院區', 'C院區'],
-      status: 'active',
-    },
-    {
-      id: 2,
-      code: 'B',
-      name: 'B套餐',
-      branches: ['B院區'],
-      status: 'inactive',
-    },
-    {
-      id: 3,
-      code: 'C',
-      name: 'C套餐',
-      branches: ['A院區', 'B院區'],
-      status: 'active',
-    },
-  ];
+  constructor(
+    @InjectRepository(HealthExaminationPackageEntity)
+    private readonly packageRepo: Repository<HealthExaminationPackageEntity>,
 
-  // 給下拉選單用，只需要名稱 + 代碼 + 狀態
-  findAll() {
-    return this.mockPackages.map((p) => ({
-      code: p.code,
-      name: p.name,
-      status: p.status,
+    @InjectRepository(HospitalBranchEntity)
+    private readonly branchRepo: Repository<HospitalBranchEntity>,
+
+    @InjectRepository(BranchPackageEntity)
+    private readonly branchPackageRepo: Repository<BranchPackageEntity>,
+  ) {}
+
+  async findAllPackages() {
+    const packages = await this.packageRepo.find({
+      order: { packageId: 'ASC' },
+    });
+
+    return packages.map((pkg) => ({
+      packageId: Number(pkg.packageId),
+      packageCode: pkg.packageCode,
+      packageName: pkg.packageName,
+      isDisable: Boolean(pkg.packageIsDisable),
     }));
   }
 
-  // 取得單一套餐的完整設定（院區 + 狀態）
-  findSettings(code: string) {
-    const pkg = this.mockPackages.find((p) => p.code === code);
-    if (!pkg) {
-      throw new NotFoundException('找不到此套餐');
-    }
-    return pkg;
+  async findAllBranches() {
+    const branches = await this.branchRepo.find({
+      order: { branchId: 'ASC' },
+    });
+
+    return branches.map((branch) => ({
+      branchId: Number(branch.branchId),
+      branchName: branch.branchName,
+    }));
   }
 
-  // 更新院區 + 狀態
-  updateSettings(
-    code: string,
-    data: { branches: string[]; status: PackageStatus },
-  ) {
-    const pkg = this.mockPackages.find((p) => p.code === code);
+  async findPackageBranches(packageId: number) {
+    const pkg = await this.packageRepo.findOne({
+      where: { packageId },
+    });
+
     if (!pkg) {
       throw new NotFoundException('找不到此套餐');
     }
 
-    // 在這裡實際修改陣列裡的物件
-    if (Array.isArray(data.branches)) {
-      pkg.branches = data.branches;
-    }
-    if (data.status) {
-      pkg.status = data.status;
+    const branchPackages = await this.branchPackageRepo.find({
+      where: { packageId },
+      order: { branchId: 'ASC' },
+    });
+
+    const openItems = branchPackages.filter(
+      (item) => item.branchPackageStatus === 'open',
+    );
+
+    return {
+      packageId: Number(pkg.packageId),
+      packageCode: pkg.packageCode,
+      packageName: pkg.packageName,
+      status: pkg.packageIsDisable ? 'inactive' : 'active',
+      selectedBranchIds: openItems.map((item) => Number(item.branchId)),
+      allSavedBranchSettings: branchPackages.map((item) => ({
+        branchId: Number(item.branchId),
+        branchPackageStatus: mapDbStatusToApiStatus(item.branchPackageStatus),
+      })),
+    };
+  }
+
+  async savePackageBranches(
+    packageId: number,
+    dto: UpdatePackageBranchesDto,
+  ) {
+    const pkg = await this.packageRepo.findOne({
+      where: { packageId },
+    });
+
+    if (!pkg) {
+      throw new NotFoundException('找不到此套餐');
     }
 
-    console.log('更新後的套餐設定：', pkg); // 確認有被改到
-    return pkg;
+    const selectedBranchIds = (dto.selectedBranchIds ?? []).map(Number);
+    const status = dto.status;
+
+    if (selectedBranchIds.length > 0) {
+      const existingBranches = await this.branchRepo.find({
+        where: { branchId: In(selectedBranchIds) },
+      });
+
+      if (existingBranches.length !== selectedBranchIds.length) {
+        throw new NotFoundException('部分院區不存在');
+      }
+    }
+
+    const existingMappings = await this.branchPackageRepo.find({
+      where: { packageId },
+    });
+
+    const existingMap = new Map<number, BranchPackageEntity>(
+      existingMappings.map((item) => [Number(item.branchId), item]),
+    );
+
+    const selectedSet = new Set<number>(selectedBranchIds);
+
+    // 勾選的院區 = open
+    // 沒勾選的院區 = closed
+    // 套餐停用與否只看 package_isDisable，不要影響院區搭配記錄
+    for (const item of existingMappings) {
+      item.branchPackageStatus = selectedSet.has(Number(item.branchId))
+        ? 'open'
+        : 'closed';
+    }
+
+    if (existingMappings.length > 0) {
+      await this.branchPackageRepo.save(existingMappings);
+    }
+
+    const newBranchIds = selectedBranchIds.filter(
+      (branchId) => !existingMap.has(branchId),
+    );
+
+    if (newBranchIds.length > 0) {
+      const newItems = newBranchIds.map((branchId) =>
+        this.branchPackageRepo.create({
+          packageId,
+          branchId,
+          branchPackageStatus: 'open',
+        }),
+      );
+
+      await this.branchPackageRepo.save(newItems);
+    }
+
+    // 套餐本身的啟用 / 停用
+    pkg.packageIsDisable = status === 'inactive';
+    await this.packageRepo.save(pkg);
+
+    return this.findPackageBranches(packageId);
   }
 }
