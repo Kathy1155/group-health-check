@@ -1,150 +1,92 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* ===== 業務中心首頁 ===== */
+
+.business-scope .page-card {
+  max-width: 960px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.business-scope .action-stack {
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.business-scope .action-stack .primary-button {
+  width: 100%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
+/* ===== 套餐院區頁 ===== */
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-.page-shell {
-  padding: 24px;
-}
-
-.page-card {
-  max-width: 900px;
-  margin: 0 auto;
-  background: #fff;
-  border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.page-title {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.form-group {
-  margin-bottom: 24px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
+.package-branch-page .readonly-box {
+  font-size: 1.05rem;
   font-weight: 600;
 }
 
-select,
-.readonly-box {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid #ccc;
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 16px;
+.package-branch-page .branch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.package-branch-page .branch-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--bg-soft);
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.package-branch-page .branch-checkbox:hover {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.package-branch-page .branch-checkbox input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.package-branch-page .branch-checkbox span {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.package-branch-page .radio-group {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.package-branch-page .radio-group label {
+  font-weight: 600;
+}
+
+.package-branch-page .form-hint {
+  margin-top: 14px;
+}
+
+/* ===== 上傳名冊頁 ===== */
+
+.roster-upload-page .form-input[type="file"] {
+  padding: 10px;
   background: #fff;
 }
 
-.readonly-box {
-  display: flex;
-  align-items: center;
-}
-
-.branch-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.branch-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #f7f7f7;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.form-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.btn {
-  border: none;
-  border-radius: 999px;
-  padding: 10px 22px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-}
-
-.btn-secondary {
-  background: #e5e7eb;
-  color: #111827;
-}
-
-.form-hint {
-  color: #6b7280;
-  font-size: 14px;
-}
+/* ===== 手機版 ===== */
 
 @media (max-width: 768px) {
-  .page-card {
-    padding: 20px;
-  }
-
-  .branch-grid {
+  .package-branch-page .branch-grid {
     grid-template-columns: 1fr;
   }
 
-  .form-footer {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
+  .package-branch-page .branch-checkbox {
+    min-height: 56px;
+    padding: 14px 14px;
   }
 }

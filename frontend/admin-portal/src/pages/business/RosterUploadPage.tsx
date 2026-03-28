@@ -122,96 +122,96 @@ const RosterUploadPage: React.FC = () => {
 
 
   return (
-    <div className="page-container">
+    <div className="page-container business-scope roster-upload-page">
       <div className="page-card">
-        <h2 className="page-title">上傳團體名冊界面</h2>
+          <h2 className="page-title">上傳團體名冊界面</h2>
 
-        {step === 1 && (
-          <form className="page-form" onSubmit={handleConfirmCode}>
-            <div className="form-row single">
-              <div className="form-field form-field-narrow">
-                <label className="form-label" htmlFor="groupCodeInput">
-                  請輸入欲上傳之團體代碼：
-                </label>
-                <input
-                  id="groupCodeInput"
-                  className="form-input"
-                  value={groupCodeInput}
-                  onChange={(e) => setGroupCodeInput(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* 確定按鈕寬度與輸入欄位一致 */}
-            <div className="form-actions-center">
-              <button
-                type="submit"
-                className="primary-button full-width-button"
-              >
-                確定
-              </button>
-            </div>
-          </form>
-        )}
-
-        {step === 2 && groupInfo && (
-          <form className="page-form" onSubmit={handleSave}>
-            <div className="form-row single">
-              <div className="form-field">
-                <div className="form-label">
-                  團體名稱：{groupInfo.name} - {groupInfo.code}
+          {step === 1 && (
+            <form className="page-form" onSubmit={handleConfirmCode}>
+              <div className="form-row single">
+                <div className="form-field form-field-narrow">
+                  <label className="form-label" htmlFor="groupCodeInput">
+                    請輸入欲上傳之團體代碼：
+                  </label>
+                  <input
+                    id="groupCodeInput"
+                    className="form-input"
+                    value={groupCodeInput}
+                    onChange={(e) => setGroupCodeInput(e.target.value)}
+                  />
                 </div>
               </div>
-            </div>
 
-            <div className="form-row single">
-              <div className="form-field form-field-narrow">
-                <label className="form-label" htmlFor="rosterFile">
-                  上傳團體名冊：
-                </label>
-                <input
-                  key={fileInputKey}
-                  id="rosterFile"
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    if (!f) {
-                      setFile(null);
-                      return;
-                    }
+              {/* 確定按鈕寬度與輸入欄位一致 */}
+              <div className="form-actions-center">
+                <button
+                  type="submit"
+                  className="primary-button full-width-button"
+                >
+                  確定
+                </button>
+              </div>
+            </form>
+          )}
 
-                    const lower = f.name.toLowerCase();
-                    if (!lower.endsWith('.csv')) {
-                      alert('目前僅接受 CSV 檔（副檔名必須是 .csv）');
-                      e.target.value = '';
-                      setFile(null);
-                      return;
-                    }
+          {step === 2 && groupInfo && (
+            <form className="page-form" onSubmit={handleSave}>
+              <div className="form-row single">
+                <div className="form-field">
+                  <div className="form-label">
+                    團體名稱：{groupInfo.name} - {groupInfo.code}
+                  </div>
+                </div>
+              </div>
 
-                    setFile(f);
-                  }}
-                />
+              <div className="form-row single">
+                <div className="form-field form-field-narrow">
+                  <label className="form-label" htmlFor="rosterFile">
+                    上傳團體名冊：
+                  </label>
+                  <input
+                    key={fileInputKey}
+                    id="rosterFile"
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      if (!f) {
+                        setFile(null);
+                        return;
+                      }
+
+                      const lower = f.name.toLowerCase();
+                      if (!lower.endsWith('.csv')) {
+                        alert('目前僅接受 CSV 檔（副檔名必須是 .csv）');
+                        e.target.value = '';
+                        setFile(null);
+                        return;
+                      }
+
+                      setFile(f);
+                    }}
+                  />
+
+                </div>
+              </div>
+
+              <div className="form-actions-center gap">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={handleBack}
+                >
+                  上一步
+                </button>
+                <button type="submit" className="primary-button" disabled={isSaving}>
+                  {isSaving ? '儲存中...' : '儲存'}
+                </button>
 
               </div>
-            </div>
-
-            <div className="form-actions-center gap">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleBack}
-              >
-                上一步
-              </button>
-              <button type="submit" className="primary-button" disabled={isSaving}>
-                {isSaving ? '儲存中...' : '儲存'}
-              </button>
-
-            </div>
-          </form>
-        )}
-      </div>
+            </form>
+          )}
+        </div>
     </div>
   );
 };

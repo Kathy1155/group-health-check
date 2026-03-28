@@ -1,42 +1,336 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* ===== 健檢中心共用 ===== */
+
+.healthcenter-scope .page-card {
+  max-width: 960px;
+}
+
+/* ===== 健檢中心首頁 ===== */
+
+.healthcenter-home-page .action-stack {
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
+}
+
+.healthcenter-home-page .action-stack .primary-button {
+  width: 100%;
+}
+
+/* ===== 健檢中心表單頁 ===== */
+
+.healthcenter-form-page .form-field-narrow {
+  max-width: 460px;
+}
+
+.healthcenter-form-page .radio-group-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== 表格 ===== */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 18px;
+  border-radius: 16px;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+  font-size: 0.95rem;
+}
+
+.data-table th {
+  background: #f8fafc;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.data-table tr:hover td {
+  background: #fcfdff;
+}
+
+/* ===== 狀態色 ===== */
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-booked {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-confirmed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ===== 查詢結果 / 統計卡片 ===== */
+
+.timeslot-card,
+.result-card,
+.summary-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.result-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.result-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.export-bar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.export-checkbox-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.export-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.summary-item {
+  padding: 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.summary-item-label {
+  font-size: 0.88rem;
+  color: var(--text-muted);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.summary-item-value {
+  margin-top: 6px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+/* ===== 查詢結果表格操作區 ===== */
+
+.result-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.result-action-stack .secondary-button {
+  min-width: 96px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+/* ===== 狀態文字顏色 ===== */
+
+.status-text-booked {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.status-text-confirmed {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.status-text-cancelled {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+/* ===== Modal ===== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.modal-title {
+  font-size: 1.4rem;
+  color: #1f2937;
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.modal-subtext {
+  margin-bottom: 10px;
+}
+
+.modal-field {
+  margin-bottom: 24px;
+}
+
+.modal-summary-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 0;
+  margin: 20px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.modal-summary-item {
+  flex: 1;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.modal-summary-item + .modal-summary-item {
+  border-left: 1px solid var(--border);
+}
+
+.modal-summary-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.modal-summary-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.modal-summary-value.total {
+  color: #2563eb;
+}
+
+.modal-summary-value.booked {
+  color: #ef4444;
+}
+
+.modal-summary-value.remaining {
+  color: #10b981;
+}
+
+/* ===== 分隔線 ===== */
+
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+/* ===== 響應式 ===== */
+
+@media (max-width: 768px) {
+  .data-table {
+    min-width: 620px;
   }
-  to {
-    transform: rotate(360deg);
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeslot-card,
+  .result-card,
+  .summary-card {
+    padding: 14px;
+  }
+
+  .result-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .export-bar {
+    align-items: flex-start;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 18px;
+    border-radius: 18px;
   }
-}
 
-.card {
-  padding: 2em;
-}
+  .modal-summary-row {
+    flex-direction: column;
+    gap: 12px;
+  }
 
-.read-the-docs {
-  color: #888;
+  .modal-summary-item + .modal-summary-item {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
 }
