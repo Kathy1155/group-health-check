@@ -108,7 +108,7 @@ const GroupCreatePage: React.FC = () => {
 };
 
   return (
-    <div className="page-container">
+    <div className="page-container business-scope">
       <div className="page-card">
         <h2 className="page-title">新增團體資料界面</h2>
 

@@ -204,139 +204,141 @@ const PackageBranchSettingPage: React.FC = () => {
 
   if (loadingPage) {
     return (
-      <div className="page-container">
-        <div className="page-card">
-          <h2 className="page-title">指定套餐院區界面</h2>
-          <p>資料載入中...</p>
+      <div className="page-container business-scope package-branch-page">
+        <div className="page-container">
+          <div className="page-card">
+            <h2 className="page-title">指定套餐院區界面</h2>
+            <p>資料載入中...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page-container">
+    <div className="page-container business-scope package-branch-page">
       <div className="page-card">
-        <h2 className="page-title">指定套餐院區界面</h2>
+          <h2 className="page-title">指定套餐院區界面</h2>
 
-        {step === 1 && (
-          <form className="page-form" onSubmit={handleNext}>
-            <div className="form-row single">
-              <div className="form-field form-field-narrow">
-                <label className="form-label" htmlFor="packageSelect">
-                  請選擇欲設定之套餐：
-                </label>
+          {step === 1 && (
+            <form className="page-form" onSubmit={handleNext}>
+              <div className="form-row single">
+                <div className="form-field form-field-narrow">
+                  <label className="form-label" htmlFor="packageSelect">
+                    請選擇欲設定之套餐：
+                  </label>
 
-                <select
-                  id="packageSelect"
-                  className="form-select"
-                  value={selectedPackageId}
-                  onChange={(e) =>
-                    setSelectedPackageId(
-                      e.target.value ? Number(e.target.value) : "",
-                    )
-                  }
+                  <select
+                    id="packageSelect"
+                    className="form-select"
+                    value={selectedPackageId}
+                    onChange={(e) =>
+                      setSelectedPackageId(
+                        e.target.value ? Number(e.target.value) : "",
+                      )
+                    }
+                  >
+                    {packages.length === 0 && <option value="">目前沒有套餐資料</option>}
+
+                    {packages.map((pkg) => (
+                      <option key={pkg.packageId} value={pkg.packageId}>
+                        {pkg.packageName}
+                        {pkg.isDisable ? "（已停用）" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-actions-center">
+                <button
+                  type="submit"
+                  className="primary-button full-width-button"
+                  disabled={loadingSetting || selectedPackageId === ""}
                 >
-                  {packages.length === 0 && <option value="">目前沒有套餐資料</option>}
-
-                  {packages.map((pkg) => (
-                    <option key={pkg.packageId} value={pkg.packageId}>
-                      {pkg.packageName}
-                      {pkg.isDisable ? "（已停用）" : ""}
-                    </option>
-                  ))}
-                </select>
+                  {loadingSetting ? "讀取中..." : "下一步"}
+                </button>
               </div>
-            </div>
+            </form>
+          )}
 
-            <div className="form-actions-center">
-              <button
-                type="submit"
-                className="primary-button full-width-button"
-                disabled={loadingSetting || selectedPackageId === ""}
-              >
-                {loadingSetting ? "讀取中..." : "下一步"}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {step === 2 && (
-          <form className="page-form" onSubmit={handleSave}>
-            <div className="form-row single">
-              <div className="form-field">
-                <div className="form-label">目前套餐</div>
-                <div className="readonly-box">
-                  {selectedPackage?.packageName ?? "未選擇套餐"}
+          {step === 2 && (
+            <form className="page-form" onSubmit={handleSave}>
+              <div className="form-row single">
+                <div className="form-field">
+                  <div className="form-label">目前套餐</div>
+                  <div className="readonly-box">
+                    {selectedPackage?.packageName ?? "未選擇套餐"}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="form-row single">
-              <div className="form-field">
-                <span className="form-label">套餐狀態</span>
-                <div className="radio-group">
-                  <label>
-                    <input
-                      type="radio"
-                      value="active"
-                      checked={status === "active"}
-                      onChange={() => setStatus("active")}
-                    />
-                    啟用
-                  </label>
-
-                  <label>
-                    <input
-                      type="radio"
-                      value="inactive"
-                      checked={status === "inactive"}
-                      onChange={() => setStatus("inactive")}
-                    />
-                    停用
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="form-row single">
-              <div className="form-field">
-                <div className="form-label">請選擇可施作院區</div>
-                <div className="branch-grid">
-                  {branches.map((branch) => (
-                    <label key={branch.branchId} className="branch-checkbox">
+              <div className="form-row single">
+                <div className="form-field">
+                  <span className="form-label">套餐狀態</span>
+                  <div className="radio-group">
+                    <label>
                       <input
-                        type="checkbox"
-                        checked={selectedBranchIds.includes(branch.branchId)}
-                        onChange={() => toggleBranch(branch.branchId)}
+                        type="radio"
+                        value="active"
+                        checked={status === "active"}
+                        onChange={() => setStatus("active")}
                       />
-                      <span>{branch.branchName}</span>
+                      啟用
                     </label>
-                  ))}
+
+                    <label>
+                      <input
+                        type="radio"
+                        value="inactive"
+                        checked={status === "inactive"}
+                        onChange={() => setStatus("inactive")}
+                      />
+                      停用
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <p className="form-hint">
-              {isDirty ? "目前有尚未儲存的變更" : "目前設定已同步"}
-            </p>
+              <div className="form-row single">
+                <div className="form-field">
+                  <div className="form-label">請選擇可施作院區</div>
+                  <div className="branch-grid">
+                    {branches.map((branch) => (
+                      <label key={branch.branchId} className="branch-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedBranchIds.includes(branch.branchId)}
+                          onChange={() => toggleBranch(branch.branchId)}
+                        />
+                        <span>{branch.branchName}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-            <div className="form-actions-center gap">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleBack}
-                disabled={saving}
-              >
-                上一步
-              </button>
+              <p className="form-hint">
+                {isDirty ? "目前有尚未儲存的變更" : "目前設定已同步"}
+              </p>
 
-              <button type="submit" className="primary-button" disabled={saving}>
-                {saving ? "儲存中..." : "儲存"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+              <div className="form-actions-center gap">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={handleBack}
+                  disabled={saving}
+                >
+                  上一步
+                </button>
+
+                <button type="submit" className="primary-button" disabled={saving}>
+                  {saving ? "儲存中..." : "儲存"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
     </div>
   );
 };

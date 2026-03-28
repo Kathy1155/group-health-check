@@ -5,9 +5,9 @@ const BusinessHomePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="page-container">
+    <div className="page-container business-scope">
       <div className="page-card">
-        <h2 className="page-title">功能選擇界面</h2>
+        <h2 className="page-title">功能選擇介面</h2>
 
         <div className="action-stack">
           <button
