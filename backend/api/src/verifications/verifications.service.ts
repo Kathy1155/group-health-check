@@ -2,8 +2,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { GroupEntity } from '../groups/group.entity';
 import { GroupParticipantEntity } from '../roster/group-participant.entity';
+import * as nodemailer from 'nodemailer';
 
 type OtpRecord = {
   otp: string;
@@ -23,10 +25,32 @@ export class VerificationsService {
 
     @InjectRepository(GroupParticipantEntity)
     private readonly participantRepo: Repository<GroupParticipantEntity>,
+
+    private readonly configService: ConfigService,
   ) {}
 
+  private async sendOtpEmail(to: string, otp: string) {
+    const transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('MAIL_HOST'),
+      port: Number(this.configService.get<string>('MAIL_PORT')),
+      secure: false,
+      auth: {
+        user: this.configService.get<string>('MAIL_USER'),
+        pass: this.configService.get<string>('MAIL_PASS'),
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"健檢預約系統" <${this.configService.get<string>('MAIL_FROM')}>`,
+      to,
+      subject: '團體健檢預約 OTP 驗證碼',
+      text: `您的驗證碼是：${otp}\n此驗證碼將於 5 分鐘後失效。`,
+    });
+
+    console.log(`[MAIL] OTP 已寄出到 ${to}`);
+  }
+
   async requestOtp(groupCode: string, idNumber: string) {
-    // 1. 先查團體
     const group = await this.groupRepo.findOne({
       where: { groupCode },
     });
@@ -35,7 +59,6 @@ export class VerificationsService {
       throw new BadRequestException('查無此團體代碼');
     }
 
-    // 2. 再查這個人是否存在於該團體名冊
     const participant = await this.participantRepo.findOne({
       where: {
         groupId: group.groupId,
@@ -47,12 +70,10 @@ export class VerificationsService {
       throw new BadRequestException('資料驗證失敗');
     }
 
-    // 3. 檢查是否有 email 可寄送 OTP
     if (!participant.email) {
       throw new BadRequestException('查無可寄送驗證碼的 email');
     }
 
-    // 4. 產生 OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationId = randomUUID();
 
@@ -64,7 +85,8 @@ export class VerificationsService {
       idNumber,
     });
 
-    // 目前先用 log 模擬寄送
+    await this.sendOtpEmail(participant.email, otp);
+
     console.log(
       `[OTP] verificationId=${verificationId}, otp=${otp}, to=${participant.email}`,
     );
