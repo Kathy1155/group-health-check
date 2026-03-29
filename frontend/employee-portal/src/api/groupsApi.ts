@@ -1,4 +1,3 @@
-// src/api/groupsApi.ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
 export interface GroupDto {
@@ -7,6 +6,13 @@ export interface GroupDto {
   name: string;
   contactName: string;
 }
+
+type GroupApiResponse = {
+  groupId: number;
+  groupCode: string;
+  groupName: string;
+  contactName: string;
+};
 
 export async function fetchGroupByCode(
   code: string
@@ -23,5 +29,12 @@ export async function fetchGroupByCode(
     throw new Error(`查詢團體失敗，status = ${res.status}`);
   }
 
-  return res.json();
+  const data = (await res.json()) as GroupApiResponse;
+
+  return {
+    id: Number(data.groupId),
+    code: data.groupCode,
+    name: data.groupName,
+    contactName: data.contactName,
+  };
 }

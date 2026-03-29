@@ -36,13 +36,15 @@ function SelectBranchPackagePage() {
 
   // ⭐ 防呆：如果沒有必要 state，直接導回首頁
   useEffect(() => {
-    if (!group || !idNumber) {
+    if (!group || !group.id || !idNumber) {
+      console.error("缺少必要 state:", { group, idNumber });
       navigate("/");
       return;
     }
 
     fetchGroupOptions(group.id)
       .then((data: GroupOptionDto) => {
+        console.log("group options API 回傳資料：", data);
         setOptions(data);
         setLoading(false);
       })
@@ -60,6 +62,7 @@ function SelectBranchPackagePage() {
     navigate("/select-slot", {
       state: {
         group,
+        groupCode: group.code,
         idNumber,
         branchId: selectedBranchId,
         packageId: selectedPackageId,
@@ -68,7 +71,7 @@ function SelectBranchPackagePage() {
   };
 
   const handlePrev = () => {
-    navigate("/");
+    navigate(-1);
   };
 
   if (loading) return <p>載入中...</p>;
@@ -130,6 +133,10 @@ function SelectBranchPackagePage() {
             {!currentBranch && (
               <p className="sbp-hint">請先在左側選擇院區。</p>
             )}
+
+              {currentBranch && currentBranch.packages.length === 0 && (
+                <p className="sbp-hint">此院區目前沒有可預約的健檢套餐。</p>
+              )}
 
             {currentBranch &&
               currentBranch.packages.map((p) => {
