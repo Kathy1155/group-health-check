@@ -18,7 +18,8 @@ async function bootstrap() {
   // 開放給前端 dev server 呼叫
   app.enableCors({
     // 保留你原本設定的網址，這對前端連線比較準確
-    origin: ['http://localhost:5173'],
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    
     credentials: true,
   });
 

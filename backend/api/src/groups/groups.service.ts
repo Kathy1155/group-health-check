@@ -7,12 +7,24 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroupEntity } from './group.entity';
+import { BranchPackageEntity } from '../branch-packages/entities/branch-package.entity';
+import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
+import { HealthExaminationPackageEntity } from '../packages/entities/health-examination-package.entity';
 
 @Injectable()
 export class GroupsService {
   constructor(
     @InjectRepository(GroupEntity)
     private readonly groupRepo: Repository<GroupEntity>,
+
+    @InjectRepository(BranchPackageEntity)
+    private readonly branchPackageRepo: Repository<BranchPackageEntity>,
+
+    @InjectRepository(HospitalBranchEntity)
+    private readonly branchRepo: Repository<HospitalBranchEntity>,
+
+    @InjectRepository(HealthExaminationPackageEntity)
+    private readonly packageRepo: Repository<HealthExaminationPackageEntity>,
   ) {}
 
   // 1. 取得所有團體 (從資料庫)
@@ -65,27 +77,65 @@ export class GroupsService {
     }
   }
 
-  // 5. ⭐ 這是你原本在本地新增的「可預約院區 + 套餐」API (目前先用假資料)
-  findGroupOptions(groupId: number) {
-    const packages = {
-      A: { packageId: 101, packageName: '健檢套餐 A' },
-      B: { packageId: 102, packageName: '健檢套餐 B' },
-      C: { packageId: 103, packageName: '健檢套餐 C' },
-      D: { packageId: 104, packageName: '健檢套餐 D' },
-      E: { packageId: 105, packageName: '健檢套餐 E' },
-    };
+  // 5. 透過 groupId 取得可預約的院區與套餐選項 (從資料庫)
+    async findGroupOptions(groupId: number) {
+      const group = await this.groupRepo.findOne({
+        where: { groupId },
+      });
 
-    return {
-      groupId,
-      branches: [
-        { branchId: 1, branchName: '忠孝院區', packages: [packages.A, packages.B, packages.E] },
-        { branchId: 2, branchName: '仁愛院區', packages: [packages.A, packages.B, packages.C, packages.D] },
-        { branchId: 3, branchName: '和平婦幼院區', packages: [packages.A, packages.C, packages.E] },
-        { branchId: 4, branchName: '中興院區', packages: [packages.B, packages.D, packages.E] },
-        { branchId: 5, branchName: '陽明院區', packages: [packages.B, packages.D] },
-        { branchId: 6, branchName: '松德院區', packages: [packages.C, packages.D] },
-        { branchId: 7, branchName: '林森中醫院區', packages: [packages.C, packages.D, packages.E] },
-      ],
-    };
-  }
+      if (!group) {
+        throw new NotFoundException('查無此團體');
+      }
+
+      const branchPackages = await this.branchPackageRepo.find({
+        relations: ['branch', 'package'],
+        order: {
+          branchId: 'ASC' as any,
+          packageId: 'ASC' as any,
+        },
+      });
+
+      const availableItems = branchPackages.filter(
+        (item) =>
+          item.branchPackageStatus === 'open' &&
+          item.branch &&
+          item.package &&
+          !item.package.packageIsDisable,
+      );
+
+      const branchMap = new Map<
+        number,
+        {
+          branchId: number;
+          branchName: string;
+          packages: {
+            packageId: number;
+            packageName: string;
+          }[];
+        }
+      >();
+
+      for (const item of availableItems) {
+        const branchId = Number(item.branch.branchId);
+        const packageId = Number(item.package.packageId);
+
+        if (!branchMap.has(branchId)) {
+          branchMap.set(branchId, {
+            branchId,
+            branchName: item.branch.branchName,
+            packages: [],
+          });
+        }
+
+        branchMap.get(branchId)!.packages.push({
+          packageId,
+          packageName: item.package.packageName,
+        });
+      }
+
+      return {
+        groupId: Number(groupId),
+        branches: Array.from(branchMap.values()),
+      };
+    }
 }
