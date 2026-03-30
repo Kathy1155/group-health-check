@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 
 const API_ENDPOINT = "http://localhost:3000/api/timeslots";
+const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
+const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
 
 interface TimeSlot {
   date: string;
   timeSlot: string;
   packageType: string;
+  packageId: number | string;
+  branchName: string;
+  branchId: number | string;
   quota: number;
 }
 
@@ -47,7 +52,22 @@ const TIME_SLOT_OPTIONS = [
   { value: "13:00-15:00", label: "13:00 - 15:00" },
 ];
 
+const normalizeTimeSlot = (value: string) => {
+  return value.replace(/:00(?=[:-])/g, "").replace(/:00$/g, "").trim();
+};
+
 function TimeSlotViewPage() {
+  const [branchId, setBranchId] = useState("");
+  const [packageId, setPackageId] = useState("");
+
+  const [branches, setBranches] = useState<
+    { branchId: number; branchName: string }[]
+  >([]);
+
+  const [packages, setPackages] = useState<
+    { packageId: number; packageName: string; isDisable?: boolean }[]
+  >([]);
+
   const [searchDate, setSearchDate] = useState("");
   const [searchTimeSlot, setSearchTimeSlot] = useState("all");
   const [loadedTimeSlots, setLoadedTimeSlots] = useState<TimeSlot[]>([]);
@@ -56,66 +76,83 @@ function TimeSlotViewPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchTimeSlots = async () => {
-      try {
-        const response = await fetch(API_ENDPOINT);
+  const loadInitData = async () => {
+    try {
+      setLoadingStatus("loading");
 
-        if (!response.ok) {
-          throw new Error(`無法載入資料 (HTTP ${response.status})`);
-        }
+      const [timeSlotRes, branchRes, packageRes] = await Promise.all([
+        fetch(API_ENDPOINT),
+        fetch(BRANCH_API_ENDPOINT),
+        fetch(PACKAGE_API_ENDPOINT),
+      ]);
 
-        const data: TimeSlot[] = await response.json();
-        setLoadedTimeSlots(data);
-        setLoadingStatus("success");
-      } catch (error) {
-        console.error("載入時段資料失敗:", error);
-        setLoadingStatus("error");
+      if (!timeSlotRes.ok) {
+        throw new Error(`無法載入時段資料 (HTTP ${timeSlotRes.status})`);
       }
-    };
+      if (!branchRes.ok) {
+        throw new Error(`無法載入院區資料 (HTTP ${branchRes.status})`);
+      }
+      if (!packageRes.ok) {
+        throw new Error(`無法載入套餐資料 (HTTP ${packageRes.status})`);
+      }
 
-    fetchTimeSlots();
+      const timeSlotData: TimeSlot[] = await timeSlotRes.json();
+      const branchData = await branchRes.json();
+      const packageData = await packageRes.json();
+
+      setLoadedTimeSlots(timeSlotData);
+      setBranches(branchData);
+      setPackages(packageData.filter((item: any) => !item.isDisable));
+
+      setLoadingStatus("success");
+    } catch (error) {
+      console.error("載入資料失敗:", error);
+      setLoadingStatus("error");
+    }
+  };
+
+  loadInitData();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSearch = (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!searchDate) {
-      alert("請選擇查詢日期");
-      return;
-    }
+  if (!branchId || !packageId || !searchDate) {
+    alert("請完整選擇院區、套餐與日期");
+    return;
+  }
 
-    const formattedSearchDate = searchDate;
-    const effectiveTimeSlot = searchTimeSlot === "all" ? null : searchTimeSlot;
+  const effectiveTimeSlot = searchTimeSlot === "all" ? null : searchTimeSlot;
 
-    const matchingSlots = loadedTimeSlots.filter((slot) => {
-      const dateMatch = slot.date === formattedSearchDate;
-      const timeMatch = effectiveTimeSlot === null || slot.timeSlot === effectiveTimeSlot;
-      return dateMatch && timeMatch;
-    });
+  const matchingSlots = loadedTimeSlots.filter((slot) => {
+    const branchMatch = String(slot.branchId) === String(branchId);
+    const packageMatch = String(slot.packageId) === String(packageId);
+    const dateMatch = slot.date === searchDate;
+    const timeMatch =
+    effectiveTimeSlot === null ||
+    normalizeTimeSlot(slot.timeSlot) === normalizeTimeSlot(effectiveTimeSlot);
+    return branchMatch && packageMatch && dateMatch && timeMatch;
+  });
 
-    let totalQuota = 0;
-    if (matchingSlots.length > 0) {
-      totalQuota = matchingSlots.reduce((sum, slot) => sum + slot.quota, 0);
-    }
+  const totalQuota = matchingSlots.reduce((sum, slot) => sum + slot.quota, 0);
+  const currentBooked = Math.floor(totalQuota * 0.7);
 
-    const currentBooked = Math.floor(totalQuota * 0.7);
-
-    const finalResult: QueryResult = {
-      date: searchDate,
-      timeSlot: effectiveTimeSlot === null ? "所有時段" : effectiveTimeSlot,
-      totalQuota,
-      currentBooked,
-      remaining: totalQuota - currentBooked,
-    };
-
-    if (totalQuota === 0) {
-      alert(`找不到 ${searchDate} ${finalResult.timeSlot} 的時段設定名額！`);
-      return;
-    }
-
-    setQueryResult(finalResult);
-    setIsModalOpen(true);
+  const finalResult: QueryResult = {
+    date: searchDate,
+    timeSlot: effectiveTimeSlot === null ? "所有時段" : effectiveTimeSlot,
+    totalQuota,
+    currentBooked,
+    remaining: totalQuota - currentBooked,
   };
+
+  if (totalQuota === 0) {
+    alert("找不到符合條件的時段名額");
+    return;
+  }
+
+  setQueryResult(finalResult);
+  setIsModalOpen(true);
+};
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -137,14 +174,18 @@ function TimeSlotViewPage() {
     return null;
   };
 
-  const filteredData = loadedTimeSlots.filter((item) => {
-    const itemDate = item.date.replace(/-/g, "/");
-    return (
-      itemDate === DATES.today ||
-      itemDate === DATES.tomorrow ||
-      itemDate === DATES.dayAfterTomorrow
-    );
-  });
+const filteredData = loadedTimeSlots.filter((item) => {
+  const itemDate = item.date.replace(/-/g, "/");
+  const dateMatch =
+    itemDate === DATES.today ||
+    itemDate === DATES.tomorrow ||
+    itemDate === DATES.dayAfterTomorrow;
+
+  const branchMatch = !branchId || String(item.branchId) === String(branchId);
+  const packageMatch = !packageId || String(item.packageId) === String(packageId);
+
+  return dateMatch && branchMatch && packageMatch;
+});
 
   const Modal = ({
     isOpen,
@@ -193,55 +234,101 @@ function TimeSlotViewPage() {
       <div className="page-card">
         <h2 className="page-title">時段剩餘名額查詢</h2>
 
-        <form className="page-form" onSubmit={handleSearch}>
-          <div className="form-row">
-            <div className="form-field form-field-narrow">
-              <label className="form-label" htmlFor="searchDate">
-                查詢日期：
-              </label>
-              <input
-                id="searchDate"
-                type="date"
-                value={searchDate}
-                onChange={(e) => setSearchDate(e.target.value)}
-                className="form-input"
-                required
-                disabled={loadingStatus === "loading"}
-              />
-            </div>
+      <form className="page-form" onSubmit={handleSearch}>
+  <div className="form-row">
+    <div className="form-field form-field-narrow">
+      <label className="form-label" htmlFor="branchId">
+        院區：
+      </label>
+      <select
+        id="branchId"
+        value={branchId}
+        onChange={(e) => setBranchId(e.target.value)}
+        className="form-select"
+        required
+        disabled={loadingStatus === "loading"}
+      >
+        <option value="">請選擇院區</option>
+        {branches.map((branch) => (
+          <option key={branch.branchId} value={branch.branchId}>
+            {branch.branchName}
+          </option>
+        ))}
+      </select>
+    </div>
 
-            <div className="form-field form-field-narrow">
-              <label className="form-label" htmlFor="searchTime">
-                時段選擇：
-              </label>
-              <select
-                id="searchTime"
-                value={searchTimeSlot}
-                onChange={(e) => setSearchTimeSlot(e.target.value)}
-                className="form-select"
-                disabled={loadingStatus === "loading"}
-              >
-                {TIME_SLOT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <div className="form-field form-field-narrow">
+      <label className="form-label" htmlFor="packageId">
+        套餐：
+      </label>
+      <select
+        id="packageId"
+        value={packageId}
+        onChange={(e) => setPackageId(e.target.value)}
+        className="form-select"
+        required
+        disabled={loadingStatus === "loading"}
+      >
+        <option value="">請選擇套餐</option>
+        {packages.map((pkg) => (
+          <option key={pkg.packageId} value={pkg.packageId}>
+            {pkg.packageName}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
 
-            <div className="form-field form-field-narrow">
-              <div className="form-actions-center">
-                <button
-                  type="submit"
-                  className="primary-button full-width-button"
-                  disabled={loadingStatus === "loading"}
-                >
-                  查詢
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
+  <div className="form-row">
+    <div className="form-field form-field-narrow">
+      <label className="form-label" htmlFor="searchDate">
+        查詢日期：
+      </label>
+      <input
+        id="searchDate"
+        type="date"
+        value={searchDate}
+        onChange={(e) => setSearchDate(e.target.value)}
+        className="form-input"
+        required
+        disabled={loadingStatus === "loading"}
+      />
+    </div>
+
+    <div className="form-field form-field-narrow">
+      <label className="form-label" htmlFor="searchTime">
+        時段選擇：
+      </label>
+      <select
+        id="searchTime"
+        value={searchTimeSlot}
+        onChange={(e) => setSearchTimeSlot(e.target.value)}
+        className="form-select"
+        disabled={loadingStatus === "loading"}
+      >
+        {TIME_SLOT_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="form-field form-field-narrow">
+      <div className="form-actions-center">
+        <button
+          type="submit"
+          className="primary-button full-width-button"
+          disabled={loadingStatus === "loading"}
+        >
+          查詢
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
+        
 
         <hr className="section-divider" />
 
@@ -268,7 +355,7 @@ function TimeSlotViewPage() {
                       <td>
                         {item.date} {getDateTag(item.date)}
                       </td>
-                      <td>{item.timeSlot}</td>
+                      <td>{normalizeTimeSlot(item.timeSlot)}</td>
                       <td>{item.packageType} 套餐</td>
                       <td>{item.quota}</td>
                     </tr>
