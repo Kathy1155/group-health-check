@@ -1,0 +1,11 @@
+  backup/last-changes[m
+  employee-reservation-email-confirm-cancel[m
+* [32memployee-reservation-lookup[m
+  feature/employee-portal-auth[m
+  feature/employee-portal-responsive[m
+  feature/employee-real-timeslots[m
+  feature/otp-real-email[m
+  feature/reservation-create-flow[m
+  feature/reservation-identity-verify[m
+  fix/query-function[m
+  main[m

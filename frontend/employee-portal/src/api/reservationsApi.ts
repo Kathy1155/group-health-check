@@ -1,7 +1,8 @@
 // src/api/reservationsApi.ts
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  (import.meta.env.VITE_API_BASE_URL as string) ||
+  "http://localhost:3000/api";
 
 export type ReservationLookupDto = {
   name: string;
@@ -39,8 +40,7 @@ export async function lookupReservation(
     throw new Error("NETWORK_ERROR");
   }
 
-  const data = (await res.json()) as ReservationLookupDto;
-  return data;
+  return (await res.json()) as ReservationLookupDto;
 }
 
 export type CreateReservationDto = {
@@ -65,6 +65,7 @@ export type CreateReservationRes = {
   packageId: number;
   slotId: number;
   quotaStatus: string;
+  reservationStatus?: string;
 };
 
 /**
@@ -98,6 +99,5 @@ export async function createReservation(
     throw new Error(text || "CREATE_RESERVATION_FAILED");
   }
 
-  const data = (await res.json()) as CreateReservationRes;
-  return data;
+  return (await res.json()) as CreateReservationRes;
 }

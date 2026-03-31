@@ -31,6 +31,46 @@ export class ReservationEntity {
   })
     quotaStatus: 'pending' | 'confirmed' | 'cancelled';
 
+@Column({
+  type: 'varchar',
+  length: 100,
+  name: 'confirm_token',
+  nullable: true,
+})
+confirmToken: string | null;
+
+@Column({
+  type: 'datetime',
+  name: 'confirm_token_expires_at',
+  nullable: true,
+})
+confirmTokenExpiresAt: Date | null;
+
+@Column({
+  type: 'varchar',
+  length: 100,
+  name: 'cancel_token',
+  nullable: true,
+})
+cancelToken: string | null;
+
+@Column({
+  type: 'datetime',
+  name: 'cancel_token_expires_at',
+  nullable: true,
+})
+cancelTokenExpiresAt: Date | null;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    name: 'reservation_status',
+    default: 'confirmed',
+  })
+
+  
+  reservationStatus: string;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
