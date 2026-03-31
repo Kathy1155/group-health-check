@@ -179,6 +179,7 @@ function FillProfilePage() {
 
       navigate("/done", {
         state: {
+          reservationId: result.reservationId,
           reservationNo: result.reservationNo ?? `R${result.reservationId}`,
           groupName: group.name,
           branchId,

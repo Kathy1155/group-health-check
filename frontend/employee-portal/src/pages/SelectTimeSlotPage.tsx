@@ -17,6 +17,13 @@ type SlotPageState = {
   packageName: string;
 };
 
+function formatSlotTime(time: string) {
+  return time
+    .split("-")
+    .map((part) => part.trim().slice(0, 5))
+    .join("-");
+}
+
 function SelectTimeSlotPage() {
   const [date, setDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
@@ -155,7 +162,7 @@ function SelectTimeSlotPage() {
               const selected = slots.find((s) => Number(s.slotId) === id);
 
               setSelectedSlotId(id);
-              setSlot(selected?.time ?? "");
+              setSlot(selected ? formatSlotTime(selected.time) : "");
             }}
             required
             disabled={!date || loadingSlots || slots.length === 0}
@@ -164,7 +171,7 @@ function SelectTimeSlotPage() {
             <option value="">{renderSlotPlaceholder()}</option>
             {slots.map((s) => (
               <option key={s.slotId} value={s.slotId}>
-                {s.time}（剩餘 {s.remaining} 位）
+                {formatSlotTime(s.time)}（剩餘 {s.remaining} 位）
               </option>
             ))}
           </select>
