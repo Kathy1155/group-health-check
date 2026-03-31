@@ -12,14 +12,12 @@ import { TimeslotsService } from './timeslots.service';
 export class TimeslotsController {
   constructor(private readonly timeslotsService: TimeslotsService) {}
 
-  // 員工前台：依 branchId / packageId / date 查詢可預約時段
   @Get()
   findByCondition(
     @Query('branchId') branchId: string,
     @Query('packageId') packageId: string,
     @Query('date') date: string,
   ) {
-    // 如果三個參數都有帶，就走前台查詢邏輯
     if (branchId && packageId && date) {
       return this.timeslotsService.findByCondition(
         Number(branchId),
@@ -28,7 +26,6 @@ export class TimeslotsController {
       );
     }
 
-    // 如果都沒帶參數，就回傳健檢中心後台已設定的名額清單
     if (!branchId && !packageId && !date) {
       return this.timeslotsService.findAllAdmin();
     }
@@ -36,31 +33,38 @@ export class TimeslotsController {
     throw new BadRequestException('branchId, packageId, date 為必填參數');
   }
 
-  // 健檢中心後台：新增每日時段名額
   @Post()
   create(
     @Body()
     body: {
+      branchId: number;
+      packageId: number;
       date: string;
       timeSlot: string;
-      packageType: string;
       quota: number;
     },
   ) {
-    const { date, timeSlot, packageType, quota } = body;
+    const { branchId, packageId, date, timeSlot, quota } = body;
 
-    if (!date || !timeSlot || !packageType || quota === undefined) {
+    if (
+      branchId === undefined ||
+      packageId === undefined ||
+      !date ||
+      !timeSlot ||
+      quota === undefined
+    ) {
       throw new BadRequestException(
-        'date, timeSlot, packageType, quota 為必填欄位',
+        'branchId, packageId, date, timeSlot, quota 為必填欄位',
       );
     }
 
     return {
       message: '時段名額已成功設定',
       data: this.timeslotsService.create({
+        branchId: Number(branchId),
+        packageId: Number(packageId),
         date,
         timeSlot,
-        packageType,
         quota: Number(quota),
       }),
     };
