@@ -1,4 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { CreateReservationDto } from './dto/update-reservation.dto';
+import { ReservationEntity } from './entities/reservation.entity';
+import { MedicalProfileEntity } from './entities/medical-profile.entity';
+
+import { GroupEntity } from '../groups/group.entity';
+import { GroupParticipantEntity } from '../roster/group-participant.entity';
+import { TimeSlotEntity } from '../timeslots/time-slot.entity';
 
 export type ReservationLookupResult = {
   name: string;
@@ -23,10 +37,27 @@ export type AdminReservation = {
 
 @Injectable()
 export class ReservationsService {
-  // 前台查詢用假資料
+  constructor(
+    @InjectRepository(ReservationEntity)
+    private readonly reservationRepo: Repository<ReservationEntity>,
+
+    @InjectRepository(MedicalProfileEntity)
+    private readonly medicalProfileRepo: Repository<MedicalProfileEntity>,
+
+    @InjectRepository(GroupEntity)
+    private readonly groupRepo: Repository<GroupEntity>,
+
+    @InjectRepository(GroupParticipantEntity)
+    private readonly participantRepo: Repository<GroupParticipantEntity>,
+
+    @InjectRepository(TimeSlotEntity)
+    private readonly timeSlotRepo: Repository<TimeSlotEntity>,
+  ) {}
+
+  // 先保留：前台查詢預約目前仍用 mock
   private mockReservations: {
     idNumber: string;
-    birthday: string; // YYYY-MM-DD
+    birthday: string;
     data: ReservationLookupResult;
   }[] = [
     {
@@ -44,7 +75,7 @@ export class ReservationsService {
     },
   ];
 
-  // 健檢中心後台清單用假資料
+  // 先保留：健檢中心後台清單目前仍用 mock
   private adminReservations: AdminReservation[] = [
     {
       id: 1,
@@ -98,7 +129,80 @@ export class ReservationsService {
     },
   ];
 
-  // 前台查詢：用 身分證字號 + 生日 找預約資料
+  async createReservationWithProfile(dto: CreateReservationDto) {
+    const group = await this.groupRepo.findOne({
+      where: { groupCode: dto.groupCode },
+    });
+
+    if (!group) {
+      throw new NotFoundException('找不到團體資料');
+    }
+
+    const participant = await this.participantRepo.findOne({
+      where: {
+        groupId: group.groupId,
+        idNumber: dto.idNumber,
+      },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('找不到團體名冊資料');
+    }
+
+    const slot = await this.timeSlotRepo.findOne({
+      where: { slotId: dto.slotId },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('找不到預約時段');
+    }
+
+    if (slot.slotStatus === 'closed') {
+      throw new BadRequestException('此時段尚未開放預約');
+    }
+
+    if (slot.slotStatus === 'full' || slot.slotReservedCount >= slot.slotCapacity) {
+      throw new BadRequestException('此時段已滿額');
+    }
+
+    const medicalProfile = await this.medicalProfileRepo.save({
+      bloodType: dto.medicalProfile?.bloodType || null,
+      allergies: dto.medicalProfile?.allergies || null,
+      familyHistory: dto.medicalProfile?.familyHistory || null,
+      chronicDiseases: dto.medicalProfile?.chronicDiseases || null,
+      medications: dto.medicalProfile?.medications || null,
+    });
+
+    const reservation = await this.reservationRepo.save({
+      participantId: participant.groupParticipantId,
+      packageId: dto.packageId,
+      slotId: dto.slotId,
+      medicalProfileId: medicalProfile.medicalProfileId,
+      quotaStatus: 'confirmed',
+    });
+
+    participant.medicalProfileId = medicalProfile.medicalProfileId;
+    await this.participantRepo.save(participant);
+
+    slot.slotReservedCount += 1;
+
+    if (slot.slotReservedCount >= slot.slotCapacity) {
+      slot.slotStatus = 'full';
+    }
+
+    await this.timeSlotRepo.save(slot);
+
+    return {
+      reservationId: reservation.reservationId,
+      reservationNo: `R${String(reservation.reservationId).padStart(8, '0')}`,
+      participantId: participant.groupParticipantId,
+      medicalProfileId: medicalProfile.medicalProfileId,
+      packageId: dto.packageId,
+      slotId: dto.slotId,
+      quotaStatus: 'confirmed',
+    };
+  }
+
   lookupByIdAndBirthday(
     idNumber: string,
     birthday: string,
@@ -114,12 +218,10 @@ export class ReservationsService {
     return found.data;
   }
 
-  // 健檢中心後台：取得所有預約
   findAllAdmin(): AdminReservation[] {
     return this.adminReservations;
   }
 
-  // 健檢中心後台：更新預約狀態
   updateStatus(
     id: number,
     status: '已預約' | '已報到' | '已取消',

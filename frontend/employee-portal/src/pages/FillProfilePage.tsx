@@ -1,8 +1,9 @@
+<h2 style={{ color: "red" }}>我是 FillProfilePage</h2>
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { fetchRosterProfile } from "../api/rosterApi";
+import { createReservation } from "../api/reservationsApi";
 
-// 從 Step3 帶過來的型別
 type FromSlotPageState = {
   group: {
     id: number;
@@ -14,11 +15,13 @@ type FromSlotPageState = {
   idNumber: string;
   branchId: number;
   packageId: number;
+  branchName: string;
+  packageName: string;
   date: string;
+  slotId: number;
   slot: string;
 };
 
-// 假的團體名冊資料（備用）
 const mockParticipant = {
   groupCode: "FB12345678",
   name: "王小明",
@@ -33,13 +36,15 @@ function FillProfilePage() {
 
   const fromSlot = location.state as FromSlotPageState | undefined;
 
-  // 防呆：沒有從正確流程進來
   if (
     !fromSlot ||
     !fromSlot.group ||
     !fromSlot.branchId ||
     !fromSlot.packageId ||
+    !fromSlot.branchName ||
+    !fromSlot.packageName ||
     !fromSlot.date ||
+    fromSlot.slotId == null ||
     !fromSlot.slot
   ) {
     return (
@@ -53,9 +58,18 @@ function FillProfilePage() {
     );
   }
 
-  const { group, idNumber, branchId, packageId, date, slot } = fromSlot;
+  const {
+    group,
+    idNumber,
+    branchId,
+    packageId,
+    branchName,
+    packageName,
+    date,
+    slotId,
+    slot,
+  } = fromSlot;
 
-  // 個人基本資料（唯讀顯示）
   const [personalInfo, setPersonalInfo] = useState({
     groupCode: group.code ?? mockParticipant.groupCode,
     name: "",
@@ -64,11 +78,9 @@ function FillProfilePage() {
     birthday: "",
   });
 
-  // 讀取名冊狀態
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // 個人病史（可填）
   const [medicalHistory, setMedicalHistory] = useState({
     bloodType: "",
     allergy: "",
@@ -77,7 +89,9 @@ function FillProfilePage() {
     medication: "",
   });
 
-  // 進頁面就撈名冊資料帶入
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   useEffect(() => {
     let alive = true;
 
@@ -142,30 +156,55 @@ function FillProfilePage() {
     setMedicalHistory((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const fakeReservationNo = "R20251224001";
+    try {
+      setSubmitting(true);
+      setSubmitError(null);
 
-    navigate("/done", {
-      state: {
-        reservationNo: fakeReservationNo,
-        groupName: group.name,
-        branchId,
+      const result = await createReservation({
+        groupCode: personalInfo.groupCode,
+        idNumber: personalInfo.idNumber,
         packageId,
-        date,
-        slot,
-        personalInfo,
-        medicalHistory,
-      },
-    });
+        slotId,
+        medicalProfile: {
+          bloodType: medicalHistory.bloodType,
+          allergies: medicalHistory.allergy,
+          familyHistory: medicalHistory.familyHistory,
+          chronicDiseases: medicalHistory.chronicDisease,
+          medications: medicalHistory.medication,
+        },
+      });
+
+      navigate("/done", {
+        state: {
+          reservationNo: result.reservationNo ?? `R${result.reservationId}`,
+          groupName: group.name,
+          branchId,
+          packageId,
+          branchName,
+          packageName,
+          date,
+          slot,
+          personalInfo,
+          medicalHistory,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      setSubmitError("預約送出失敗，請稍後再試。");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="page-form">
       <h2>步驟 4：確認基本資料與填寫病史</h2>
+      <p>預約院區：{branchName}</p>
+      <p>健檢套餐：{packageName}</p>
 
-      {/* 個人基本資料 */}
       <section className="form-section">
         <h3>一、個人基本資料</h3>
 
@@ -199,7 +238,6 @@ function FillProfilePage() {
         </div>
       </section>
 
-      {/* 病史 */}
       <section className="form-section">
         <h3>二、個人病史</h3>
         <div className="form-stack">
@@ -231,7 +269,9 @@ function FillProfilePage() {
             <label>家族病史</label>
             <input
               value={medicalHistory.familyHistory}
-              onChange={(e) => handleHistoryChange("familyHistory", e.target.value)}
+              onChange={(e) =>
+                handleHistoryChange("familyHistory", e.target.value)
+              }
               placeholder="例：父親高血壓、母親糖尿病（無則免填）"
             />
           </div>
@@ -240,7 +280,9 @@ function FillProfilePage() {
             <label>慢性疾病</label>
             <input
               value={medicalHistory.chronicDisease}
-              onChange={(e) => handleHistoryChange("chronicDisease", e.target.value)}
+              onChange={(e) =>
+                handleHistoryChange("chronicDisease", e.target.value)
+              }
               placeholder="例：高血壓、糖尿病、氣喘（無則免填）"
             />
           </div>
@@ -254,19 +296,29 @@ function FillProfilePage() {
             />
           </div>
         </div>
-
       </section>
 
+      {submitError && (
+        <p className="form-hint" style={{ color: "#b00020" }}>
+          {submitError}
+        </p>
+      )}
+
       <div className="form-footer">
-        <button type="button" className="btn btn-secondary" onClick={handlePrev}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handlePrev}
+        >
           上一步
         </button>
+
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={loadingProfile}
+          disabled={loadingProfile || submitting || !!profileError}
         >
-          送出預約
+          {submitting ? "送出中..." : "送出預約"}
         </button>
       </div>
     </form>
