@@ -34,7 +34,6 @@ function SelectBranchPackagePage() {
     null
   );
 
-  // ⭐ 防呆：如果沒有必要 state，直接導回首頁
   useEffect(() => {
     if (!group || !group.id || !idNumber) {
       console.error("缺少必要 state:", { group, idNumber });
@@ -55,25 +54,6 @@ function SelectBranchPackagePage() {
       });
   }, [group, idNumber, navigate]);
 
-  const handleNext = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedBranchId || !selectedPackageId || !group || !idNumber) return;
-
-    navigate("/select-slot", {
-      state: {
-        group,
-        groupCode: group.code,
-        idNumber,
-        branchId: selectedBranchId,
-        packageId: selectedPackageId,
-      },
-    });
-  };
-
-  const handlePrev = () => {
-    navigate(-1);
-  };
-
   if (loading) return <p>載入中...</p>;
   if (error) return <p>{error}</p>;
   if (!options || !group) return <p>沒有資料</p>;
@@ -84,13 +64,41 @@ function SelectBranchPackagePage() {
     (b: GroupOptionDto["branches"][number]) => b.branchId === selectedBranchId
   );
 
+  const handleNext = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedBranchId || !selectedPackageId || !group || !idNumber) return;
+
+    const selectedBranch = branches.find(
+      (b) => b.branchId === selectedBranchId
+    );
+
+    const selectedPackage = selectedBranch?.packages.find(
+      (p) => p.packageId === selectedPackageId
+    );
+
+    navigate("/select-slot", {
+      state: {
+        group,
+        idNumber,
+        branchId: selectedBranchId,
+        branchName: selectedBranch?.branchName ?? "",
+        packageId: selectedPackageId,
+        packageName: selectedPackage?.packageName ?? "",
+      },
+    });
+  };
+
+  const handlePrev = () => {
+    navigate(-1);
+  };
+
   return (
     <form onSubmit={handleNext} className="sbp-form">
       <h2>步驟 2：選擇院區與健檢套餐</h2>
       <p>團體名稱：{group.name}</p>
 
       <div className="sbp-layout">
-        {/* 左邊：院區選擇 */}
         <div className="sbp-left">
           <label className="sbp-label">
             院區：
@@ -118,7 +126,6 @@ function SelectBranchPackagePage() {
           </p>
         </div>
 
-        {/* 右邊：套餐按鈕列表 */}
         <div className="sbp-form page-form">
           <div className="sbp-packages-header">
             <span>可選健檢套餐</span>
@@ -134,9 +141,9 @@ function SelectBranchPackagePage() {
               <p className="sbp-hint">請先在左側選擇院區。</p>
             )}
 
-              {currentBranch && currentBranch.packages.length === 0 && (
-                <p className="sbp-hint">此院區目前沒有可預約的健檢套餐。</p>
-              )}
+            {currentBranch && currentBranch.packages.length === 0 && (
+              <p className="sbp-hint">此院區目前沒有可預約的健檢套餐。</p>
+            )}
 
             {currentBranch &&
               currentBranch.packages.map((p) => {
