@@ -9,20 +9,15 @@ export class NotificationsController {
   sendReservationConfirmation(
     @Body()
     body: {
-      reservationNo: string;
-      groupName: string;
-      name: string;
-      idNumber: string;
-      phone: string;
-      date: string;
-      slot: string;
+      reservationId: number;
     },
   ) {
-    const required = ['reservationNo', 'groupName', 'name', 'idNumber', 'phone', 'date', 'slot'] as const;
-    for (const k of required) {
-      if (!body?.[k]) throw new BadRequestException(`${k} 為必填`);
+    if (!body?.reservationId) {
+      throw new BadRequestException('reservationId 為必填');
     }
 
-    return this.svc.sendReservationConfirmation(body);
+    return this.svc.sendReservationConfirmation({
+      reservationId: Number(body.reservationId),
+    });
   }
 }
