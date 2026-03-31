@@ -8,6 +8,7 @@ import ReservationDonePage from "./pages/ReservationDonePage";
 import ReservationLookupPage from "./pages/ReservationLookupPage";  // ← 把這行加回來
 import "./App.css";
 import OtpVerifyPage from "./pages/OtpVerifyPage";
+import ReservationActionResultPage from './pages/ReservationActionResultPage';
 
 
 function App() {
@@ -95,6 +96,8 @@ function App() {
       <Route path="/select-slot" element={<SelectTimeSlotPage />} />
       <Route path="/fill-profile" element={<FillProfilePage />} />
       <Route path="/done" element={<ReservationDonePage />} />
+      <Route path="/reservation-action-result" element={<ReservationActionResultPage />}
+/>
 
       {/* 查詢預約頁：之後會接後端 */}
       <Route
@@ -102,6 +105,7 @@ function App() {
         element={<ReservationLookupPage />}
       />
     </Routes>
+    
 
     </div>
   );

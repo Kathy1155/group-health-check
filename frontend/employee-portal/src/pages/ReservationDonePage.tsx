@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { resendReservationConfirmationEmail } from "../api/notificationsApi";
 
 type DonePageState = {
+  reservationId: number;
   reservationNo: string;
   groupName: string;
   branchId: number;
@@ -102,6 +103,7 @@ useEffect(() => {
 
     try {
       await resendReservationConfirmationEmail({
+        reservationId: state.reservationId,
         reservationNo,
         groupName,
         name: personalInfo.name,
@@ -129,7 +131,7 @@ useEffect(() => {
           fontWeight: 700,
         }}
       >
-        預約完成！
+        預約成立！
       </h1>
 
       <div
@@ -185,9 +187,9 @@ useEffect(() => {
       </div>
 
       <p style={{ fontSize: "1.05rem", marginBottom: "1rem" }}>
-        您的預約資料已成功提交。
+        您的預約資料已成立。
         <br />
-        請記得前往 Email 收取驗證信件並完成驗證。
+        請記得前往 Email 確認信件並完成預約。
       </p>
 
       <div style={{ marginBottom: "1.5rem" }}>
@@ -197,12 +199,12 @@ useEffect(() => {
           onClick={onResend}
           disabled={sending}
         >
-          {sending ? "寄送中..." : "重新寄送驗證信"}
+          {sending ? "寄送中..." : "重新寄送確認信"}
         </button>
 
         {sent && (
           <p style={{ marginTop: "0.75rem", color: "green" }}>
-            已重新寄送驗證信
+            已重新寄送確認信
           </p>
         )}
 
