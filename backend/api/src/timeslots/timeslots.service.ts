@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TimeSlotEntity } from './time-slot.entity';
@@ -25,10 +25,13 @@ export class TimeslotsService {
 
     const branchPackageIds = [...new Set(rows.map((row) => row.branchPackageId))];
 
-    const branchPackages = await this.branchPackageRepository.find({
-      where: branchPackageIds.map((id) => ({ branchPackageId: id })),
-      relations: ['package', 'branch'],
-    });
+    const branchPackages =
+      branchPackageIds.length > 0
+        ? await this.branchPackageRepository.find({
+            where: branchPackageIds.map((id) => ({ branchPackageId: id })),
+            relations: ['package', 'branch'],
+          })
+        : [];
 
     const branchPackageMap = new Map(
       branchPackages.map((item) => [Number(item.branchPackageId), item]),
@@ -49,7 +52,7 @@ export class TimeslotsService {
     });
   }
 
-  // 員工前台：依 branchId / packageId / date 查詢真正可預約時段
+  // 員工前台查詢
   async findByCondition(
     branchId: number,
     packageId: number,
@@ -111,18 +114,21 @@ export class TimeslotsService {
     timeSlot: string;
     quota: number;
   }) {
-    const [start, end] = data.timeSlot.split('-');
-
     const branchPackage = await this.branchPackageRepository.findOne({
       where: {
         branchId: data.branchId,
         packageId: data.packageId,
-        branchPackageStatus: 'open',
       },
     });
 
     if (!branchPackage) {
-      throw new Error('找不到對應的院區與套餐設定（branch_package）');
+      throw new BadRequestException('找不到對應的院區＋套餐設定(branch_package)');
+    }
+
+    const [start, end] = data.timeSlot.split('-');
+
+    if (!start || !end) {
+      throw new BadRequestException('timeSlot 格式錯誤，應為 開始時間-結束時間');
     }
 
     const newSlot = this.timeSlotRepository.create({
