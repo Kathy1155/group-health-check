@@ -23,12 +23,30 @@ export class TimeslotsService {
       },
     });
 
-    return rows.map((row) => ({
-      date: row.slotDate,
-      timeSlot: `${row.slotStartTime}-${row.slotEndTime}`,
-      packageType: 'A',
-      quota: row.slotCapacity,
-    }));
+    const branchPackageIds = [...new Set(rows.map((row) => row.branchPackageId))];
+
+    const branchPackages = await this.branchPackageRepository.find({
+      where: branchPackageIds.map((id) => ({ branchPackageId: id })),
+      relations: ['package', 'branch'],
+    });
+
+    const branchPackageMap = new Map(
+      branchPackages.map((item) => [Number(item.branchPackageId), item]),
+    );
+
+    return rows.map((row) => {
+      const branchPackage = branchPackageMap.get(Number(row.branchPackageId));
+
+      return {
+        date: row.slotDate,
+        timeSlot: `${row.slotStartTime}-${row.slotEndTime}`,
+        packageType: branchPackage?.package?.packageName ?? '未知套餐',
+        packageId: branchPackage?.packageId ?? null,
+        branchName: branchPackage?.branch?.branchName ?? '未知院區',
+        branchId: branchPackage?.branchId ?? null,
+        quota: row.slotCapacity,
+      };
+    });
   }
 
   // 員工前台：依 branchId / packageId / date 查詢真正可預約時段
@@ -87,12 +105,25 @@ export class TimeslotsService {
 
   // 健檢中心後台新增
   async create(data: {
+    branchId: number;
+    packageId: number;
     date: string;
     timeSlot: string;
-    packageType: string;
     quota: number;
   }) {
     const [start, end] = data.timeSlot.split('-');
+
+    const branchPackage = await this.branchPackageRepository.findOne({
+      where: {
+        branchId: data.branchId,
+        packageId: data.packageId,
+        branchPackageStatus: 'open',
+      },
+    });
+
+    if (!branchPackage) {
+      throw new Error('找不到對應的院區與套餐設定（branch_package）');
+    }
 
     const newSlot = this.timeSlotRepository.create({
       slotDate: data.date,
@@ -101,7 +132,7 @@ export class TimeslotsService {
       slotCapacity: data.quota,
       slotReservedCount: 0,
       slotStatus: 'open',
-      branchPackageId: 1,
+      branchPackageId: branchPackage.branchPackageId,
     });
 
     return this.timeSlotRepository.save(newSlot);

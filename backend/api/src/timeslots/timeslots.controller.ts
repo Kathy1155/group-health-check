@@ -38,29 +38,37 @@ export class TimeslotsController {
 
   // 健檢中心後台：新增每日時段名額
   @Post()
-  create(
+  async create(
     @Body()
     body: {
+      branchId: number;
+      packageId: number;
       date: string;
       timeSlot: string;
-      packageType: string;
       quota: number;
     },
   ) {
-    const { date, timeSlot, packageType, quota } = body;
+    const { branchId, packageId, date, timeSlot, quota } = body;
 
-    if (!date || !timeSlot || !packageType || quota === undefined) {
+    if (
+      branchId === undefined ||
+      packageId === undefined ||
+      !date ||
+      !timeSlot ||
+      quota === undefined
+    ) {
       throw new BadRequestException(
-        'date, timeSlot, packageType, quota 為必填欄位',
+        'branchId, packageId, date, timeSlot, quota 為必填欄位',
       );
     }
 
     return {
       message: '時段名額已成功設定',
-      data: this.timeslotsService.create({
+      data: await this.timeslotsService.create({
+        branchId: Number(branchId),
+        packageId: Number(packageId),
         date,
         timeSlot,
-        packageType,
         quota: Number(quota),
       }),
     };
