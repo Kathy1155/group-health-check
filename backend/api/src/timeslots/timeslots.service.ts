@@ -23,13 +23,33 @@ export class TimeslotsService {
       },
     });
 
-    return rows.map((row) => ({
-      date: row.slotDate,
-      timeSlot: `${row.slotStartTime}-${row.slotEndTime}`,
-      packageType: 'A',
-      quota: row.slotCapacity,
-      branchPackageId: row.branchPackageId,
-    }));
+    const branchPackageIds = [...new Set(rows.map((row) => row.branchPackageId))];
+
+    const branchPackages =
+      branchPackageIds.length > 0
+        ? await this.branchPackageRepository.find({
+            where: branchPackageIds.map((id) => ({ branchPackageId: id })),
+            relations: ['package', 'branch'],
+          })
+        : [];
+
+    const branchPackageMap = new Map(
+      branchPackages.map((item) => [Number(item.branchPackageId), item]),
+    );
+
+    return rows.map((row) => {
+      const branchPackage = branchPackageMap.get(Number(row.branchPackageId));
+
+      return {
+        date: row.slotDate,
+        timeSlot: `${row.slotStartTime}-${row.slotEndTime}`,
+        packageType: branchPackage?.package?.packageName ?? '未知套餐',
+        packageId: branchPackage?.packageId ?? null,
+        branchName: branchPackage?.branch?.branchName ?? '未知院區',
+        branchId: branchPackage?.branchId ?? null,
+        quota: row.slotCapacity,
+      };
+    });
   }
 
   // 員工前台查詢
@@ -106,6 +126,10 @@ export class TimeslotsService {
     }
 
     const [start, end] = data.timeSlot.split('-');
+
+    if (!start || !end) {
+      throw new BadRequestException('timeSlot 格式錯誤，應為 開始時間-結束時間');
+    }
 
     const newSlot = this.timeSlotRepository.create({
       slotDate: data.date,

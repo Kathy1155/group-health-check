@@ -34,7 +34,7 @@ export class TimeslotsController {
   }
 
   @Post()
-  create(
+  async create(
     @Body()
     body: {
       branchId: number;
@@ -60,7 +60,7 @@ export class TimeslotsController {
 
     return {
       message: '時段名額已成功設定',
-      data: this.timeslotsService.create({
+      data: await this.timeslotsService.create({
         branchId: Number(branchId),
         packageId: Number(packageId),
         date,
