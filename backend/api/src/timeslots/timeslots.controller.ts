@@ -12,14 +12,12 @@ import { TimeslotsService } from './timeslots.service';
 export class TimeslotsController {
   constructor(private readonly timeslotsService: TimeslotsService) {}
 
-  // 員工前台：依 branchId / packageId / date 查詢可預約時段
   @Get()
   findByCondition(
     @Query('branchId') branchId: string,
     @Query('packageId') packageId: string,
     @Query('date') date: string,
   ) {
-    // 如果三個參數都有帶，就走前台查詢邏輯
     if (branchId && packageId && date) {
       return this.timeslotsService.findByCondition(
         Number(branchId),
@@ -28,7 +26,6 @@ export class TimeslotsController {
       );
     }
 
-    // 如果都沒帶參數，就回傳健檢中心後台已設定的名額清單
     if (!branchId && !packageId && !date) {
       return this.timeslotsService.findAllAdmin();
     }
@@ -36,7 +33,6 @@ export class TimeslotsController {
     throw new BadRequestException('branchId, packageId, date 為必填參數');
   }
 
-  // 健檢中心後台：新增每日時段名額
   @Post()
   async create(
     @Body()

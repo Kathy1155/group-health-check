@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchTimeslots, type TimeslotDto } from "../api/timeslotsApi";
 
-// 從 Step2 帶過來的資料型別
 type SlotPageState = {
   group: {
     id: number;
@@ -13,14 +12,23 @@ type SlotPageState = {
   };
   idNumber: string;
   branchId: number;
+  branchName: string;
   packageId: number;
+  packageName: string;
 };
+
+function formatSlotTime(time: string) {
+  return time
+    .split("-")
+    .map((part) => part.trim().slice(0, 5))
+    .join("-");
+}
 
 function SelectTimeSlotPage() {
   const [date, setDate] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [slot, setSlot] = useState("");
 
-  // 從後端撈回來的可預約時段
   const [slots, setSlots] = useState<TimeslotDto[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState<string | null>(null);
@@ -30,8 +38,13 @@ function SelectTimeSlotPage() {
 
   const state = location.state as SlotPageState | undefined;
 
-  // ⭐ 防呆：沒有從上一頁正確進來
-  if (!state?.group || !state.branchId || !state.packageId) {
+  if (
+    !state?.group ||
+    !state.branchId ||
+    !state.packageId ||
+    !state.branchName ||
+    !state.packageName
+  ) {
     return (
       <div className="page-form">
         <h2>資料遺失</h2>
@@ -43,13 +56,21 @@ function SelectTimeSlotPage() {
     );
   }
 
-  const { group, idNumber, branchId, packageId } = state;
+  const {
+    group,
+    idNumber,
+    branchId,
+    branchName,
+    packageId,
+    packageName,
+  } = state;
 
-  // 當日期改變時，向後端查詢可預約時段
   useEffect(() => {
     if (!date) {
       setSlots([]);
       setSlotsError(null);
+      setSelectedSlotId(null);
+      setSlot("");
       return;
     }
 
@@ -59,31 +80,38 @@ function SelectTimeSlotPage() {
     fetchTimeslots(branchId, packageId, date)
       .then((data) => {
         setSlots(data);
+
         if (data.length === 0) {
           setSlotsError("此日期目前沒有可預約時段。");
         }
       })
       .catch((err) => {
         console.error(err);
+        setSlots([]);
         setSlotsError("載入可預約時段失敗，請稍後再試。");
       })
       .finally(() => {
         setLoadingSlots(false);
+        setSelectedSlotId(null);
         setSlot("");
       });
   }, [date, branchId, packageId]);
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !slot) return;
+
+    if (!date || !slot || selectedSlotId == null) return;
 
     navigate("/fill-profile", {
       state: {
         group,
         idNumber,
         branchId,
+        branchName,
         packageId,
+        packageName,
         date,
+        slotId: selectedSlotId,
         slot,
       },
     });
@@ -104,36 +132,46 @@ function SelectTimeSlotPage() {
     <form onSubmit={handleNext} className="page-form">
       <h2>步驟 3：選擇日期與時段</h2>
       <p>團體名稱：{group.name}</p>
+      <p>預約院區：{branchName}</p>
+      <p>健檢套餐：{packageName}</p>
 
-      {/* 日期選擇 */}
       <div style={{ marginTop: "1rem" }}>
         <label>
           日期：
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setSelectedSlotId(null);
+              setSlot("");
+            }}
             required
             style={{ marginLeft: "0.5rem", padding: "0.4rem" }}
           />
         </label>
       </div>
 
-      {/* 時段選擇 */}
       <div style={{ marginTop: "1rem" }}>
         <label>
           時段：
           <select
-            value={slot}
-            onChange={(e) => setSlot(e.target.value)}
+            value={selectedSlotId ?? ""}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              const selected = slots.find((s) => Number(s.slotId) === id);
+
+              setSelectedSlotId(id);
+              setSlot(selected ? formatSlotTime(selected.time) : "");
+            }}
             required
             disabled={!date || loadingSlots || slots.length === 0}
             style={{ marginLeft: "0.5rem", padding: "0.4rem" }}
           >
             <option value="">{renderSlotPlaceholder()}</option>
             {slots.map((s) => (
-              <option key={s.slotId} value={s.time}>
-                {s.time}（剩餘 {s.remaining} 位）
+              <option key={s.slotId} value={s.slotId}>
+                {formatSlotTime(s.time)}（剩餘 {s.remaining} 位）
               </option>
             ))}
           </select>
@@ -147,13 +185,18 @@ function SelectTimeSlotPage() {
       )}
 
       <div className="form-footer">
-        <button type="button" className="btn btn-secondary" onClick={handlePrev}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handlePrev}
+        >
           上一步
         </button>
+
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!date || !slot}
+          disabled={!date || !slot || selectedSlotId == null}
         >
           下一步
         </button>

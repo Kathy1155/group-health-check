@@ -12,6 +12,8 @@ import { ReservationsModule } from './reservations/reservations.module';
 import { TimeslotsModule } from './timeslots/timeslots.module';
 import { RosterModule } from './roster/roster.module';
 import { VerificationsModule } from './verifications/verifications.module';
+import { MailModule } from './mail/mail.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { VerificationsModule } from './verifications/verifications.module';
     TimeslotsModule,
     RosterModule,
     VerificationsModule,
+    MailModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

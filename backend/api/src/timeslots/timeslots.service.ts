@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TimeSlotEntity } from './time-slot.entity';
@@ -49,7 +49,7 @@ export class TimeslotsService {
     });
   }
 
-  // 員工前台：依 branchId / packageId / date 查詢真正可預約時段
+  // 員工前台查詢
   async findByCondition(
     branchId: number,
     packageId: number,
@@ -111,6 +111,17 @@ export class TimeslotsService {
     timeSlot: string;
     quota: number;
   }) {
+    const branchPackage = await this.branchPackageRepository.findOne({
+      where: {
+        branchId: data.branchId,
+        packageId: data.packageId,
+      },
+    });
+
+    if (!branchPackage) {
+      throw new BadRequestException('找不到對應的院區＋套餐設定(branch_package)');
+    }
+
     const [start, end] = data.timeSlot.split('-');
 
     const branchPackage = await this.branchPackageRepository.findOne({
