@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GroupsController } from './groups.controller';
 import { GroupsService } from './groups.service';
 import { GroupEntity } from './group.entity';
+import { GroupBranchEntity } from './group-branch.entity';
 import { BranchPackageEntity } from '../branch-packages/entities/branch-package.entity';
 import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
 import { HealthExaminationPackageEntity } from '../packages/entities/health-examination-package.entity';
@@ -11,6 +12,7 @@ import { HealthExaminationPackageEntity } from '../packages/entities/health-exam
   imports: [
     TypeOrmModule.forFeature([
       GroupEntity,
+      GroupBranchEntity,
       BranchPackageEntity,
       HospitalBranchEntity,
       HealthExaminationPackageEntity,

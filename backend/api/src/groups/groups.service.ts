@@ -1,15 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { GroupEntity } from './group.entity';
-import { BranchPackageEntity } from '../branch-packages/entities/branch-package.entity';
+import { GroupBranchEntity } from './group-branch.entity';
 import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
-import { HealthExaminationPackageEntity } from '../packages/entities/health-examination-package.entity';
+
+type GroupStatus = 'active' | 'inactive';
 
 @Injectable()
 export class GroupsService {
@@ -17,125 +13,220 @@ export class GroupsService {
     @InjectRepository(GroupEntity)
     private readonly groupRepo: Repository<GroupEntity>,
 
-    @InjectRepository(BranchPackageEntity)
-    private readonly branchPackageRepo: Repository<BranchPackageEntity>,
+    @InjectRepository(GroupBranchEntity)
+    private readonly groupBranchRepo: Repository<GroupBranchEntity>,
 
     @InjectRepository(HospitalBranchEntity)
     private readonly branchRepo: Repository<HospitalBranchEntity>,
-
-    @InjectRepository(HealthExaminationPackageEntity)
-    private readonly packageRepo: Repository<HealthExaminationPackageEntity>,
   ) {}
 
-  // 1. 取得所有團體 (從資料庫)
   async findAll() {
-    return this.groupRepo.find({ order: { groupId: 'DESC' as any } });
+    const groups = await this.groupRepo.find({
+      relations: {
+        groupBranches: {
+          branch: true,
+        },
+      },
+      order: {
+        groupId: 'DESC',
+      },
+    });
+
+    return groups.map((group) => this.toResponse(group));
   }
 
-  // 2. 取得單一團體 (從資料庫)
   async findOne(id: number) {
-    const found = await this.groupRepo.findOne({ where: { groupId: id } });
-    if (!found) throw new NotFoundException('查無此團體');
-    return found;
+    const found = await this.groupRepo.findOne({
+      where: { groupId: id },
+      relations: {
+        groupBranches: {
+          branch: true,
+        },
+      },
+    });
+
+    if (!found) {
+      throw new NotFoundException('查無此團體資料');
+    }
+
+    return this.toResponse(found);
   }
 
-  // 3. 透過代碼搜尋團體 (從資料庫)
   async findByCode(code: string) {
-    const found = await this.groupRepo.findOne({ where: { groupCode: code } });
-    if (!found) throw new NotFoundException('查無此團體代碼');
-    return found;
+    const found = await this.groupRepo.findOne({
+      where: { groupCode: code },
+      relations: {
+        groupBranches: {
+          branch: true,
+        },
+      },
+    });
+
+    if (!found) {
+      throw new NotFoundException('查無此團體代碼');
+    }
+
+    return this.toResponse(found);
   }
 
-  // 4. 新增團體 (到資料庫)
-  async create(body: {
+  async create(data: {
     groupName: string;
     groupCode: string;
     contactName: string;
     contactPhone: string;
     contactEmail: string;
-    status?: 'active' | 'inactive';
+    reservationStartDate?: string;
+    reservationEndDate?: string;
+    availableBranches?: string[];
+    status?: GroupStatus;
   }) {
-    const entity = this.groupRepo.create({
-      groupName: body.groupName,
-      groupCode: body.groupCode,
-      contactName: body.contactName,
-      contactPhone: body.contactPhone,
-      contactEmail: body.contactEmail,
-      groupIsDisable: body.status === 'inactive' ? 1 : 0,
+    const group = this.groupRepo.create({
+      groupName: data.groupName,
+      groupCode: data.groupCode,
+      contactName: data.contactName,
+      contactPhone: data.contactPhone,
+      contactEmail: data.contactEmail,
+      reservationOpenStart: data.reservationStartDate || null,
+      reservationOpenEnd: data.reservationEndDate || null,
+      groupIsDisable: data.status === 'inactive' ? 1 : 0,
       createByUserId: null,
       updateByUserId: null,
     });
 
-    try {
-      return await this.groupRepo.save(entity);
-    } catch (err: any) {
-      console.error('新增 group 失敗：', err);
-      if (err?.code === 'ER_DUP_ENTRY') {
-        throw new ConflictException('團體代碼已存在');
-      }
-      throw new InternalServerErrorException('新增團體失敗');
+    const savedGroup = await this.groupRepo.save(group);
+
+    await this.syncGroupBranches(
+      savedGroup.groupId,
+      data.availableBranches ?? [],
+    );
+
+    const fullGroup = await this.groupRepo.findOne({
+      where: { groupId: savedGroup.groupId },
+      relations: {
+        groupBranches: {
+          branch: true,
+        },
+      },
+    });
+
+    if (!fullGroup) {
+      throw new NotFoundException('新增後找不到團體資料');
     }
+
+    return this.toResponse(fullGroup);
   }
 
-  // 5. 透過 groupId 取得可預約的院區與套餐選項 (從資料庫)
-    async findGroupOptions(groupId: number) {
-      const group = await this.groupRepo.findOne({
-        where: { groupId },
-      });
-
-      if (!group) {
-        throw new NotFoundException('查無此團體');
-      }
-
-      const branchPackages = await this.branchPackageRepo.find({
-        relations: ['branch', 'package'],
-        order: {
-          branchId: 'ASC' as any,
-          packageId: 'ASC' as any,
+  async update(
+    id: number,
+    data: Partial<{
+      groupName: string;
+      groupCode: string;
+      contactName: string;
+      contactPhone: string;
+      contactEmail: string;
+      reservationStartDate: string;
+      reservationEndDate: string;
+      availableBranches: string[];
+      status: GroupStatus;
+    }>,
+  ) {
+    const found = await this.groupRepo.findOne({
+      where: { groupId: id },
+      relations: {
+        groupBranches: {
+          branch: true,
         },
-      });
+      },
+    });
 
-      const availableItems = branchPackages.filter(
-        (item) =>
-          item.branchPackageStatus === 'open' &&
-          item.branch &&
-          item.package &&
-          !item.package.packageIsDisable,
-      );
-
-      const branchMap = new Map<
-        number,
-        {
-          branchId: number;
-          branchName: string;
-          packages: {
-            packageId: number;
-            packageName: string;
-          }[];
-        }
-      >();
-
-      for (const item of availableItems) {
-        const branchId = Number(item.branch.branchId);
-        const packageId = Number(item.package.packageId);
-
-        if (!branchMap.has(branchId)) {
-          branchMap.set(branchId, {
-            branchId,
-            branchName: item.branch.branchName,
-            packages: [],
-          });
-        }
-
-        branchMap.get(branchId)!.packages.push({
-          packageId,
-          packageName: item.package.packageName,
-        });
-      }
-
-      return {
-        groupId: Number(groupId),
-        branches: Array.from(branchMap.values()),
-      };
+    if (!found) {
+      throw new NotFoundException('查無此團體資料');
     }
+
+    found.groupName = data.groupName ?? found.groupName;
+    found.groupCode = data.groupCode ?? found.groupCode;
+    found.contactName = data.contactName ?? found.contactName;
+    found.contactPhone = data.contactPhone ?? found.contactPhone;
+    found.contactEmail = data.contactEmail ?? found.contactEmail;
+
+    if (data.reservationStartDate !== undefined) {
+      found.reservationOpenStart = data.reservationStartDate || null;
+    }
+
+    if (data.reservationEndDate !== undefined) {
+      found.reservationOpenEnd = data.reservationEndDate || null;
+    }
+
+    if (data.status !== undefined) {
+      found.groupIsDisable = data.status === 'inactive' ? 1 : 0;
+    }
+
+    found.updateByUserId = null;
+
+    await this.groupRepo.save(found);
+
+    if (data.availableBranches !== undefined) {
+      await this.syncGroupBranches(id, data.availableBranches);
+    }
+
+    const updatedGroup = await this.groupRepo.findOne({
+      where: { groupId: id },
+      relations: {
+        groupBranches: {
+          branch: true,
+        },
+      },
+    });
+
+    if (!updatedGroup) {
+      throw new NotFoundException('更新後找不到團體資料');
+    }
+
+    return this.toResponse(updatedGroup);
+  }
+
+  private async syncGroupBranches(groupId: number, branchNames: string[]) {
+    const existingRelations = await this.groupBranchRepo.find({
+      where: { groupId },
+    });
+
+    if (existingRelations.length > 0) {
+      await this.groupBranchRepo.remove(existingRelations);
+    }
+
+    if (!branchNames || branchNames.length === 0) {
+      return;
+    }
+
+    const branches = await this.branchRepo.find({
+      where: {
+        branchName: In(branchNames),
+      },
+    });
+
+    const newRelations = branches.map((branch) =>
+      this.groupBranchRepo.create({
+        groupId,
+        branchId: branch.branchId,
+      }),
+    );
+
+    await this.groupBranchRepo.save(newRelations);
+  }
+
+  private toResponse(group: GroupEntity) {
+    return {
+      id: group.groupId,
+      groupName: group.groupName,
+      groupCode: group.groupCode,
+      contactName: group.contactName,
+      contactPhone: group.contactPhone,
+      contactEmail: group.contactEmail,
+      reservationStartDate: group.reservationOpenStart ?? '',
+      reservationEndDate: group.reservationOpenEnd ?? '',
+      availableBranches:
+        group.groupBranches?.map((gb) => gb.branch?.branchName).filter(Boolean) ?? [],
+      status: group.groupIsDisable === 1 ? 'inactive' : 'active',
+    };
+  }
 }

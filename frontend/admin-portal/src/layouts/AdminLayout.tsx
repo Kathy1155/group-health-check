@@ -60,6 +60,7 @@ const USER_NAME = getDisplayName();
           title: "業務中心",
           links: [
             { to: "/admin/business/groups/new", label: "新增團體資料" },
+            { to: "/admin/business/groups/search", label: "查詢 / 編輯團體資料" },
             { to: "/admin/business/package-branches", label: "指定套餐院區" },
             { to: "/admin/business/roster/upload", label: "上傳團體名冊" },
           ],

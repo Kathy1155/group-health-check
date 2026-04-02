@@ -1,59 +1,74 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import {
-  createGroup,
   fetchBranches,
   type BranchItem,
 } from '../../api/groupsApi';
 
-const GroupCreatePage: React.FC = () => {
+type GroupStatus = 'active' | 'inactive';
+
+interface GroupDetail {
+  id: number;
+  groupName: string;
+  groupCode: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  reservationStartDate?: string;
+  reservationEndDate?: string;
+  availableBranches?: string[];
+  status: GroupStatus;
+}
+
+const GroupEditPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+
+  const stateGroup = (
+    location.state as { groupData?: GroupDetail } | undefined
+  )?.groupData;
+
+  const [loading, setLoading] = useState(!stateGroup);
+  const [loadingBranches, setLoadingBranches] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [reservationStartDate, setReservationStartDate] = useState('');
+  const [reservationEndDate, setReservationEndDate] = useState('');
+  const [status, setStatus] = useState<GroupStatus>('active');
 
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [availableBranchIds, setAvailableBranchIds] = useState<number[]>([]);
-  const [reservationOpenStart, setReservationOpenStart] = useState('');
-  const [reservationOpenEnd, setReservationOpenEnd] = useState('');
+
+  const [initialData, setInitialData] = useState<GroupDetail | null>(
+    stateGroup ?? null,
+  );
+  const [initialBranchIds, setInitialBranchIds] = useState<number[]>([]);
 
   const [errors, setErrors] = useState({
-    groupCode: '',
     contactPhone: '',
     contactEmail: '',
     availableBranchIds: '',
-    reservationOpenStart: '',
-    reservationOpenEnd: '',
+    reservationStartDate: '',
+    reservationEndDate: '',
     reservationDateOrder: '',
   });
 
   const [submitError, setSubmitError] = useState('');
-  const [loadingBranches, setLoadingBranches] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null);
-  const groupCodeErrorRef = useRef<HTMLParagraphElement | null>(null);
   const contactPhoneErrorRef = useRef<HTMLParagraphElement | null>(null);
   const contactEmailErrorRef = useRef<HTMLParagraphElement | null>(null);
   const branchErrorRef = useRef<HTMLParagraphElement | null>(null);
   const startDateErrorRef = useRef<HTMLParagraphElement | null>(null);
   const endDateErrorRef = useRef<HTMLParagraphElement | null>(null);
   const dateOrderErrorRef = useRef<HTMLParagraphElement | null>(null);
-
-  const isDirty =
-    groupName !== '' ||
-    groupCode !== '' ||
-    contactName !== '' ||
-    contactPhone !== '' ||
-    contactEmail !== '' ||
-    status !== 'active' ||
-    availableBranchIds.length > 0 ||
-    reservationOpenStart !== '' ||
-    reservationOpenEnd !== '';
-
-  useUnsavedChangesWarning(isDirty);
 
   useEffect(() => {
     let alive = true;
@@ -79,30 +94,106 @@ const GroupCreatePage: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (stateGroup) {
+      setGroupName(stateGroup.groupName);
+      setGroupCode(stateGroup.groupCode);
+      setContactName(stateGroup.contactName);
+
+      const normalizedPhone = stateGroup.contactPhone.startsWith('+886')
+        ? stateGroup.contactPhone.replace('+886', '')
+        : stateGroup.contactPhone.replace(/\D/g, '');
+
+      setContactPhone(normalizedPhone);
+      setContactEmail(stateGroup.contactEmail);
+      setReservationStartDate(stateGroup.reservationStartDate ?? '');
+      setReservationEndDate(stateGroup.reservationEndDate ?? '');
+      setStatus(stateGroup.status);
+      setInitialData(stateGroup);
+      setLoading(false);
+      return;
+    }
+
+    const fetchGroup = async () => {
+      try {
+        const res = await fetch(`/api/groups/${id}`);
+        if (!res.ok) {
+          alert('讀取團體資料失敗');
+          navigate('/admin/business/groups/search');
+          return;
+        }
+
+        const data = await res.json();
+
+        const normalized: GroupDetail = {
+          id: data.id,
+          groupName: data.groupName ?? '',
+          groupCode: data.groupCode ?? '',
+          contactName: data.contactName ?? '',
+          contactPhone: data.contactPhone ?? '',
+          contactEmail: data.contactEmail ?? '',
+          reservationStartDate: data.reservationStartDate ?? '',
+          reservationEndDate: data.reservationEndDate ?? '',
+          availableBranches: data.availableBranches ?? [],
+          status: data.status ?? 'active',
+        };
+
+        setInitialData(normalized);
+        setGroupName(normalized.groupName);
+        setGroupCode(normalized.groupCode);
+        setContactName(normalized.contactName);
+
+        const normalizedPhone = normalized.contactPhone.startsWith('+886')
+          ? normalized.contactPhone.replace('+886', '')
+          : normalized.contactPhone.replace(/\D/g, '');
+
+        setContactPhone(normalizedPhone);
+        setContactEmail(normalized.contactEmail);
+        setReservationStartDate(normalized.reservationStartDate ?? '');
+        setReservationEndDate(normalized.reservationEndDate ?? '');
+        setStatus(normalized.status);
+      } catch (err) {
+        console.error(err);
+        alert('無法讀取團體資料');
+        navigate('/admin/business/groups/search');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroup();
+  }, [id, navigate, stateGroup]);
+
+  useEffect(() => {
+    if (!initialData || branches.length === 0) return;
+
+    const matchedBranchIds = branches
+      .filter((branch) =>
+        (initialData.availableBranches ?? []).includes(branch.branchName),
+      )
+      .map((branch) => branch.branchId);
+
+    setAvailableBranchIds(matchedBranchIds);
+    setInitialBranchIds(matchedBranchIds);
+  }, [initialData, branches]);
+
   const toggleBranch = (branchId: number) => {
     setAvailableBranchIds((prev) =>
       prev.includes(branchId)
-        ? prev.filter((id) => id !== branchId)
+        ? prev.filter((idValue) => idValue !== branchId)
         : [...prev, branchId],
     );
   };
 
   const buildValidationErrors = () => {
     const newErrors = {
-      groupCode: '',
       contactPhone: '',
       contactEmail: '',
       availableBranchIds: '',
-      reservationOpenStart: '',
-      reservationOpenEnd: '',
+      reservationStartDate: '',
+      reservationEndDate: '',
       reservationDateOrder: '',
     };
-
-    const groupCodeRegex = /^[A-Z]{2}\d{8}$/;
-    if (!groupCodeRegex.test(groupCode)) {
-      newErrors.groupCode =
-        '團體代碼格式錯誤，需為前兩碼大寫英文字母、後八碼數字，例如：AB12345678';
-    }
 
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(contactPhone)) {
@@ -114,18 +205,18 @@ const GroupCreatePage: React.FC = () => {
       newErrors.contactEmail = '電子郵件格式錯誤，請輸入正確的 Email。';
     }
 
-    if (!reservationOpenStart) {
-      newErrors.reservationOpenStart = '請選擇開放預約開始日';
+    if (!reservationStartDate) {
+      newErrors.reservationStartDate = '請選擇開放預約開始日';
     }
 
-    if (!reservationOpenEnd) {
-      newErrors.reservationOpenEnd = '請選擇開放預約截止日';
+    if (!reservationEndDate) {
+      newErrors.reservationEndDate = '請選擇開放預約截止日';
     }
 
     if (
-      reservationOpenStart &&
-      reservationOpenEnd &&
-      reservationOpenEnd < reservationOpenStart
+      reservationStartDate &&
+      reservationEndDate &&
+      reservationEndDate < reservationStartDate
     ) {
       newErrors.reservationDateOrder = '開放預約截止日不可早於開始日';
     }
@@ -142,12 +233,11 @@ const GroupCreatePage: React.FC = () => {
     setErrors(newErrors);
 
     return (
-      !newErrors.groupCode &&
       !newErrors.contactPhone &&
       !newErrors.contactEmail &&
       !newErrors.availableBranchIds &&
-      !newErrors.reservationOpenStart &&
-      !newErrors.reservationOpenEnd &&
+      !newErrors.reservationStartDate &&
+      !newErrors.reservationEndDate &&
       !newErrors.reservationDateOrder
     );
   };
@@ -158,14 +248,6 @@ const GroupCreatePage: React.FC = () => {
   ) => {
     if (hasSubmitError && submitErrorRef.current) {
       submitErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-      return;
-    }
-
-    if (nextErrors.groupCode && groupCodeErrorRef.current) {
-      groupCodeErrorRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
       });
@@ -188,7 +270,7 @@ const GroupCreatePage: React.FC = () => {
       return;
     }
 
-    if (nextErrors.reservationOpenStart && startDateErrorRef.current) {
+    if (nextErrors.reservationStartDate && startDateErrorRef.current) {
       startDateErrorRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
@@ -196,12 +278,12 @@ const GroupCreatePage: React.FC = () => {
       return;
     }
 
-    if (nextErrors.reservationOpenEnd && endDateErrorRef.current) {
-      endDateErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-      return;
+    if (nextErrors.reservationEndDate && endDateErrorRef.current) {
+        endDateErrorRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+        return;
     }
 
     if (nextErrors.reservationDateOrder && dateOrderErrorRef.current) {
@@ -220,27 +302,24 @@ const GroupCreatePage: React.FC = () => {
     }
   };
 
-  const resetForm = () => {
-    setGroupName('');
-    setGroupCode('');
-    setContactName('');
-    setContactPhone('');
-    setContactEmail('');
-    setStatus('active');
-    setAvailableBranchIds([]);
-    setReservationOpenStart('');
-    setReservationOpenEnd('');
-    setSubmitError('');
-    setErrors({
-      groupCode: '',
-      contactPhone: '',
-      contactEmail: '',
-      availableBranchIds: '',
-      reservationOpenStart: '',
-      reservationOpenEnd: '',
-      reservationDateOrder: '',
-    });
-  };
+  const isDirty =
+    initialData !== null &&
+    (
+      groupName !== initialData.groupName ||
+      contactName !== initialData.contactName ||
+      contactPhone !==
+        (initialData.contactPhone.startsWith('+886')
+          ? initialData.contactPhone.replace('+886', '')
+          : initialData.contactPhone.replace(/\D/g, '')) ||
+      contactEmail !== initialData.contactEmail ||
+      reservationStartDate !== (initialData.reservationStartDate ?? '') ||
+      reservationEndDate !== (initialData.reservationEndDate ?? '') ||
+      status !== initialData.status ||
+      availableBranchIds.length !== initialBranchIds.length ||
+      availableBranchIds.some((idValue) => !initialBranchIds.includes(idValue))
+    );
+
+  useUnsavedChangesWarning(isDirty);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -254,45 +333,52 @@ const GroupCreatePage: React.FC = () => {
       return;
     }
 
+    const selectedBranchNames = branches
+      .filter((branch) => availableBranchIds.includes(branch.branchId))
+      .map((branch) => branch.branchName);
+
     const payload = {
       groupName,
-      groupCode,
       contactName,
       contactPhone: `+886${contactPhone}`,
       contactEmail,
+      reservationStartDate,
+      reservationEndDate,
+      availableBranches: selectedBranchNames,
       status,
-      availableBranchIds,
-      reservationOpenStart,
-      reservationOpenEnd,
     };
 
     try {
       setSaving(true);
 
-      const result = await createGroup(payload);
-      console.log('新增成功', result);
+      const res = await fetch(`/api/groups/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      alert('新增成功');
-      resetForm();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      console.error('新增失敗：', err);
-
-      if (err instanceof Error && err.message.includes('團體代碼已存在')) {
-        const nextErrors = {
-          ...buildValidationErrors(),
-          groupCode: '此團體代碼已被使用，請重新輸入。',
-        };
-
-        setErrors(nextErrors);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('更新失敗：', res.status, text);
+        setSubmitError('更新失敗，請稍後再試');
 
         setTimeout(() => {
-          scrollToFirstError(nextErrors);
+          if (submitErrorRef.current) {
+            submitErrorRef.current.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+          }
         }, 50);
+
         return;
       }
 
-      setSubmitError(err instanceof Error ? err.message : '新增失敗，請稍後再試');
+      alert('更新成功');
+      navigate('/admin/business/groups/search');
+    } catch (err) {
+      console.error(err);
+      setSubmitError('更新失敗，請檢查網路或稍後再試');
 
       setTimeout(() => {
         if (submitErrorRef.current) {
@@ -307,10 +393,20 @@ const GroupCreatePage: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="page-container business-scope">
+        <div className="page-card">
+          <p>資料載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container business-scope">
       <div className="page-card">
-        <h2 className="page-title">新增團體資料界面</h2>
+        <h2 className="page-title">編輯團體資料界面</h2>
 
         <form className="page-form" onSubmit={handleSubmit}>
           {submitError && (
@@ -349,25 +445,13 @@ const GroupCreatePage: React.FC = () => {
                 id="groupCode"
                 className="form-input"
                 value={groupCode}
-                onChange={(e) => {
-                  const value = e.target.value
-                    .toUpperCase()
-                    .replace(/[^A-Z0-9]/g, '');
-                  setGroupCode(value);
-                }}
-                placeholder="例如：AB12345678"
-                maxLength={10}
-                required
+                disabled
+                readOnly
               />
 
-              {errors.groupCode && (
-                <p
-                  ref={groupCodeErrorRef}
-                  style={{ color: 'red', marginTop: 4, fontSize: '14px' }}
-                >
-                  {errors.groupCode}
-                </p>
-              )}
+              <p style={{ marginTop: 4, fontSize: '14px', color: '#6b7280' }}>
+                團體代碼建立後不可修改
+              </p>
             </div>
           </div>
 
@@ -439,43 +523,43 @@ const GroupCreatePage: React.FC = () => {
 
           <div className="form-row">
             <div className="form-field">
-              <label className="form-label" htmlFor="reservationOpenStart">
+              <label className="form-label" htmlFor="reservationStartDate">
                 開放預約開始日：
               </label>
               <input
-                id="reservationOpenStart"
+                id="reservationStartDate"
                 type="date"
                 className="form-input"
-                value={reservationOpenStart}
-                onChange={(e) => setReservationOpenStart(e.target.value)}
+                value={reservationStartDate}
+                onChange={(e) => setReservationStartDate(e.target.value)}
               />
-              {errors.reservationOpenStart && (
+              {errors.reservationStartDate && (
                 <p
                   ref={startDateErrorRef}
                   style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
                 >
-                  {errors.reservationOpenStart}
+                  {errors.reservationStartDate}
                 </p>
               )}
             </div>
 
             <div className="form-field">
-              <label className="form-label" htmlFor="reservationOpenEnd">
+              <label className="form-label" htmlFor="reservationEndDate">
                 開放預約截止日：
               </label>
               <input
-                id="reservationOpenEnd"
+                id="reservationEndDate"
                 type="date"
                 className="form-input"
-                value={reservationOpenEnd}
-                onChange={(e) => setReservationOpenEnd(e.target.value)}
+                value={reservationEndDate}
+                onChange={(e) => setReservationEndDate(e.target.value)}
               />
-              {errors.reservationOpenEnd && (
+              {errors.reservationEndDate && (
                 <p
                   ref={endDateErrorRef}
                   style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
                 >
-                  {errors.reservationOpenEnd}
+                  {errors.reservationEndDate}
                 </p>
               )}
             </div>
@@ -548,7 +632,16 @@ const GroupCreatePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="form-actions-center">
+          <div className="form-actions-center gap">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => navigate('/admin/business/groups/search')}
+              disabled={saving}
+            >
+              返回
+            </button>
+
             <button type="submit" className="primary-button" disabled={saving}>
               {saving ? '儲存中...' : '儲存'}
             </button>
@@ -559,4 +652,4 @@ const GroupCreatePage: React.FC = () => {
   );
 };
 
-export default GroupCreatePage;
+export default GroupEditPage;
