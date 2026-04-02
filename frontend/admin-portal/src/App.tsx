@@ -11,6 +11,8 @@ import DefaultHomePage from "./pages/center/DefaultHomePage";
 import TimeSlotSettingPage from "./pages/center/TimeSlotSettingPage";
 import TimeSlotViewPage from "./pages/center/TimeSlotViewPage";
 import ReservationListPage from "./pages/center/ReservationListPage";
+import GroupSearchPage from "./pages/business/GroupSearchPage";
+import GroupEditPage from "./pages/business/GroupEditPage";
 
 
 
@@ -23,9 +25,10 @@ export default function App() {
       <Route path="/admin/403" element={<ForbiddenPage />} />
 
       <Route path="/admin" element={<AdminLayout />}>
-        {/* 業務中心頁面 */}
         <Route path="business" element={<BusinessHomePage />} />
         <Route path="business/groups/new" element={<GroupCreatePage />} />
+        <Route path="business/groups/search" element={<GroupSearchPage />} />
+        <Route path="business/groups/edit/:id" element={<GroupEditPage />} />
         <Route path="business/package-branches" element={<PackageBranchSettingPage />} />
         <Route path="business/roster/upload" element={<RosterUploadPage />} />
 
@@ -33,9 +36,7 @@ export default function App() {
         <Route path="center/timeslots" element={<TimeSlotSettingPage />} />
         <Route path="center/timeslots/view" element={<TimeSlotViewPage />} />
         <Route path="center/reservations" element={<ReservationListPage />} />
-
-
-      </Route>
+</Route>
 
       <Route path="*" element={<Navigate to="/admin/login" replace />} />
     </Routes>
