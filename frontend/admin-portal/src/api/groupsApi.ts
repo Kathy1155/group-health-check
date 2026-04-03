@@ -1,65 +1,125 @@
-import { API_BASE_URL } from "./client";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
-export type BranchItem = {
-  branchId: number;
-  branchName: string;
-};
+export type GroupStatus = "active" | "inactive";
 
-export type CreateGroupBody = {
+export interface PackageItem {
+  packageId: number;
+  packageName: string;
+}
+
+export interface GroupDetailDto {
+  id: number;
   groupName: string;
   groupCode: string;
   contactName: string;
   contactPhone: string;
   contactEmail: string;
-  status?: "active" | "inactive";
-  availableBranchIds: number[];
-  reservationOpenStart?: string;
-  reservationOpenEnd?: string;
-};
-
-function buildApiUrl(path: string) {
-  const base = API_BASE_URL.endsWith("/")
-    ? API_BASE_URL.slice(0, -1)
-    : API_BASE_URL;
-
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-
-  // 如果 base 已經有 /api，就不要再補一次
-  if (base.endsWith("/api")) {
-    return `${base}${normalizedPath}`;
-  }
-
-  return `${base}/api${normalizedPath}`;
+  reservationStartDate?: string;
+  reservationEndDate?: string;
+  availablePackageIds?: number[];
+  availablePackages?: PackageItem[];
+  status: GroupStatus;
 }
 
-export async function createGroup(body: CreateGroupBody) {
-  const res = await fetch(buildApiUrl("/groups"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+export interface CreateGroupPayload {
+  groupName: string;
+  groupCode: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  reservationStartDate?: string;
+  reservationEndDate?: string;
+  availablePackageIds?: number[];
+  status?: GroupStatus;
+}
 
-  if (res.status === 409) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.message ?? "團體代碼已存在");
+export interface UpdateGroupPayload {
+  groupName?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  reservationStartDate?: string;
+  reservationEndDate?: string;
+  availablePackageIds?: number[];
+  status?: GroupStatus;
+}
+
+export async function fetchPackages(): Promise<PackageItem[]> {
+  const res = await fetch(`${API_BASE_URL}/packages`);
+
+  if (!res.ok) {
+    throw new Error("讀取套餐資料失敗");
+  }
+
+  const data = await res.json();
+
+  return (data ?? [])
+    .filter((item: any) => !item.isDisable)
+    .map((item: any) => ({
+      packageId: Number(item.packageId),
+      packageName: item.packageName,
+    }));
+}
+
+export async function fetchGroupByCode(
+  code: string,
+): Promise<GroupDetailDto | null> {
+  const params = new URLSearchParams({ code });
+
+  const res = await fetch(`${API_BASE_URL}/groups/by-code?${params.toString()}`);
+
+  if (res.status === 404) {
+    return null;
   }
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.message ?? "新增失敗");
+    throw new Error(`查詢團體資料失敗，status = ${res.status}`);
   }
 
   return res.json();
 }
 
-export async function fetchBranches(): Promise<BranchItem[]> {
-  const res = await fetch(buildApiUrl("/branches"));
+export async function fetchGroupById(id: number): Promise<GroupDetailDto> {
+  const res = await fetch(`${API_BASE_URL}/groups/${id}`);
 
   if (!res.ok) {
-    const data = await res.text();
-    throw new Error(data || "讀取院區失敗");
+    throw new Error(`讀取團體資料失敗，status = ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function createGroup(
+  payload: CreateGroupPayload,
+): Promise<GroupDetailDto> {
+  const res = await fetch(`${API_BASE_URL}/groups`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "新增團體資料失敗");
+  }
+
+  return res.json();
+}
+
+export async function updateGroup(
+  id: number,
+  payload: UpdateGroupPayload,
+): Promise<GroupDetailDto> {
+  const res = await fetch(`${API_BASE_URL}/groups/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "更新團體資料失敗");
   }
 
   return res.json();

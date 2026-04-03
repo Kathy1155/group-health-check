@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { GroupsService } from './groups.service';
 
 @Controller('groups')
@@ -16,8 +25,10 @@ export class GroupsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): any {
-    return this.groupsService.findOne(+id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): any {
+    return this.groupsService.findOne(id);
   }
 
   @Post()
@@ -29,31 +40,30 @@ export class GroupsController {
       contactName: string;
       contactPhone: string;
       contactEmail: string;
+      status?: 'active' | 'inactive';
+      availablePackageIds?: number[];
       reservationStartDate?: string;
       reservationEndDate?: string;
-      availableBranches?: string[];
-      status?: 'active' | 'inactive';
     },
-  ): any {
+  ) {
     return this.groupsService.create(body);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body()
     body: {
       groupName?: string;
-      groupCode?: string;
       contactName?: string;
       contactPhone?: string;
       contactEmail?: string;
+      status?: 'active' | 'inactive';
+      availablePackageIds?: number[];
       reservationStartDate?: string;
       reservationEndDate?: string;
-      availableBranches?: string[];
-      status?: 'active' | 'inactive';
     },
-  ): any {
-    return this.groupsService.update(+id, body);
+  ) {
+    return this.groupsService.update(id, body);
   }
 }

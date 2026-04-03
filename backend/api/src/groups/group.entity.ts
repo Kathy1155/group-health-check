@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { GroupBranchEntity } from './group-branch.entity';
+import { GroupPackageEntity } from './group-package.entity';
 
 @Entity({ name: 'group' })
 export class GroupEntity {
@@ -102,6 +102,7 @@ export class GroupEntity {
   })
   updateByUserId: number | null;
 
-  @OneToMany(() => GroupBranchEntity, (groupBranch) => groupBranch.group)
-  groupBranches: GroupBranchEntity[];
+  
+@OneToMany(() => GroupPackageEntity, (groupPackage) => groupPackage.group)
+groupPackages: GroupPackageEntity[];
 }

@@ -1,8 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { In, Repository } from 'typeorm';
+
 import { GroupEntity } from './group.entity';
-import { GroupBranchEntity } from './group-branch.entity';
+import { GroupPackageEntity } from './group-package.entity';
+import { HealthExaminationPackageEntity } from '../packages/entities/health-examination-package.entity';
+import { BranchPackageEntity } from '../branch-packages/entities/branch-package.entity';
 import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
 
 type GroupStatus = 'active' | 'inactive';
@@ -13,8 +21,14 @@ export class GroupsService {
     @InjectRepository(GroupEntity)
     private readonly groupRepo: Repository<GroupEntity>,
 
-    @InjectRepository(GroupBranchEntity)
-    private readonly groupBranchRepo: Repository<GroupBranchEntity>,
+    @InjectRepository(GroupPackageEntity)
+    private readonly groupPackageRepo: Repository<GroupPackageEntity>,
+
+    @InjectRepository(HealthExaminationPackageEntity)
+    private readonly packageRepo: Repository<HealthExaminationPackageEntity>,
+
+    @InjectRepository(BranchPackageEntity)
+    private readonly branchPackageRepo: Repository<BranchPackageEntity>,
 
     @InjectRepository(HospitalBranchEntity)
     private readonly branchRepo: Repository<HospitalBranchEntity>,
@@ -23,8 +37,8 @@ export class GroupsService {
   async findAll() {
     const groups = await this.groupRepo.find({
       relations: {
-        groupBranches: {
-          branch: true,
+        groupPackages: {
+          package: true,
         },
       },
       order: {
@@ -39,8 +53,8 @@ export class GroupsService {
     const found = await this.groupRepo.findOne({
       where: { groupId: id },
       relations: {
-        groupBranches: {
-          branch: true,
+        groupPackages: {
+          package: true,
         },
       },
     });
@@ -56,8 +70,8 @@ export class GroupsService {
     const found = await this.groupRepo.findOne({
       where: { groupCode: code },
       relations: {
-        groupBranches: {
-          branch: true,
+        groupPackages: {
+          package: true,
         },
       },
     });
@@ -77,9 +91,28 @@ export class GroupsService {
     contactEmail: string;
     reservationStartDate?: string;
     reservationEndDate?: string;
-    availableBranches?: string[];
+    availablePackageIds?: number[];
     status?: GroupStatus;
   }) {
+    this.validateReservationDates(
+      data.reservationStartDate,
+      data.reservationEndDate,
+    );
+
+    if (!data.availablePackageIds || data.availablePackageIds.length === 0) {
+      throw new BadRequestException('請至少選擇一個可預約套餐');
+    }
+
+    const duplicated = await this.groupRepo.findOne({
+      where: { groupCode: data.groupCode },
+    });
+
+    if (duplicated) {
+      throw new ConflictException('團體代碼已存在');
+    }
+
+    await this.validatePackageIds(data.availablePackageIds);
+
     const group = this.groupRepo.create({
       groupName: data.groupName,
       groupCode: data.groupCode,
@@ -95,16 +128,16 @@ export class GroupsService {
 
     const savedGroup = await this.groupRepo.save(group);
 
-    await this.syncGroupBranches(
+    await this.syncGroupPackages(
       savedGroup.groupId,
-      data.availableBranches ?? [],
+      data.availablePackageIds,
     );
 
     const fullGroup = await this.groupRepo.findOne({
       where: { groupId: savedGroup.groupId },
       relations: {
-        groupBranches: {
-          branch: true,
+        groupPackages: {
+          package: true,
         },
       },
     });
@@ -120,21 +153,20 @@ export class GroupsService {
     id: number,
     data: Partial<{
       groupName: string;
-      groupCode: string;
       contactName: string;
       contactPhone: string;
       contactEmail: string;
       reservationStartDate: string;
       reservationEndDate: string;
-      availableBranches: string[];
+      availablePackageIds: number[];
       status: GroupStatus;
     }>,
   ) {
     const found = await this.groupRepo.findOne({
       where: { groupId: id },
       relations: {
-        groupBranches: {
-          branch: true,
+        groupPackages: {
+          package: true,
         },
       },
     });
@@ -143,8 +175,20 @@ export class GroupsService {
       throw new NotFoundException('查無此團體資料');
     }
 
+    this.validateReservationDates(
+      data.reservationStartDate ?? found.reservationOpenStart ?? undefined,
+      data.reservationEndDate ?? found.reservationOpenEnd ?? undefined,
+    );
+
+    if (data.availablePackageIds !== undefined) {
+      if (data.availablePackageIds.length === 0) {
+        throw new BadRequestException('請至少選擇一個可預約套餐');
+      }
+
+      await this.validatePackageIds(data.availablePackageIds);
+    }
+
     found.groupName = data.groupName ?? found.groupName;
-    found.groupCode = data.groupCode ?? found.groupCode;
     found.contactName = data.contactName ?? found.contactName;
     found.contactPhone = data.contactPhone ?? found.contactPhone;
     found.contactEmail = data.contactEmail ?? found.contactEmail;
@@ -165,15 +209,15 @@ export class GroupsService {
 
     await this.groupRepo.save(found);
 
-    if (data.availableBranches !== undefined) {
-      await this.syncGroupBranches(id, data.availableBranches);
+    if (data.availablePackageIds !== undefined) {
+      await this.syncGroupPackages(id, data.availablePackageIds);
     }
 
     const updatedGroup = await this.groupRepo.findOne({
       where: { groupId: id },
       relations: {
-        groupBranches: {
-          branch: true,
+        groupPackages: {
+          package: true,
         },
       },
     });
@@ -185,33 +229,144 @@ export class GroupsService {
     return this.toResponse(updatedGroup);
   }
 
-  private async syncGroupBranches(groupId: number, branchNames: string[]) {
-    const existingRelations = await this.groupBranchRepo.find({
+  async findGroupOptions(groupId: number) {
+    const group = await this.groupRepo.findOne({
+      where: { groupId },
+      relations: {
+        groupPackages: {
+          package: true,
+        },
+      },
+    });
+
+    if (!group) {
+      throw new NotFoundException('查無此團體資料');
+    }
+
+    if (group.groupIsDisable === 1) {
+      throw new BadRequestException('此團體目前停用');
+    }
+
+    const packageIds =
+      group.groupPackages
+        ?.map((gp) => gp.packageId)
+        .filter((idValue): idValue is number => Boolean(idValue)) ?? [];
+
+    if (packageIds.length === 0) {
+      return {
+        groupId: group.groupId,
+        branches: [],
+      };
+    }
+
+    const branchPackages = await this.branchPackageRepo.find({
+      where: {
+        packageId: In(packageIds),
+        branchPackageStatus: 'open' as any,
+      },
+      relations: {
+        branch: true,
+        package: true,
+      },
+    });
+
+    const branchMap = new Map<
+      number,
+      {
+        branchId: number;
+        branchName: string;
+        packages: { packageId: number; packageName: string }[];
+      }
+    >();
+
+    for (const item of branchPackages) {
+      if (!item.branch || !item.package) continue;
+      if (item.package.packageIsDisable) continue;
+
+      const existing = branchMap.get(item.branch.branchId);
+
+      if (!existing) {
+        branchMap.set(item.branch.branchId, {
+          branchId: item.branch.branchId,
+          branchName: item.branch.branchName,
+          packages: [
+            {
+              packageId: item.package.packageId,
+              packageName: item.package.packageName,
+            },
+          ],
+        });
+      } else {
+        const alreadyExists = existing.packages.some(
+          (pkg) => pkg.packageId === item.package.packageId,
+        );
+
+        if (!alreadyExists) {
+          existing.packages.push({
+            packageId: item.package.packageId,
+            packageName: item.package.packageName,
+          });
+        }
+      }
+    }
+
+    return {
+      groupId: group.groupId,
+      branches: Array.from(branchMap.values()).sort((a, b) =>
+        a.branchId - b.branchId,
+      ),
+    };
+  }
+
+  private async syncGroupPackages(groupId: number, packageIds: number[]) {
+    const existingRelations = await this.groupPackageRepo.find({
       where: { groupId },
     });
 
     if (existingRelations.length > 0) {
-      await this.groupBranchRepo.remove(existingRelations);
+      await this.groupPackageRepo.remove(existingRelations);
     }
 
-    if (!branchNames || branchNames.length === 0) {
+    if (!packageIds || packageIds.length === 0) {
       return;
     }
 
-    const branches = await this.branchRepo.find({
-      where: {
-        branchName: In(branchNames),
-      },
-    });
-
-    const newRelations = branches.map((branch) =>
-      this.groupBranchRepo.create({
+    const newRelations = packageIds.map((packageId) =>
+      this.groupPackageRepo.create({
         groupId,
-        branchId: branch.branchId,
+        packageId,
       }),
     );
 
-    await this.groupBranchRepo.save(newRelations);
+    await this.groupPackageRepo.save(newRelations);
+  }
+
+  private async validatePackageIds(packageIds: number[]) {
+    const uniqueIds = [...new Set(packageIds)];
+
+    const packages = await this.packageRepo.find({
+      where: {
+        packageId: In(uniqueIds),
+      },
+    });
+
+    if (packages.length !== uniqueIds.length) {
+      throw new BadRequestException('部分套餐不存在');
+    }
+
+    const disabledPackage = packages.find((pkg) => pkg.packageIsDisable);
+    if (disabledPackage) {
+      throw new BadRequestException('不可選擇已停用的套餐');
+    }
+  }
+
+  private validateReservationDates(
+    startDate?: string,
+    endDate?: string,
+  ) {
+    if (startDate && endDate && endDate < startDate) {
+      throw new BadRequestException('開放預約截止日不可早於開始日');
+    }
   }
 
   private toResponse(group: GroupEntity) {
@@ -224,8 +379,13 @@ export class GroupsService {
       contactEmail: group.contactEmail,
       reservationStartDate: group.reservationOpenStart ?? '',
       reservationEndDate: group.reservationOpenEnd ?? '',
-      availableBranches:
-        group.groupBranches?.map((gb) => gb.branch?.branchName).filter(Boolean) ?? [],
+      availablePackageIds:
+        group.groupPackages?.map((gp) => gp.package?.packageId).filter(Boolean) ?? [],
+      availablePackages:
+        group.groupPackages?.map((gp) => ({
+          packageId: gp.package?.packageId,
+          packageName: gp.package?.packageName,
+        })) ?? [],
       status: group.groupIsDisable === 1 ? 'inactive' : 'active',
     };
   }
