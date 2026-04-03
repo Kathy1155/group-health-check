@@ -5,6 +5,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { BranchPackageEntity } from '../../branch-packages/entities/branch-package.entity';
+import { GroupPackageEntity } from 'src/groups/group-package.entity';
 
 @Entity({ name: 'health_exam_package' })
 export class HealthExaminationPackageEntity {
@@ -28,4 +29,7 @@ export class HealthExaminationPackageEntity {
 
   @OneToMany(() => BranchPackageEntity, (bp) => bp.package)
   branchPackages: BranchPackageEntity[];
+
+  @OneToMany(() => GroupPackageEntity, (groupPackage) => groupPackage.package)
+groupPackages: GroupPackageEntity[];
 }

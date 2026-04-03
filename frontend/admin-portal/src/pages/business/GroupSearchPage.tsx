@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchGroupByCode, type GroupDetailDto } from "../../api/groupsApi";
 
 type GroupStatus = "active" | "inactive";
 
@@ -12,7 +13,11 @@ interface GroupDetail {
   contactEmail: string;
   reservationStartDate?: string;
   reservationEndDate?: string;
-  availableBranches?: string[];
+  availablePackageIds?: number[];
+  availablePackages?: {
+    packageId: number;
+    packageName: string;
+  }[];
   status: GroupStatus;
 }
 
@@ -38,33 +43,25 @@ const GroupSearchPage: React.FC = () => {
     setGroupData(null);
 
     try {
-      const res = await fetch(`/api/groups/by-code?code=${encodeURIComponent(trimmedCode)}`);
+      const data: GroupDetailDto | null = await fetchGroupByCode(trimmedCode);
 
-      if (res.status === 404) {
+      if (!data) {
         setSearched(true);
         setGroupData(null);
         return;
       }
 
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("查詢失敗：", res.status, text);
-        alert("查詢失敗，請稍後再試");
-        return;
-      }
-
-      const data = await res.json();
-
       setGroupData({
         id: data.id,
-        groupName: data.groupName ?? data.name ?? "",
+        groupName: data.groupName ?? "",
         groupCode: data.groupCode,
         contactName: data.contactName,
         contactPhone: data.contactPhone,
         contactEmail: data.contactEmail,
         reservationStartDate: data.reservationStartDate ?? "",
         reservationEndDate: data.reservationEndDate ?? "",
-        availableBranches: data.availableBranches ?? [],
+        availablePackageIds: data.availablePackageIds ?? [],
+        availablePackages: data.availablePackages ?? [],
         status: data.status ?? "active",
       });
       setSearched(true);
@@ -77,7 +74,7 @@ const GroupSearchPage: React.FC = () => {
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container business-scope">
       <div className="page-card">
         <h2 className="page-title">查詢 / 編輯團體資料</h2>
 
@@ -135,9 +132,9 @@ const GroupSearchPage: React.FC = () => {
                 <div><strong>開放預約開始日：</strong>{groupData.reservationStartDate || "未設定"}</div>
                 <div><strong>開放預約截止日：</strong>{groupData.reservationEndDate || "未設定"}</div>
                 <div>
-                  <strong>可預約院區：</strong>
-                  {groupData.availableBranches && groupData.availableBranches.length > 0
-                    ? groupData.availableBranches.join("、")
+                  <strong>可預約套餐：</strong>
+                  {groupData.availablePackages && groupData.availablePackages.length > 0
+                    ? groupData.availablePackages.map((pkg) => pkg.packageName).join("、")
                     : "未設定"}
                 </div>
                 <div>

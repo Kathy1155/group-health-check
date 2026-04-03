@@ -8,16 +8,16 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { GroupEntity } from './group.entity';
-import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
+import { HealthExaminationPackageEntity } from '../packages/entities/health-examination-package.entity';
 
-@Entity({ name: 'group_branch' })
-export class GroupBranchEntity {
+@Entity({ name: 'group_package' })
+export class GroupPackageEntity {
   @PrimaryGeneratedColumn({
     type: 'bigint',
     unsigned: true,
-    name: 'group_branch_id',
+    name: 'group_package_id',
   })
-  groupBranchId: number;
+  groupPackageId: number;
 
   @Column({
     type: 'bigint',
@@ -29,9 +29,9 @@ export class GroupBranchEntity {
   @Column({
     type: 'bigint',
     unsigned: true,
-    name: 'branch_id',
+    name: 'package_id',
   })
-  branchId: number;
+  packageId: number;
 
   @CreateDateColumn({
     type: 'timestamp',
@@ -47,19 +47,17 @@ export class GroupBranchEntity {
   })
   updatedAt?: Date;
 
-  @ManyToOne(() => GroupEntity, (group) => group.groupBranches, {
+  @ManyToOne(() => GroupEntity, (group) => group.groupPackages, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'group_id' })
   group: GroupEntity;
 
   @ManyToOne(
-    () => HospitalBranchEntity,
-    (branch) => branch.groupBranches,
-    {
-      onDelete: 'CASCADE',
-    },
+    () => HealthExaminationPackageEntity,
+    (pkg) => pkg.groupPackages,
+    { onDelete: 'CASCADE' },
   )
-  @JoinColumn({ name: 'branch_id' })
-  branch: HospitalBranchEntity;
+  @JoinColumn({ name: 'package_id' })
+  package: HealthExaminationPackageEntity;
 }

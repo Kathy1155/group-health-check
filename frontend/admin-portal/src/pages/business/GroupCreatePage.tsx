@@ -1,137 +1,137 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
+import React, { useEffect, useRef, useState } from "react";
+import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
 import {
   createGroup,
-  fetchBranches,
-  type BranchItem,
-} from '../../api/groupsApi';
+  fetchPackages,
+  type PackageItem,
+} from "../../api/groupsApi";
 
 const GroupCreatePage: React.FC = () => {
-  const [groupName, setGroupName] = useState('');
-  const [groupCode, setGroupCode] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [groupName, setGroupName] = useState("");
+  const [groupCode, setGroupCode] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [status, setStatus] = useState<"active" | "inactive">("active");
 
-  const [branches, setBranches] = useState<BranchItem[]>([]);
-  const [availableBranchIds, setAvailableBranchIds] = useState<number[]>([]);
-  const [reservationOpenStart, setReservationOpenStart] = useState('');
-  const [reservationOpenEnd, setReservationOpenEnd] = useState('');
+  const [packages, setPackages] = useState<PackageItem[]>([]);
+  const [availablePackageIds, setAvailablePackageIds] = useState<number[]>([]);
+  const [reservationStartDate, setReservationStartDate] = useState("");
+  const [reservationEndDate, setReservationEndDate] = useState("");
 
   const [errors, setErrors] = useState({
-    groupCode: '',
-    contactPhone: '',
-    contactEmail: '',
-    availableBranchIds: '',
-    reservationOpenStart: '',
-    reservationOpenEnd: '',
-    reservationDateOrder: '',
+    groupCode: "",
+    contactPhone: "",
+    contactEmail: "",
+    availablePackageIds: "",
+    reservationStartDate: "",
+    reservationEndDate: "",
+    reservationDateOrder: "",
   });
 
-  const [submitError, setSubmitError] = useState('');
-  const [loadingBranches, setLoadingBranches] = useState(true);
+  const [submitError, setSubmitError] = useState("");
+  const [loadingPackages, setLoadingPackages] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const submitErrorRef = useRef<HTMLParagraphElement | null>(null);
   const groupCodeErrorRef = useRef<HTMLParagraphElement | null>(null);
   const contactPhoneErrorRef = useRef<HTMLParagraphElement | null>(null);
   const contactEmailErrorRef = useRef<HTMLParagraphElement | null>(null);
-  const branchErrorRef = useRef<HTMLParagraphElement | null>(null);
+  const packageErrorRef = useRef<HTMLParagraphElement | null>(null);
   const startDateErrorRef = useRef<HTMLParagraphElement | null>(null);
   const endDateErrorRef = useRef<HTMLParagraphElement | null>(null);
   const dateOrderErrorRef = useRef<HTMLParagraphElement | null>(null);
 
   const isDirty =
-    groupName !== '' ||
-    groupCode !== '' ||
-    contactName !== '' ||
-    contactPhone !== '' ||
-    contactEmail !== '' ||
-    status !== 'active' ||
-    availableBranchIds.length > 0 ||
-    reservationOpenStart !== '' ||
-    reservationOpenEnd !== '';
+    groupName !== "" ||
+    groupCode !== "" ||
+    contactName !== "" ||
+    contactPhone !== "" ||
+    contactEmail !== "" ||
+    status !== "active" ||
+    availablePackageIds.length > 0 ||
+    reservationStartDate !== "" ||
+    reservationEndDate !== "";
 
   useUnsavedChangesWarning(isDirty);
 
   useEffect(() => {
     let alive = true;
 
-    const loadBranches = async () => {
+    const loadPackages = async () => {
       try {
-        setLoadingBranches(true);
-        const data = await fetchBranches();
+        setLoadingPackages(true);
+        const data = await fetchPackages();
         if (!alive) return;
-        setBranches(data);
+        setPackages(data);
       } catch (err) {
         console.error(err);
-        alert('院區資料載入失敗');
+        alert("套餐資料載入失敗");
       } finally {
-        if (alive) setLoadingBranches(false);
+        if (alive) setLoadingPackages(false);
       }
     };
 
-    loadBranches();
+    loadPackages();
 
     return () => {
       alive = false;
     };
   }, []);
 
-  const toggleBranch = (branchId: number) => {
-    setAvailableBranchIds((prev) =>
-      prev.includes(branchId)
-        ? prev.filter((id) => id !== branchId)
-        : [...prev, branchId],
+  const togglePackage = (packageId: number) => {
+    setAvailablePackageIds((prev) =>
+      prev.includes(packageId)
+        ? prev.filter((id) => id !== packageId)
+        : [...prev, packageId],
     );
   };
 
   const buildValidationErrors = () => {
     const newErrors = {
-      groupCode: '',
-      contactPhone: '',
-      contactEmail: '',
-      availableBranchIds: '',
-      reservationOpenStart: '',
-      reservationOpenEnd: '',
-      reservationDateOrder: '',
+      groupCode: "",
+      contactPhone: "",
+      contactEmail: "",
+      availablePackageIds: "",
+      reservationStartDate: "",
+      reservationEndDate: "",
+      reservationDateOrder: "",
     };
 
     const groupCodeRegex = /^[A-Z]{2}\d{8}$/;
     if (!groupCodeRegex.test(groupCode)) {
       newErrors.groupCode =
-        '團體代碼格式錯誤，需為前兩碼大寫英文字母、後八碼數字，例如：AB12345678';
+        "團體代碼格式錯誤，需為前兩碼大寫英文字母、後八碼數字，例如：AB12345678";
     }
 
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(contactPhone)) {
-      newErrors.contactPhone = '聯絡電話格式錯誤，請輸入 10 碼數字。';
+      newErrors.contactPhone = "聯絡電話格式錯誤，請輸入 10 碼數字。";
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(contactEmail)) {
-      newErrors.contactEmail = '電子郵件格式錯誤，請輸入正確的 Email。';
+      newErrors.contactEmail = "電子郵件格式錯誤，請輸入正確的 Email。";
     }
 
-    if (!reservationOpenStart) {
-      newErrors.reservationOpenStart = '請選擇開放預約開始日';
+    if (!reservationStartDate) {
+      newErrors.reservationStartDate = "請選擇開放預約開始日";
     }
 
-    if (!reservationOpenEnd) {
-      newErrors.reservationOpenEnd = '請選擇開放預約截止日';
+    if (!reservationEndDate) {
+      newErrors.reservationEndDate = "請選擇開放預約截止日";
     }
 
     if (
-      reservationOpenStart &&
-      reservationOpenEnd &&
-      reservationOpenEnd < reservationOpenStart
+      reservationStartDate &&
+      reservationEndDate &&
+      reservationEndDate < reservationStartDate
     ) {
-      newErrors.reservationDateOrder = '開放預約截止日不可早於開始日';
+      newErrors.reservationDateOrder = "開放預約截止日不可早於開始日";
     }
 
-    if (availableBranchIds.length === 0) {
-      newErrors.availableBranchIds = '請至少勾選一個可預約院區';
+    if (availablePackageIds.length === 0) {
+      newErrors.availablePackageIds = "請至少勾選一個可預約套餐";
     }
 
     return newErrors;
@@ -145,9 +145,9 @@ const GroupCreatePage: React.FC = () => {
       !newErrors.groupCode &&
       !newErrors.contactPhone &&
       !newErrors.contactEmail &&
-      !newErrors.availableBranchIds &&
-      !newErrors.reservationOpenStart &&
-      !newErrors.reservationOpenEnd &&
+      !newErrors.availablePackageIds &&
+      !newErrors.reservationStartDate &&
+      !newErrors.reservationEndDate &&
       !newErrors.reservationDateOrder
     );
   };
@@ -158,94 +158,94 @@ const GroupCreatePage: React.FC = () => {
   ) => {
     if (hasSubmitError && submitErrorRef.current) {
       submitErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
     if (nextErrors.groupCode && groupCodeErrorRef.current) {
       groupCodeErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
     if (nextErrors.contactPhone && contactPhoneErrorRef.current) {
       contactPhoneErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
     if (nextErrors.contactEmail && contactEmailErrorRef.current) {
       contactEmailErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
-    if (nextErrors.reservationOpenStart && startDateErrorRef.current) {
+    if (nextErrors.reservationStartDate && startDateErrorRef.current) {
       startDateErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
-    if (nextErrors.reservationOpenEnd && endDateErrorRef.current) {
+    if (nextErrors.reservationEndDate && endDateErrorRef.current) {
       endDateErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
     if (nextErrors.reservationDateOrder && dateOrderErrorRef.current) {
       dateOrderErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+        behavior: "smooth",
+        block: "center",
       });
       return;
     }
 
-    if (nextErrors.availableBranchIds && branchErrorRef.current) {
-      branchErrorRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+    if (nextErrors.availablePackageIds && packageErrorRef.current) {
+      packageErrorRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
       });
     }
   };
 
   const resetForm = () => {
-    setGroupName('');
-    setGroupCode('');
-    setContactName('');
-    setContactPhone('');
-    setContactEmail('');
-    setStatus('active');
-    setAvailableBranchIds([]);
-    setReservationOpenStart('');
-    setReservationOpenEnd('');
-    setSubmitError('');
+    setGroupName("");
+    setGroupCode("");
+    setContactName("");
+    setContactPhone("");
+    setContactEmail("");
+    setStatus("active");
+    setAvailablePackageIds([]);
+    setReservationStartDate("");
+    setReservationEndDate("");
+    setSubmitError("");
     setErrors({
-      groupCode: '',
-      contactPhone: '',
-      contactEmail: '',
-      availableBranchIds: '',
-      reservationOpenStart: '',
-      reservationOpenEnd: '',
-      reservationDateOrder: '',
+      groupCode: "",
+      contactPhone: "",
+      contactEmail: "",
+      availablePackageIds: "",
+      reservationStartDate: "",
+      reservationEndDate: "",
+      reservationDateOrder: "",
     });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    setSubmitError('');
+    setSubmitError("");
 
     const isValid = validateForm();
     if (!isValid) {
@@ -261,27 +261,27 @@ const GroupCreatePage: React.FC = () => {
       contactPhone: `+886${contactPhone}`,
       contactEmail,
       status,
-      availableBranchIds,
-      reservationOpenStart,
-      reservationOpenEnd,
+      availablePackageIds,
+      reservationStartDate,
+      reservationEndDate,
     };
 
     try {
       setSaving(true);
 
       const result = await createGroup(payload);
-      console.log('新增成功', result);
+      console.log("新增成功", result);
 
-      alert('新增成功');
+      alert("新增成功");
       resetForm();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      console.error('新增失敗：', err);
+      console.error("新增失敗：", err);
 
-      if (err instanceof Error && err.message.includes('團體代碼已存在')) {
+      if (err instanceof Error && err.message.includes("團體代碼已存在")) {
         const nextErrors = {
           ...buildValidationErrors(),
-          groupCode: '此團體代碼已被使用，請重新輸入。',
+          groupCode: "此團體代碼已被使用，請重新輸入。",
         };
 
         setErrors(nextErrors);
@@ -292,13 +292,13 @@ const GroupCreatePage: React.FC = () => {
         return;
       }
 
-      setSubmitError(err instanceof Error ? err.message : '新增失敗，請稍後再試');
+      setSubmitError(err instanceof Error ? err.message : "新增失敗，請稍後再試");
 
       setTimeout(() => {
         if (submitErrorRef.current) {
           submitErrorRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
+            behavior: "smooth",
+            block: "center",
           });
         }
       }, 50);
@@ -317,9 +317,9 @@ const GroupCreatePage: React.FC = () => {
             <p
               ref={submitErrorRef}
               style={{
-                color: 'red',
-                marginBottom: '12px',
-                fontSize: '14px',
+                color: "red",
+                marginBottom: "12px",
+                fontSize: "14px",
               }}
             >
               {submitError}
@@ -352,7 +352,7 @@ const GroupCreatePage: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value
                     .toUpperCase()
-                    .replace(/[^A-Z0-9]/g, '');
+                    .replace(/[^A-Z0-9]/g, "");
                   setGroupCode(value);
                 }}
                 placeholder="例如：AB12345678"
@@ -363,7 +363,7 @@ const GroupCreatePage: React.FC = () => {
               {errors.groupCode && (
                 <p
                   ref={groupCodeErrorRef}
-                  style={{ color: 'red', marginTop: 4, fontSize: '14px' }}
+                  style={{ color: "red", marginTop: 4, fontSize: "14px" }}
                 >
                   {errors.groupCode}
                 </p>
@@ -389,13 +389,13 @@ const GroupCreatePage: React.FC = () => {
               <label className="form-label" htmlFor="contactPhone">
                 聯絡人電話：
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ whiteSpace: 'nowrap' }}>+886</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ whiteSpace: "nowrap" }}>+886</span>
                 <input
                   id="contactPhone"
                   className="form-input"
                   value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ""))}
                   placeholder="請輸入 10 碼數字"
                   maxLength={10}
                   required
@@ -404,7 +404,7 @@ const GroupCreatePage: React.FC = () => {
               {errors.contactPhone && (
                 <p
                   ref={contactPhoneErrorRef}
-                  style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
+                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
                 >
                   {errors.contactPhone}
                 </p>
@@ -429,7 +429,7 @@ const GroupCreatePage: React.FC = () => {
               {errors.contactEmail && (
                 <p
                   ref={contactEmailErrorRef}
-                  style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
+                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
                 >
                   {errors.contactEmail}
                 </p>
@@ -439,43 +439,43 @@ const GroupCreatePage: React.FC = () => {
 
           <div className="form-row">
             <div className="form-field">
-              <label className="form-label" htmlFor="reservationOpenStart">
+              <label className="form-label" htmlFor="reservationStartDate">
                 開放預約開始日：
               </label>
               <input
-                id="reservationOpenStart"
+                id="reservationStartDate"
                 type="date"
                 className="form-input"
-                value={reservationOpenStart}
-                onChange={(e) => setReservationOpenStart(e.target.value)}
+                value={reservationStartDate}
+                onChange={(e) => setReservationStartDate(e.target.value)}
               />
-              {errors.reservationOpenStart && (
+              {errors.reservationStartDate && (
                 <p
                   ref={startDateErrorRef}
-                  style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
+                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
                 >
-                  {errors.reservationOpenStart}
+                  {errors.reservationStartDate}
                 </p>
               )}
             </div>
 
             <div className="form-field">
-              <label className="form-label" htmlFor="reservationOpenEnd">
+              <label className="form-label" htmlFor="reservationEndDate">
                 開放預約截止日：
               </label>
               <input
-                id="reservationOpenEnd"
+                id="reservationEndDate"
                 type="date"
                 className="form-input"
-                value={reservationOpenEnd}
-                onChange={(e) => setReservationOpenEnd(e.target.value)}
+                value={reservationEndDate}
+                onChange={(e) => setReservationEndDate(e.target.value)}
               />
-              {errors.reservationOpenEnd && (
+              {errors.reservationEndDate && (
                 <p
                   ref={endDateErrorRef}
-                  style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
+                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
                 >
-                  {errors.reservationOpenEnd}
+                  {errors.reservationEndDate}
                 </p>
               )}
             </div>
@@ -484,7 +484,7 @@ const GroupCreatePage: React.FC = () => {
           {errors.reservationDateOrder && (
             <p
               ref={dateOrderErrorRef}
-              style={{ color: 'red', marginTop: '4px', fontSize: '14px' }}
+              style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
             >
               {errors.reservationDateOrder}
             </p>
@@ -492,31 +492,31 @@ const GroupCreatePage: React.FC = () => {
 
           <div className="form-row single">
             <div className="form-field">
-              <span className="form-label">可預約院區：</span>
+              <span className="form-label">可預約套餐：</span>
 
-              {loadingBranches ? (
-                <p>院區資料載入中...</p>
+              {loadingPackages ? (
+                <p>套餐資料載入中...</p>
               ) : (
                 <div className="branch-grid">
-                  {branches.map((branch) => (
-                    <label key={branch.branchId} className="branch-checkbox">
+                  {packages.map((pkg) => (
+                    <label key={pkg.packageId} className="branch-checkbox">
                       <input
                         type="checkbox"
-                        checked={availableBranchIds.includes(branch.branchId)}
-                        onChange={() => toggleBranch(branch.branchId)}
+                        checked={availablePackageIds.includes(pkg.packageId)}
+                        onChange={() => togglePackage(pkg.packageId)}
                       />
-                      <span>{branch.branchName}</span>
+                      <span>{pkg.packageName}</span>
                     </label>
                   ))}
                 </div>
               )}
 
-              {errors.availableBranchIds && (
+              {errors.availablePackageIds && (
                 <p
-                  ref={branchErrorRef}
-                  style={{ color: 'red', marginTop: '8px', fontSize: '14px' }}
+                  ref={packageErrorRef}
+                  style={{ color: "red", marginTop: "8px", fontSize: "14px" }}
                 >
-                  {errors.availableBranchIds}
+                  {errors.availablePackageIds}
                 </p>
               )}
             </div>
@@ -530,8 +530,8 @@ const GroupCreatePage: React.FC = () => {
                   <input
                     type="radio"
                     value="active"
-                    checked={status === 'active'}
-                    onChange={() => setStatus('active')}
+                    checked={status === "active"}
+                    onChange={() => setStatus("active")}
                   />
                   啟用
                 </label>
@@ -539,8 +539,8 @@ const GroupCreatePage: React.FC = () => {
                   <input
                     type="radio"
                     value="inactive"
-                    checked={status === 'inactive'}
-                    onChange={() => setStatus('inactive')}
+                    checked={status === "inactive"}
+                    onChange={() => setStatus("inactive")}
                   />
                   停用
                 </label>
@@ -550,7 +550,7 @@ const GroupCreatePage: React.FC = () => {
 
           <div className="form-actions-center">
             <button type="submit" className="primary-button" disabled={saving}>
-              {saving ? '儲存中...' : '儲存'}
+              {saving ? "儲存中..." : "儲存"}
             </button>
           </div>
         </form>
