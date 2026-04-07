@@ -45,6 +45,58 @@ export interface UpdateGroupPayload {
   status?: GroupStatus;
 }
 
+const normalizePackageIds = (ids: unknown): number[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return [
+    ...new Set(
+      ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  ];
+};
+
+const normalizeAvailablePackages = (packages: unknown): PackageItem[] => {
+  if (!Array.isArray(packages)) return [];
+
+  const normalized = packages
+    .map((item: any) => ({
+      packageId: Number(item?.packageId),
+      packageName: String(item?.packageName ?? "").trim(),
+    }))
+    .filter(
+      (item) =>
+        Number.isInteger(item.packageId) &&
+        item.packageId > 0 &&
+        item.packageName.length > 0,
+    );
+
+  return normalized.filter(
+    (item, index, arr) =>
+      arr.findIndex((pkg) => pkg.packageId === item.packageId) === index,
+  );
+};
+
+const normalizeGroupDetail = (data: any): GroupDetailDto => {
+  const availablePackageIds = normalizePackageIds(data?.availablePackageIds);
+  const availablePackages = normalizeAvailablePackages(data?.availablePackages);
+
+  return {
+    id: Number(data?.id),
+    groupName: data?.groupName ?? "",
+    groupCode: data?.groupCode ?? "",
+    contactName: data?.contactName ?? "",
+    contactPhone: data?.contactPhone ?? "",
+    contactEmail: data?.contactEmail ?? "",
+    reservationStartDate: data?.reservationStartDate ?? "",
+    reservationEndDate: data?.reservationEndDate ?? "",
+    availablePackageIds,
+    availablePackages,
+    status: data?.status === "inactive" ? "inactive" : "active",
+  };
+};
+
 export async function fetchPackages(): Promise<PackageItem[]> {
   const res = await fetch(`${API_BASE_URL}/packages`);
 
@@ -59,7 +111,11 @@ export async function fetchPackages(): Promise<PackageItem[]> {
     .map((item: any) => ({
       packageId: Number(item.packageId),
       packageName: item.packageName,
-    }));
+    }))
+    .filter(
+      (item: PackageItem) =>
+        Number.isInteger(item.packageId) && item.packageId > 0,
+    );
 }
 
 export async function fetchGroupByCode(
@@ -77,7 +133,8 @@ export async function fetchGroupByCode(
     throw new Error(`查詢團體資料失敗，status = ${res.status}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  return normalizeGroupDetail(data);
 }
 
 export async function fetchGroupById(id: number): Promise<GroupDetailDto> {
@@ -87,7 +144,8 @@ export async function fetchGroupById(id: number): Promise<GroupDetailDto> {
     throw new Error(`讀取團體資料失敗，status = ${res.status}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  return normalizeGroupDetail(data);
 }
 
 export async function createGroup(
@@ -104,7 +162,8 @@ export async function createGroup(
     throw new Error(text || "新增團體資料失敗");
   }
 
-  return res.json();
+  const data = await res.json();
+  return normalizeGroupDetail(data);
 }
 
 export async function updateGroup(
@@ -122,5 +181,6 @@ export async function updateGroup(
     throw new Error(text || "更新團體資料失敗");
   }
 
-  return res.json();
+  const data = await res.json();
+  return normalizeGroupDetail(data);
 }

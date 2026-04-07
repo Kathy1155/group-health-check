@@ -25,6 +25,16 @@ interface GroupDetail {
   status: GroupStatus;
 }
 
+const normalizePackageIds = (ids: unknown): number[] => {
+  if (!Array.isArray(ids)) return [];
+
+  return [...new Set(
+    ids
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0),
+  )];
+};
+
 const GroupEditPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,6 +110,10 @@ const GroupEditPage: React.FC = () => {
 
   useEffect(() => {
     if (stateGroup) {
+      const normalizedPackageIds = normalizePackageIds(
+        stateGroup.availablePackageIds ?? [],
+      );
+
       setGroupName(stateGroup.groupName);
       setGroupCode(stateGroup.groupCode);
       setContactName(stateGroup.contactName);
@@ -113,7 +127,12 @@ const GroupEditPage: React.FC = () => {
       setReservationStartDate(stateGroup.reservationStartDate ?? "");
       setReservationEndDate(stateGroup.reservationEndDate ?? "");
       setStatus(stateGroup.status);
-      setInitialData(stateGroup);
+      setAvailablePackageIds(normalizedPackageIds);
+      setInitialPackageIds(normalizedPackageIds);
+      setInitialData({
+        ...stateGroup,
+        availablePackageIds: normalizedPackageIds,
+      });
       setLoading(false);
       return;
     }
@@ -121,6 +140,9 @@ const GroupEditPage: React.FC = () => {
     const fetchGroup = async () => {
       try {
         const data: GroupDetailDto = await fetchGroupById(Number(id));
+        const normalizedPackageIds = normalizePackageIds(
+          data.availablePackageIds ?? [],
+        );
 
         const normalized: GroupDetail = {
           id: data.id,
@@ -131,7 +153,7 @@ const GroupEditPage: React.FC = () => {
           contactEmail: data.contactEmail ?? "",
           reservationStartDate: data.reservationStartDate ?? "",
           reservationEndDate: data.reservationEndDate ?? "",
-          availablePackageIds: data.availablePackageIds ?? [],
+          availablePackageIds: normalizedPackageIds,
           availablePackages: data.availablePackages ?? [],
           status: data.status ?? "active",
         };
@@ -150,6 +172,8 @@ const GroupEditPage: React.FC = () => {
         setReservationStartDate(normalized.reservationStartDate ?? "");
         setReservationEndDate(normalized.reservationEndDate ?? "");
         setStatus(normalized.status);
+        setAvailablePackageIds(normalizedPackageIds);
+        setInitialPackageIds(normalizedPackageIds);
       } catch (err) {
         console.error(err);
         alert("無法讀取團體資料");
@@ -162,23 +186,21 @@ const GroupEditPage: React.FC = () => {
     fetchGroup();
   }, [id, navigate, stateGroup]);
 
-  useEffect(() => {
-    if (!initialData) return;
-
-    const ids = initialData.availablePackageIds ?? [];
-    setAvailablePackageIds(ids);
-    setInitialPackageIds(ids);
-  }, [initialData]);
-
   const togglePackage = (packageId: number) => {
-    setAvailablePackageIds((prev) =>
-      prev.includes(packageId)
-        ? prev.filter((idValue) => idValue !== packageId)
-        : [...prev, packageId],
-    );
+    setAvailablePackageIds((prev) => {
+      const normalizedPrev = normalizePackageIds(prev);
+
+      if (normalizedPrev.includes(packageId)) {
+        return normalizedPrev.filter((idValue) => idValue !== packageId);
+      }
+
+      return [...normalizedPrev, packageId];
+    });
   };
 
   const buildValidationErrors = () => {
+    const normalizedSelectedPackageIds = normalizePackageIds(availablePackageIds);
+
     const newErrors = {
       contactPhone: "",
       contactEmail: "",
@@ -214,7 +236,7 @@ const GroupEditPage: React.FC = () => {
       newErrors.reservationDateOrder = "開放預約截止日不可早於開始日";
     }
 
-    if (availablePackageIds.length === 0) {
+    if (normalizedSelectedPackageIds.length === 0) {
       newErrors.availablePackageIds = "請至少勾選一個可預約套餐";
     }
 
@@ -300,6 +322,9 @@ const GroupEditPage: React.FC = () => {
       ? initialData.contactPhone.replace("+886", "")
       : initialData?.contactPhone?.replace(/\D/g, "") ?? "";
 
+  const currentNormalizedPackageIds = normalizePackageIds(availablePackageIds);
+  const currentInitialPackageIds = normalizePackageIds(initialPackageIds);
+
   const isDirty =
     initialData !== null &&
     (
@@ -310,8 +335,10 @@ const GroupEditPage: React.FC = () => {
       reservationStartDate !== (initialData.reservationStartDate ?? "") ||
       reservationEndDate !== (initialData.reservationEndDate ?? "") ||
       status !== initialData.status ||
-      availablePackageIds.length !== initialPackageIds.length ||
-      availablePackageIds.some((idValue) => !initialPackageIds.includes(idValue))
+      currentNormalizedPackageIds.length !== currentInitialPackageIds.length ||
+      currentNormalizedPackageIds.some(
+        (idValue) => !currentInitialPackageIds.includes(idValue),
+      )
     );
 
   useUnsavedChangesWarning(isDirty);
@@ -328,6 +355,8 @@ const GroupEditPage: React.FC = () => {
       return;
     }
 
+    const normalizedPackageIds = normalizePackageIds(availablePackageIds);
+
     const payload = {
       groupName,
       contactName,
@@ -335,7 +364,7 @@ const GroupEditPage: React.FC = () => {
       contactEmail,
       reservationStartDate,
       reservationEndDate,
-      availablePackageIds,
+      availablePackageIds: normalizedPackageIds,
       status,
     };
 
@@ -556,7 +585,7 @@ const GroupEditPage: React.FC = () => {
                     <label key={pkg.packageId} className="branch-checkbox">
                       <input
                         type="checkbox"
-                        checked={availablePackageIds.includes(pkg.packageId)}
+                        checked={currentNormalizedPackageIds.includes(pkg.packageId)}
                         onChange={() => togglePackage(pkg.packageId)}
                       />
                       <span>{pkg.packageName}</span>

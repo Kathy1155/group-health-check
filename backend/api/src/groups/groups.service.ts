@@ -46,7 +46,7 @@ export class GroupsService {
       },
     });
 
-    return groups.map((group) => this.toResponse(group));
+    return Promise.all(groups.map((group) => this.toResponseAsync(group)));
   }
 
   async findOne(id: number) {
@@ -63,7 +63,7 @@ export class GroupsService {
       throw new NotFoundException('查無此團體資料');
     }
 
-    return this.toResponse(found);
+    return this.toResponseAsync(found);
   }
 
   async findByCode(code: string) {
@@ -80,7 +80,7 @@ export class GroupsService {
       throw new NotFoundException('查無此團體代碼');
     }
 
-    return this.toResponse(found);
+    return this.toResponseAsync(found);
   }
 
   async create(data: {
@@ -99,7 +99,11 @@ export class GroupsService {
       data.reservationEndDate,
     );
 
-    if (!data.availablePackageIds || data.availablePackageIds.length === 0) {
+    const normalizedPackageIds = this.normalizePackageIds(
+      data.availablePackageIds,
+    );
+
+    if (normalizedPackageIds.length === 0) {
       throw new BadRequestException('請至少選擇一個可預約套餐');
     }
 
@@ -111,7 +115,7 @@ export class GroupsService {
       throw new ConflictException('團體代碼已存在');
     }
 
-    await this.validatePackageIds(data.availablePackageIds);
+    await this.validatePackageIds(normalizedPackageIds);
 
     const group = this.groupRepo.create({
       groupName: data.groupName,
@@ -128,10 +132,7 @@ export class GroupsService {
 
     const savedGroup = await this.groupRepo.save(group);
 
-    await this.syncGroupPackages(
-      savedGroup.groupId,
-      data.availablePackageIds,
-    );
+    await this.syncGroupPackages(savedGroup.groupId, normalizedPackageIds);
 
     const fullGroup = await this.groupRepo.findOne({
       where: { groupId: savedGroup.groupId },
@@ -146,7 +147,7 @@ export class GroupsService {
       throw new NotFoundException('新增後找不到團體資料');
     }
 
-    return this.toResponse(fullGroup);
+    return this.toResponseAsync(fullGroup);
   }
 
   async update(
@@ -180,12 +181,16 @@ export class GroupsService {
       data.reservationEndDate ?? found.reservationOpenEnd ?? undefined,
     );
 
+    let normalizedPackageIds: number[] | undefined = undefined;
+
     if (data.availablePackageIds !== undefined) {
-      if (data.availablePackageIds.length === 0) {
+      normalizedPackageIds = this.normalizePackageIds(data.availablePackageIds);
+
+      if (normalizedPackageIds.length === 0) {
         throw new BadRequestException('請至少選擇一個可預約套餐');
       }
 
-      await this.validatePackageIds(data.availablePackageIds);
+      await this.validatePackageIds(normalizedPackageIds);
     }
 
     found.groupName = data.groupName ?? found.groupName;
@@ -209,8 +214,8 @@ export class GroupsService {
 
     await this.groupRepo.save(found);
 
-    if (data.availablePackageIds !== undefined) {
-      await this.syncGroupPackages(id, data.availablePackageIds);
+    if (normalizedPackageIds !== undefined) {
+      await this.syncGroupPackages(id, normalizedPackageIds);
     }
 
     const updatedGroup = await this.groupRepo.findOne({
@@ -226,7 +231,7 @@ export class GroupsService {
       throw new NotFoundException('更新後找不到團體資料');
     }
 
-    return this.toResponse(updatedGroup);
+    return this.toResponseAsync(updatedGroup);
   }
 
   async findGroupOptions(groupId: number) {
@@ -247,10 +252,9 @@ export class GroupsService {
       throw new BadRequestException('此團體目前停用');
     }
 
-    const packageIds =
-      group.groupPackages
-        ?.map((gp) => gp.packageId)
-        .filter((idValue): idValue is number => Boolean(idValue)) ?? [];
+    const packageIds = this.normalizePackageIds(
+      group.groupPackages?.map((gp) => gp.packageId) ?? [],
+    );
 
     if (packageIds.length === 0) {
       return {
@@ -318,7 +322,23 @@ export class GroupsService {
     };
   }
 
+  private normalizePackageIds(packageIds?: unknown[]): number[] {
+    if (!Array.isArray(packageIds)) {
+      return [];
+    }
+
+    return [
+      ...new Set(
+        packageIds
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      ),
+    ];
+  }
+
   private async syncGroupPackages(groupId: number, packageIds: number[]) {
+    const normalizedPackageIds = this.normalizePackageIds(packageIds);
+
     const existingRelations = await this.groupPackageRepo.find({
       where: { groupId },
     });
@@ -327,11 +347,11 @@ export class GroupsService {
       await this.groupPackageRepo.remove(existingRelations);
     }
 
-    if (!packageIds || packageIds.length === 0) {
+    if (normalizedPackageIds.length === 0) {
       return;
     }
 
-    const newRelations = packageIds.map((packageId) =>
+    const newRelations = normalizedPackageIds.map((packageId) =>
       this.groupPackageRepo.create({
         groupId,
         packageId,
@@ -342,7 +362,7 @@ export class GroupsService {
   }
 
   private async validatePackageIds(packageIds: number[]) {
-    const uniqueIds = [...new Set(packageIds)];
+    const uniqueIds = this.normalizePackageIds(packageIds);
 
     const packages = await this.packageRepo.find({
       where: {
@@ -369,7 +389,44 @@ export class GroupsService {
     }
   }
 
-  private toResponse(group: GroupEntity) {
+  private async toResponseAsync(group: GroupEntity) {
+    const availablePackageIds = this.normalizePackageIds(
+      group.groupPackages?.map((gp) => gp.packageId ?? gp.package?.packageId) ?? [],
+    );
+
+    let availablePackages =
+      group.groupPackages
+        ?.map((gp) => ({
+          packageId: Number(gp.package?.packageId),
+          packageName: gp.package?.packageName ?? '',
+        }))
+        .filter(
+          (pkg) =>
+            Number.isInteger(pkg.packageId) &&
+            pkg.packageId > 0 &&
+            pkg.packageName.trim() !== '',
+        )
+        .filter(
+          (pkg, index, arr) =>
+            arr.findIndex((item) => item.packageId === pkg.packageId) === index,
+        ) ?? [];
+
+    if (availablePackages.length === 0 && availablePackageIds.length > 0) {
+      const packages = await this.packageRepo.find({
+        where: {
+          packageId: In(availablePackageIds),
+        },
+        order: {
+          packageId: 'ASC',
+        },
+      });
+
+      availablePackages = packages.map((pkg) => ({
+        packageId: pkg.packageId,
+        packageName: pkg.packageName,
+      }));
+    }
+
     return {
       id: group.groupId,
       groupName: group.groupName,
@@ -379,13 +436,8 @@ export class GroupsService {
       contactEmail: group.contactEmail,
       reservationStartDate: group.reservationOpenStart ?? '',
       reservationEndDate: group.reservationOpenEnd ?? '',
-      availablePackageIds:
-        group.groupPackages?.map((gp) => gp.package?.packageId).filter(Boolean) ?? [],
-      availablePackages:
-        group.groupPackages?.map((gp) => ({
-          packageId: gp.package?.packageId,
-          packageName: gp.package?.packageName,
-        })) ?? [],
+      availablePackageIds,
+      availablePackages,
       status: group.groupIsDisable === 1 ? 'inactive' : 'active',
     };
   }

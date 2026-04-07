@@ -21,6 +21,24 @@ interface GroupDetail {
   status: GroupStatus;
 }
 
+const formatPackageNames = (
+  availablePackages?: { packageId: number; packageName: string }[],
+) => {
+  if (!availablePackages || availablePackages.length === 0) {
+    return "未設定";
+  }
+
+  const names = availablePackages
+    .map((pkg) => pkg.packageName?.trim())
+    .filter((name): name is string => Boolean(name));
+
+  if (names.length === 0) {
+    return "未設定";
+  }
+
+  return names.join("、");
+};
+
 const GroupSearchPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -51,19 +69,21 @@ const GroupSearchPage: React.FC = () => {
         return;
       }
 
-      setGroupData({
+      const normalizedGroupData: GroupDetail = {
         id: data.id,
         groupName: data.groupName ?? "",
-        groupCode: data.groupCode,
-        contactName: data.contactName,
-        contactPhone: data.contactPhone,
-        contactEmail: data.contactEmail,
+        groupCode: data.groupCode ?? "",
+        contactName: data.contactName ?? "",
+        contactPhone: data.contactPhone ?? "",
+        contactEmail: data.contactEmail ?? "",
         reservationStartDate: data.reservationStartDate ?? "",
         reservationEndDate: data.reservationEndDate ?? "",
         availablePackageIds: data.availablePackageIds ?? [],
         availablePackages: data.availablePackages ?? [],
         status: data.status ?? "active",
-      });
+      };
+
+      setGroupData(normalizedGroupData);
       setSearched(true);
     } catch (err) {
       console.error("查詢失敗：", err);
@@ -124,18 +144,37 @@ const GroupSearchPage: React.FC = () => {
               <h3 style={{ marginTop: 0, marginBottom: 20 }}>查詢結果</h3>
 
               <div style={{ display: "grid", gap: 12 }}>
-                <div><strong>團體名稱：</strong>{groupData.groupName}</div>
-                <div><strong>團體代碼：</strong>{groupData.groupCode}</div>
-                <div><strong>聯絡人姓名：</strong>{groupData.contactName}</div>
-                <div><strong>聯絡人電話：</strong>{groupData.contactPhone}</div>
-                <div><strong>聯絡人郵件：</strong>{groupData.contactEmail}</div>
-                <div><strong>開放預約開始日：</strong>{groupData.reservationStartDate || "未設定"}</div>
-                <div><strong>開放預約截止日：</strong>{groupData.reservationEndDate || "未設定"}</div>
+                <div>
+                  <strong>團體名稱：</strong>
+                  {groupData.groupName}
+                </div>
+                <div>
+                  <strong>團體代碼：</strong>
+                  {groupData.groupCode}
+                </div>
+                <div>
+                  <strong>聯絡人姓名：</strong>
+                  {groupData.contactName}
+                </div>
+                <div>
+                  <strong>聯絡人電話：</strong>
+                  {groupData.contactPhone}
+                </div>
+                <div>
+                  <strong>聯絡人郵件：</strong>
+                  {groupData.contactEmail}
+                </div>
+                <div>
+                  <strong>開放預約開始日：</strong>
+                  {groupData.reservationStartDate || "未設定"}
+                </div>
+                <div>
+                  <strong>開放預約截止日：</strong>
+                  {groupData.reservationEndDate || "未設定"}
+                </div>
                 <div>
                   <strong>可預約套餐：</strong>
-                  {groupData.availablePackages && groupData.availablePackages.length > 0
-                    ? groupData.availablePackages.map((pkg) => pkg.packageName).join("、")
-                    : "未設定"}
+                  {formatPackageNames(groupData.availablePackages)}
                 </div>
                 <div>
                   <strong>團體狀態：</strong>
