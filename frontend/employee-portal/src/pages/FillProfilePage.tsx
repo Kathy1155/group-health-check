@@ -90,6 +90,7 @@ function FillProfilePage() {
     familyHistory: "",
     chronicDisease: "",
     medication: "",
+    dietaryPreference: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -178,6 +179,7 @@ function FillProfilePage() {
           familyHistory: medicalHistory.familyHistory,
           chronicDiseases: medicalHistory.chronicDisease,
           medications: medicalHistory.medication,
+          dietaryPreference: medicalHistory.dietaryPreference,
         },
       });
 
@@ -258,6 +260,20 @@ function FillProfilePage() {
               <option value="O">O</option>
               <option value="AB">AB</option>
               <option value="unknown">不清楚</option>
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>飲食習慣</label>
+            <select
+              value={medicalHistory.dietaryPreference}
+              onChange={(e) =>
+                handleHistoryChange("dietaryPreference", e.target.value)
+              }
+            >
+              <option value="">請選擇</option>
+              <option value="葷">葷</option>
+              <option value="素">素</option>
             </select>
           </div>
 

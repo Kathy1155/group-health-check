@@ -53,6 +53,14 @@ export class MedicalProfileEntity {
   })
   medications: string | null;
 
+  @Column({
+    type: 'varchar',
+    length: 20,
+    name: 'dietaryPreference',
+    nullable: true,
+  })
+  dietaryPreference: string | null;
+
   @UpdateDateColumn({
     type: 'timestamp',
     name: 'lastUpdated',
