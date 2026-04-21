@@ -41,7 +41,60 @@ export async function lookupReservation(
   return (await res.json()) as ReservationLookupDto;
 }
 
+export type HoldReservationDto = {
+  groupCode: string;
+  idNumber: string;
+  slotId: number;
+};
+
+export type HoldReservationRes = {
+  message: string;
+  reservationId: number;
+  participantId: number;
+  packageId: number;
+  slotId: number;
+  quotaStatus: string;
+  reservationStatus: string;
+  expiresAt: string;
+};
+
+/**
+ * 選擇時段後，先暫時保留名額
+ */
+export async function holdReservation(
+  dto: HoldReservationDto
+): Promise<HoldReservationRes> {
+  const res = await fetch(`${API_BASE_URL}/reservations/hold`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(dto),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+
+    if (res.status === 404) {
+      throw new Error(errorData?.message || "NOT_FOUND");
+    }
+
+    if (res.status === 400) {
+      throw new Error(errorData?.message || "BAD_REQUEST");
+    }
+
+    if (res.status === 409) {
+      throw new Error(errorData?.message || "CONFLICT");
+    }
+
+    throw new Error(errorData?.message || "HOLD_RESERVATION_FAILED");
+  }
+
+  return (await res.json()) as HoldReservationRes;
+}
+
 export type CreateReservationDto = {
+  reservationId: number;
   groupCode: string;
   idNumber: string;
   packageId: number;
@@ -67,7 +120,7 @@ export type CreateReservationRes = {
 };
 
 /**
- * 建立預約 + 新增/更新病史
+ * 完成預約資料填寫 + 寄送確認信
  */
 export async function createReservation(
   dto: CreateReservationDto
@@ -81,20 +134,21 @@ export async function createReservation(
   });
 
   if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+
     if (res.status === 404) {
-      throw new Error("NOT_FOUND");
+      throw new Error(errorData?.message || "NOT_FOUND");
     }
 
     if (res.status === 400) {
-      throw new Error("BAD_REQUEST");
+      throw new Error(errorData?.message || "BAD_REQUEST");
     }
 
     if (res.status === 409) {
-      throw new Error("CONFLICT");
+      throw new Error(errorData?.message || "CONFLICT");
     }
 
-    const text = await res.text().catch(() => "");
-    throw new Error(text || "CREATE_RESERVATION_FAILED");
+    throw new Error(errorData?.message || "CREATE_RESERVATION_FAILED");
   }
 
   return (await res.json()) as CreateReservationRes;

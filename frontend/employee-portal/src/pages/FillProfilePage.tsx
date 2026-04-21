@@ -1,4 +1,3 @@
-<h2 style={{ color: "red" }}>我是 FillProfilePage</h2>
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { fetchRosterProfile } from "../api/rosterApi";
@@ -20,6 +19,8 @@ type FromSlotPageState = {
   date: string;
   slotId: number;
   slot: string;
+  reservationId: number;
+  expiresAt: string;
 };
 
 const mockParticipant = {
@@ -45,7 +46,8 @@ function FillProfilePage() {
     !fromSlot.packageName ||
     !fromSlot.date ||
     fromSlot.slotId == null ||
-    !fromSlot.slot
+    !fromSlot.slot ||
+    fromSlot.reservationId == null
   ) {
     return (
       <div className="page-form">
@@ -68,6 +70,7 @@ function FillProfilePage() {
     date,
     slotId,
     slot,
+    reservationId,
   } = fromSlot;
 
   const [personalInfo, setPersonalInfo] = useState({
@@ -164,6 +167,7 @@ function FillProfilePage() {
       setSubmitError(null);
 
       const result = await createReservation({
+        reservationId,
         groupCode: personalInfo.groupCode,
         idNumber: personalInfo.idNumber,
         packageId,
@@ -192,9 +196,9 @@ function FillProfilePage() {
           medicalHistory,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setSubmitError("預約送出失敗，請稍後再試。");
+      setSubmitError(error?.message || "預約送出失敗，請稍後再試。");
     } finally {
       setSubmitting(false);
     }
@@ -310,6 +314,7 @@ function FillProfilePage() {
           type="button"
           className="btn btn-secondary"
           onClick={handlePrev}
+          disabled={submitting}
         >
           上一步
         </button>
