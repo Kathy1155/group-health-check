@@ -1,71 +1,13 @@
 // src/pages/ReservationLookupPage.tsx
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   lookupReservation,
   type ReservationLookupDto,
 } from "../api/reservationsApi";
-import { FaRegCalendarAlt, FaSearch, FaChevronLeft } from "react-icons/fa";
+import { FaSearch, FaChevronLeft } from "react-icons/fa";
 
 type LookupResult = ReservationLookupDto;
-
-function normalizeBirthday(input: string): string | null {
-  const raw = input.trim();
-
-  if (!raw) return null;
-
-  const digitsOnly = raw.replace(/\D/g, "");
-
-  if (digitsOnly.length === 8) {
-    const y = digitsOnly.slice(0, 4);
-    const m = digitsOnly.slice(4, 6);
-    const d = digitsOnly.slice(6, 8);
-
-    const yyyy = Number(y);
-    const mm = Number(m);
-    const dd = Number(d);
-
-    if (
-      yyyy >= 1900 &&
-      yyyy <= 2100 &&
-      mm >= 1 &&
-      mm <= 12 &&
-      dd >= 1 &&
-      dd <= 31
-    ) {
-      return `${y}-${m}-${d}`;
-    }
-  }
-
-  const match = raw.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
-  if (match) {
-    const y = match[1];
-    const m = match[2].padStart(2, "0");
-    const d = match[3].padStart(2, "0");
-
-    const yyyy = Number(y);
-    const mm = Number(m);
-    const dd = Number(d);
-
-    if (
-      yyyy >= 1900 &&
-      yyyy <= 2100 &&
-      mm >= 1 &&
-      mm <= 12 &&
-      dd >= 1 &&
-      dd <= 31
-    ) {
-      return `${y}-${m}-${d}`;
-    }
-  }
-
-  return null;
-}
-
-function formatDisplayBirthday(ymd: string): string {
-  if (!ymd) return "";
-  return ymd.replace(/-/g, "/");
-}
 
 function getStatusBadgeStyle(status: string) {
   if (status.includes("取消")) {
@@ -93,39 +35,13 @@ function getStatusBadgeStyle(status: string) {
 
 function ReservationLookupPage() {
   const navigate = useNavigate();
-  const hiddenDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const [idNumber, setIdNumber] = useState("");
-  const [birthdayInput, setBirthdayInput] = useState("");
-  const [birthdayValue, setBirthdayValue] = useState("");
+  const [lookupCode, setLookupCode] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LookupResult | null>(null);
-
-  const handleBirthdayBlur = () => {
-    if (!birthdayInput.trim()) {
-      setBirthdayValue("");
-      return;
-    }
-
-    const normalized = normalizeBirthday(birthdayInput);
-    if (normalized) {
-      setBirthdayValue(normalized);
-      setBirthdayInput(formatDisplayBirthday(normalized));
-    }
-  };
-
-  const handleOpenCalendar = () => {
-    const input = hiddenDateInputRef.current;
-    if (!input) return;
-
-    if (typeof input.showPicker === "function") {
-      input.showPicker();
-    } else {
-      input.click();
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,23 +49,23 @@ function ReservationLookupPage() {
     setError(null);
     setResult(null);
 
-    if (idNumber.length !== 10) {
+    if (idNumber.trim().length !== 10) {
       setError("請輸入完整 10 碼身分證字號。");
       return;
     }
 
-    const normalizedBirthday = normalizeBirthday(birthdayInput);
-    if (!normalizedBirthday) {
-      setError("請輸入正確生日格式，例如：1985/04/12。");
+    if (!lookupCode.trim()) {
+      setError("請輸入查詢驗證碼。");
       return;
     }
 
-    setBirthdayValue(normalizedBirthday);
-    setBirthdayInput(formatDisplayBirthday(normalizedBirthday));
     setLoading(true);
 
     try {
-      const data = await lookupReservation(idNumber, normalizedBirthday);
+      const data = await lookupReservation(
+        idNumber.trim().toUpperCase(),
+        lookupCode.trim().toUpperCase()
+      );
       setResult(data);
     } catch (err) {
       if (err instanceof Error && err.message === "NOT_FOUND") {
@@ -220,7 +136,7 @@ function ReservationLookupPage() {
               color: "#475569",
             }}
           >
-            請輸入身分證字號與生日，系統將查詢您在本院的團體健檢預約資料。
+            請輸入身分證字號與查詢驗證碼，系統將查詢您在本院的團體健檢預約資料。
           </p>
         </div>
 
@@ -312,78 +228,28 @@ function ReservationLookupPage() {
                       color: "#1e293b",
                     }}
                   >
-                    生日
+                    查詢驗證碼
                   </label>
 
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      value={birthdayInput}
-                      onChange={(e) => setBirthdayInput(e.target.value)}
-                      onBlur={handleBirthdayBlur}
-                      placeholder="例：1985/04/12 或 1985-04-12"
-                      inputMode="numeric"
-                      required
-                      style={{
-                        width: "100%",
-                        height: 52,
-                        boxSizing: "border-box",
-                        borderRadius: 14,
-                        border: "1px solid #cbd5e1",
-                        padding: "0 52px 0 16px",
-                        fontSize: "1rem",
-                        color: "#0f172a",
-                        background: "#ffffff",
-                        outline: "none",
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={handleOpenCalendar}
-                      aria-label="開啟生日行事曆"
-                      style={{
-                        position: "absolute",
-                        right: 8,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        width: 40,
-                        height: 40,
-                        padding: 0,
-                        borderRadius: 10,
-                        border: "1px solid #dbe2ea",
-                        background: "#f8fafc",
-                        color: "#475569",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <FaRegCalendarAlt size={18} color="#475569" />
-                    </button>
-
-                    <input
-                      ref={hiddenDateInputRef}
-                      type="date"
-                      value={birthdayValue}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setBirthdayValue(value);
-                        setBirthdayInput(formatDisplayBirthday(value));
-                      }}
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      style={{
-                        position: "absolute",
-                        opacity: 0,
-                        pointerEvents: "none",
-                        width: 0,
-                        height: 0,
-                      }}
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={lookupCode}
+                    onChange={(e) => setLookupCode(e.target.value.toUpperCase())}
+                    placeholder="請輸入預約確認信中的查詢驗證碼"
+                    required
+                    style={{
+                      width: "100%",
+                      height: 52,
+                      boxSizing: "border-box",
+                      borderRadius: 14,
+                      border: "1px solid #cbd5e1",
+                      padding: "0 16px",
+                      fontSize: "1rem",
+                      color: "#0f172a",
+                      background: "#ffffff",
+                      outline: "none",
+                    }}
+                  />
 
                   <div
                     style={{
@@ -392,7 +258,7 @@ function ReservationLookupPage() {
                       color: "#94a3b8",
                     }}
                   >
-                    可手動輸入或點選右側行事曆，系統會自動整理為正確格式。
+                    查詢驗證碼可於預約確認信中查看。
                   </div>
                 </div>
               </div>

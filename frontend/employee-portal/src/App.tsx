@@ -5,11 +5,11 @@ import SelectBranchPackagePage from "./pages/SelectBranchPackagePage";
 import SelectTimeSlotPage from "./pages/SelectTimeSlotPage";
 import FillProfilePage from "./pages/FillProfilePage";
 import ReservationDonePage from "./pages/ReservationDonePage";
-import ReservationLookupPage from "./pages/ReservationLookupPage";  // ← 把這行加回來
-import "./App.css";
+import ReservationLookupPage from "./pages/ReservationLookupPage";
 import OtpVerifyPage from "./pages/OtpVerifyPage";
-import ReservationActionResultPage from './pages/ReservationActionResultPage';
-
+import ReservationActionResultPage from "./pages/ReservationActionResultPage";
+import ScrollToTop from "./components/ScrollToTop";
+import "./App.css";
 
 function App() {
   const location = useLocation();
@@ -35,9 +35,11 @@ function App() {
   let currentStepIndex = steps.findIndex(
     (step) => step.path === location.pathname
   );
+
   if (location.pathname === "/done") {
     currentStepIndex = steps.length - 1;
   }
+
   if (currentStepIndex < 0) currentStepIndex = 0;
 
   const totalSteps = steps.length;
@@ -48,6 +50,8 @@ function App() {
 
   return (
     <div className="app-container">
+      <ScrollToTop />
+
       <header className="app-header">
         <h1 className="app-title">線上預約</h1>
 
@@ -85,28 +89,23 @@ function App() {
         )}
       </header>
 
-    <Routes>
-      <Route path="/otp" element={<OtpVerifyPage />} />
-      <Route path="/" element={<HomePage />} />
-      <Route path="/reserve" element={<GroupCodePage />} />
-      <Route
-        path="/select-branch-package"
-        element={<SelectBranchPackagePage />}
-      />
-      <Route path="/select-slot" element={<SelectTimeSlotPage />} />
-      <Route path="/fill-profile" element={<FillProfilePage />} />
-      <Route path="/done" element={<ReservationDonePage />} />
-      <Route path="/reservation-action-result" element={<ReservationActionResultPage />}
-/>
-
-      {/* 查詢預約頁：之後會接後端 */}
-      <Route
-        path="/reservation-lookup"
-        element={<ReservationLookupPage />}
-      />
-    </Routes>
-    
-
+      <Routes>
+        <Route path="/otp" element={<OtpVerifyPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/reserve" element={<GroupCodePage />} />
+        <Route
+          path="/select-branch-package"
+          element={<SelectBranchPackagePage />}
+        />
+        <Route path="/select-slot" element={<SelectTimeSlotPage />} />
+        <Route path="/fill-profile" element={<FillProfilePage />} />
+        <Route path="/done" element={<ReservationDonePage />} />
+        <Route
+          path="/reservation-action-result"
+          element={<ReservationActionResultPage />}
+        />
+        <Route path="/reservation-lookup" element={<ReservationLookupPage />} />
+      </Routes>
     </div>
   );
 }

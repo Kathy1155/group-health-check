@@ -117,6 +117,7 @@ export class NotificationsService {
       )}-${formatTime(String(slot.slotEndTime))}`,
       confirmToken: reservation.confirmToken,
       cancelToken: reservation.cancelToken,
+      lookupCode: reservation.lookupCode,
     });
 
     return { ok: true };

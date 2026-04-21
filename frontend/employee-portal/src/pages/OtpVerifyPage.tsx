@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { verifyOtp } from "../api/verificationsApi";
 import type { GroupDto } from "../api/groupsApi";
 
 type LocationState = {
   verificationId: string;
+  expiresAt: number;
   group: GroupDto;
   idNumber: string;
   groupCode: string;
@@ -18,6 +19,37 @@ export default function OtpVerifyPage() {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+  if (!state?.expiresAt) return;
+
+  const updateRemainingTime = () => {
+    const diff = Math.max(
+      0,
+      Math.floor((state.expiresAt - Date.now()) / 1000)
+    );
+
+    setRemainingSeconds(diff);
+    setIsExpired(diff <= 0);
+  };
+
+  updateRemainingTime();
+
+  const timer = window.setInterval(updateRemainingTime, 1000);
+
+  return () => window.clearInterval(timer);
+}, [state?.expiresAt]);
+
+const formattedTime = useMemo(() => {
+  const minutes = Math.floor(remainingSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (remainingSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}, [remainingSeconds]);
 
   // 防呆：避免使用者直接輸入 /otp
   if (!state?.verificationId || !state.group || !state.idNumber) {
@@ -66,6 +98,17 @@ export default function OtpVerifyPage() {
         已送出一次性驗證碼，請至信箱收信後輸入。
       </p>
 
+      <p
+        style={{
+          marginTop: 8,
+          marginBottom: 16,
+          fontWeight: 700,
+          color: isExpired ? "crimson" : "#6d4aff",
+        }}
+      >
+        {isExpired ? `驗證碼已過期` : `驗證碼剩餘時間：${formattedTime}`}
+      </p>
+
       <label>
         驗證碼
         <input
@@ -84,9 +127,9 @@ export default function OtpVerifyPage() {
           返回
         </button>
 
-        <button type="submit" disabled={loading || otp.length === 0}>
-          {loading ? "驗證中..." : "確認"}
-        </button>
+      <button type="submit" disabled={loading || otp.length === 0 || isExpired}>
+        {loading ? "驗證中..." : isExpired ? "驗證碼已過期" : "確認"}
+      </button>
       </div>
     </form>
   );

@@ -72,6 +72,30 @@ export class ReservationsService {
     private readonly mailService: MailService,
   ) {}
 
+  private generateLookupCode(length = 8): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return result;
+}
+
+private async createUniqueLookupCode(): Promise<string> {
+  while (true) {
+    const code = this.generateLookupCode(8);
+    const existed = await this.reservationRepo.findOne({
+      where: { lookupCode: code },
+    });
+
+    if (!existed) {
+      return code;
+    }
+  }
+}
+
 
   // 健檢中心後台清單暫時 mock
   private adminReservations: AdminReservation[] = [
@@ -199,6 +223,7 @@ export class ReservationsService {
 
   const holdExpireMinutes = 15;
   const expiresAt = new Date(Date.now() + holdExpireMinutes * 60 * 1000);
+  const lookupCode = await this.createUniqueLookupCode();
 
   const reservation = this.reservationRepo.create({
     participantId: participant.groupParticipantId,
@@ -210,6 +235,7 @@ export class ReservationsService {
     confirmTokenExpiresAt: expiresAt,
     cancelToken: null,
     cancelTokenExpiresAt: expiresAt,
+    lookupCode,
     reservationStatus: 'pending',
   });
 
@@ -404,6 +430,7 @@ const medicalProfile = await this.medicalProfileRepo.save({
     )}`,
     confirmToken,
     cancelToken,
+    lookupCode: updatedReservation.lookupCode,
   });
 
   return {
@@ -418,82 +445,88 @@ const medicalProfile = await this.medicalProfileRepo.save({
   };
 }
 
-  async lookupByIdAndBirthday(
-    idNumber: string,
-    birthday: string,
-  ): Promise<ReservationLookupResult> {
-    const participant = await this.participantRepo.findOne({
-      where: { idNumber, birthDate: birthday as any },
-    });
+async lookupByIdAndLookupCode(
+  idNumber: string,
+  lookupCode: string,
+): Promise<ReservationLookupResult> {
+  const normalizedIdNumber = idNumber.trim().toUpperCase();
+  const normalizedLookupCode = lookupCode.trim().toUpperCase();
 
-    if (!participant) {
-      throw new NotFoundException('查無符合條件的受檢者資料');
-    }
+  const participant = await this.participantRepo.findOne({
+    where: { idNumber: normalizedIdNumber },
+  });
 
-    const reservation = await this.reservationRepo.findOne({
-      where: { participantId: participant.groupParticipantId },
-      order: { reservationId: 'DESC' },
-    });
-
-    if (!reservation) {
-      throw new NotFoundException('查無預約資料');
-    }
-
-    const group = await this.groupRepo.findOne({
-      where: { groupId: participant.groupId },
-    });
-
-    const slot = await this.timeSlotRepo.findOne({
-      where: { slotId: reservation.slotId },
-    });
-
-    if (!slot) {
-      throw new NotFoundException('找不到對應時段資料');
-    }
-
-    const branchPackage = await this.branchPackageRepo.findOne({
-      where: { branchPackageId: slot.branchPackageId },
-    });
-
-    if (!branchPackage) {
-      throw new NotFoundException('找不到對應院區套餐資料');
-    }
-
-    const branch = await this.branchRepo.findOne({
-      where: { branchId: branchPackage.branchId },
-    });
-
-    const packageInfo = await this.packageRepo.findOne({
-      where: { packageId: branchPackage.packageId },
-    });
-
-    if (!group || !branch || !packageInfo) {
-      throw new NotFoundException('預約關聯資料不完整');
-    }
-
-    const formatTime = (value: string) => String(value).slice(0, 5);
-
-    let status = '已預約';
-    if (reservation.reservationStatus === 'confirmed') {
-      status = '已確認';
-    } else if (reservation.reservationStatus === 'cancelled') {
-      status = '已取消';
-    } else if (reservation.reservationStatus === 'pending') {
-      status = '待確認';
-    }
-
-    return {
-      name: participant.name,
-      groupName: group.groupName,
-      branchName: branch.branchName,
-      packageName: packageInfo.packageName,
-      date: String(slot.slotDate),
-      slot: `${formatTime(String(slot.slotStartTime))}-${formatTime(
-        String(slot.slotEndTime),
-      )}`,
-      status,
-    };
+  if (!participant) {
+    throw new NotFoundException('查無符合條件的受檢者資料');
   }
+
+  const reservation = await this.reservationRepo.findOne({
+    where: {
+      participantId: participant.groupParticipantId,
+      lookupCode: normalizedLookupCode,
+    },
+    order: { reservationId: 'DESC' },
+  });
+
+  if (!reservation) {
+    throw new NotFoundException('查無預約資料');
+  }
+
+  const group = await this.groupRepo.findOne({
+    where: { groupId: participant.groupId },
+  });
+
+  const slot = await this.timeSlotRepo.findOne({
+    where: { slotId: reservation.slotId },
+  });
+
+  if (!slot) {
+    throw new NotFoundException('找不到對應時段資料');
+  }
+
+  const branchPackage = await this.branchPackageRepo.findOne({
+    where: { branchPackageId: slot.branchPackageId },
+  });
+
+  if (!branchPackage) {
+    throw new NotFoundException('找不到對應院區套餐資料');
+  }
+
+  const branch = await this.branchRepo.findOne({
+    where: { branchId: branchPackage.branchId },
+  });
+
+  const packageInfo = await this.packageRepo.findOne({
+    where: { packageId: branchPackage.packageId },
+  });
+
+  if (!group || !branch || !packageInfo) {
+    throw new NotFoundException('預約關聯資料不完整');
+  }
+
+  const formatTime = (value: string) => String(value).slice(0, 5);
+
+  let status = '已預約';
+  if (reservation.reservationStatus === 'confirmed') {
+    status = '已確認';
+  } else if (reservation.reservationStatus === 'cancelled') {
+    status = '已取消';
+  } else if (reservation.reservationStatus === 'pending') {
+    status = '待確認';
+  }
+
+  return {
+    name: participant.name,
+    groupName: group.groupName,
+    branchName: branch.branchName,
+    packageName: packageInfo.packageName,
+    date: String(slot.slotDate),
+    slot: `${formatTime(String(slot.slotStartTime))}-${formatTime(
+      String(slot.slotEndTime),
+    )}`,
+    status,
+  };
+}
 
   findAllAdmin(): AdminReservation[] {
     return this.adminReservations;

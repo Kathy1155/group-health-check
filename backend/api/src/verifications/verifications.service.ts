@@ -76,10 +76,11 @@ export class VerificationsService {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationId = randomUUID();
+    const expiresAt = Date.now() + 5 * 60 * 1000;
 
     this.store.set(verificationId, {
       otp,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt,
       attemptsLeft: 5,
       groupCode,
       idNumber,
@@ -91,7 +92,10 @@ export class VerificationsService {
       `[OTP] verificationId=${verificationId}, otp=${otp}, to=${participant.email}`,
     );
 
-    return { verificationId };
+    return {
+      verificationId,
+      expiresAt,
+    };
   }
 
   verifyOtp(verificationId: string, otp: string) {

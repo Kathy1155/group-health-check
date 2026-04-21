@@ -55,22 +55,21 @@ function GroupCodePage() {
         return;
       }
 
-      // 3. 向後端請求寄送 OTP
-      const { verificationId } = await requestOtp({
-        groupCode,
-        idNumber,
-      });
+    const { verificationId, expiresAt } = await requestOtp({
+      groupCode,
+      idNumber,
+    });
 
-      // 4. 導到 OTP 頁，並把必要資訊帶過去
-      navigate("/otp", {
-        state: {
-          verificationId,
-          group,
-          participant,
-          idNumber,
-          groupCode,
-        },
-      });
+    navigate("/otp", {
+      state: {
+        verificationId,
+        expiresAt,
+        group,
+        participant,
+        idNumber,
+        groupCode,
+      },
+    });
     } catch (error) {
       console.error(error);
       setGroupError("資料驗證失敗或系統忙碌，請稍後再試。");
