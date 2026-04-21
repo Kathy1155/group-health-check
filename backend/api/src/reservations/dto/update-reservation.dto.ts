@@ -28,6 +28,10 @@ class MedicalProfileDto {
   @IsOptional()
   @IsString()
   medications: string;
+
+  @IsOptional()
+  @IsString()
+  dietaryPreference: string;
 }
 
 export class CreateReservationDto {

@@ -336,13 +336,14 @@ async createReservationWithProfile(dto: CreateReservationDto) {
     throw new BadRequestException('預約套餐不一致，請重新選擇套餐');
   }
 
-  const medicalProfile = await this.medicalProfileRepo.save({
-    bloodType: dto.medicalProfile?.bloodType || null,
-    allergies: dto.medicalProfile?.allergies || null,
-    familyHistory: dto.medicalProfile?.familyHistory || null,
-    chronicDiseases: dto.medicalProfile?.chronicDiseases || null,
-    medications: dto.medicalProfile?.medications || null,
-  });
+const medicalProfile = await this.medicalProfileRepo.save({
+  bloodType: dto.medicalProfile?.bloodType || null,
+  allergies: dto.medicalProfile?.allergies || null,
+  familyHistory: dto.medicalProfile?.familyHistory || null,
+  chronicDiseases: dto.medicalProfile?.chronicDiseases || null,
+  medications: dto.medicalProfile?.medications || null,
+  dietaryPreference: dto.medicalProfile?.dietaryPreference || null,
+});
 
   const confirmToken = randomUUID();
   const cancelToken = randomUUID();

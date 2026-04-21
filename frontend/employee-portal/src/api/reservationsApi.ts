@@ -105,6 +105,7 @@ export type CreateReservationDto = {
     familyHistory: string;
     chronicDiseases: string;
     medications: string;
+    dietaryPreference: string;
   };
 };
 
