@@ -22,8 +22,23 @@ function SelectBranchPackagePage() {
   const navigate = useNavigate();
 
   const state = location.state as LocationState | undefined;
-  const group = state?.group;
-  const idNumber = state?.idNumber;
+
+  if (!state?.group || !state?.idNumber) {
+    console.error("缺少必要 state:", state);
+
+    return (
+      <div className="page-form">
+        <h2>預約流程中斷</h2>
+        <p>缺少必要資料，請從首頁重新開始預約。</p>
+        <button type="button" onClick={() => navigate("/")}>
+          回首頁
+        </button>
+      </div>
+    );
+  }
+
+  const group = state.group;
+  const idNumber = state.idNumber;
 
   const [options, setOptions] = useState<GroupOptionDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,15 +50,19 @@ function SelectBranchPackagePage() {
   );
 
   useEffect(() => {
-    if (!group || !group.id || !idNumber) {
-      console.error("缺少必要 state:", { group, idNumber });
-      navigate("/");
+    const groupId = Number(group.id);
+
+    if (Number.isNaN(groupId)) {
+      setError("團體資料不完整，無法載入院區與套餐資料");
+      setLoading(false);
       return;
     }
 
-    fetchGroupOptions(group.id)
+    setLoading(true);
+    setError(null);
+
+    fetchGroupOptions(groupId)
       .then((data: GroupOptionDto) => {
-        console.log("group options API 回傳資料：", data);
         setOptions(data);
         setLoading(false);
       })
@@ -52,38 +71,42 @@ function SelectBranchPackagePage() {
         setError("無法取得院區與套餐資料");
         setLoading(false);
       });
-  }, [group, idNumber, navigate]);
+  }, [group]);
 
   if (loading) return <p>載入中...</p>;
   if (error) return <p>{error}</p>;
-  if (!options || !group) return <p>沒有資料</p>;
+  if (!options) return <p>沒有資料</p>;
 
   const branches = options.branches;
 
-  const currentBranch = branches.find(
-    (b: GroupOptionDto["branches"][number]) => b.branchId === selectedBranchId
-  );
+  const currentBranch =
+    selectedBranchId === ""
+      ? undefined
+      : branches.find(
+          (b: GroupOptionDto["branches"][number]) =>
+            String(b.branchId) === String(selectedBranchId)
+        );
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedBranchId || !selectedPackageId || !group || !idNumber) return;
+    if (!selectedBranchId || !selectedPackageId) return;
 
     const selectedBranch = branches.find(
-      (b) => b.branchId === selectedBranchId
+      (b) => String(b.branchId) === String(selectedBranchId)
     );
 
     const selectedPackage = selectedBranch?.packages.find(
-      (p) => p.packageId === selectedPackageId
+      (p) => Number(p.packageId) === Number(selectedPackageId)
     );
 
     navigate("/select-slot", {
       state: {
         group,
         idNumber,
-        branchId: selectedBranchId,
+        branchId: Number(selectedBranchId),
         branchName: selectedBranch?.branchName ?? "",
-        packageId: selectedPackageId,
+        packageId: Number(selectedPackageId),
         packageName: selectedPackage?.packageName ?? "",
       },
     });
@@ -114,7 +137,7 @@ function SelectBranchPackagePage() {
             >
               <option value="">請選擇院區</option>
               {branches.map((b) => (
-                <option key={b.branchId} value={b.branchId}>
+                <option key={String(b.branchId)} value={String(b.branchId)}>
                   {b.branchName}
                 </option>
               ))}
@@ -147,11 +170,11 @@ function SelectBranchPackagePage() {
 
             {currentBranch &&
               currentBranch.packages.map((p) => {
-                const active = selectedPackageId === p.packageId;
+                const active = Number(selectedPackageId) === Number(p.packageId);
 
                 return (
                   <button
-                    key={p.packageId}
+                    key={String(p.packageId)}
                     type="button"
                     className={[
                       "sbp-package-btn",
@@ -160,7 +183,7 @@ function SelectBranchPackagePage() {
                     ]
                       .filter(Boolean)
                       .join(" ")}
-                    onClick={() => setSelectedPackageId(p.packageId)}
+                    onClick={() => setSelectedPackageId(Number(p.packageId))}
                   >
                     <div className="sbp-package-main">{p.packageName}</div>
                     <div className="sbp-package-sub"></div>

@@ -8,7 +8,7 @@ export interface GroupDto {
 }
 
 type GroupApiResponse = {
-  groupId: number;
+  id: string | number;
   groupCode: string;
   groupName: string;
   contactName: string;
@@ -32,7 +32,7 @@ export async function fetchGroupByCode(
   const data = (await res.json()) as GroupApiResponse;
 
   return {
-    id: Number(data.groupId),
+    id: Number(data.id),
     code: data.groupCode,
     name: data.groupName,
     contactName: data.contactName,

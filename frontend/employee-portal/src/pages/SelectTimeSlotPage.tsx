@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchTimeslots, type TimeslotDto } from "../api/timeslotsApi";
+import { holdReservation } from "../api/reservationsApi";
 
 type SlotPageState = {
   group: {
@@ -32,6 +33,7 @@ function SelectTimeSlotPage() {
   const [slots, setSlots] = useState<TimeslotDto[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -97,24 +99,42 @@ function SelectTimeSlotPage() {
       });
   }, [date, branchId, packageId]);
 
-  const handleNext = (e: React.FormEvent) => {
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!date || !slot || selectedSlotId == null) return;
 
-    navigate("/fill-profile", {
-      state: {
-        group,
+    try {
+      setSubmitting(true);
+      setSlotsError(null);
+
+      const result = await holdReservation({
+        groupCode: group.code,
         idNumber,
-        branchId,
-        branchName,
-        packageId,
-        packageName,
-        date,
         slotId: selectedSlotId,
-        slot,
-      },
-    });
+      });
+
+      navigate("/fill-profile", {
+        state: {
+          group,
+          idNumber,
+          branchId,
+          branchName,
+          packageId,
+          packageName,
+          date,
+          slotId: selectedSlotId,
+          slot,
+          reservationId: result.reservationId,
+          expiresAt: result.expiresAt,
+        },
+      });
+    } catch (error: any) {
+      console.error(error);
+      setSlotsError(error?.message || "暫時保留名額失敗，請重新選擇時段。");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePrev = () => {
@@ -165,7 +185,7 @@ function SelectTimeSlotPage() {
               setSlot(selected ? formatSlotTime(selected.time) : "");
             }}
             required
-            disabled={!date || loadingSlots || slots.length === 0}
+            disabled={!date || loadingSlots || slots.length === 0 || submitting}
             style={{ marginLeft: "0.5rem", padding: "0.4rem" }}
           >
             <option value="">{renderSlotPlaceholder()}</option>
@@ -189,6 +209,7 @@ function SelectTimeSlotPage() {
           type="button"
           className="btn btn-secondary"
           onClick={handlePrev}
+          disabled={submitting}
         >
           上一步
         </button>
@@ -196,9 +217,9 @@ function SelectTimeSlotPage() {
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!date || !slot || selectedSlotId == null}
+          disabled={!date || !slot || selectedSlotId == null || submitting}
         >
-          下一步
+          {submitting ? "處理中..." : "下一步"}
         </button>
       </div>
     </form>

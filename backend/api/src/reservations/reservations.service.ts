@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import { CreateReservationDto } from './dto/update-reservation.dto';
+import { HoldReservationDto } from './dto/hold-reservation.dto';
 import { ReservationEntity } from './entities/reservation.entity';
 import { MedicalProfileEntity } from './entities/medical-profile.entity';
 
@@ -126,9 +127,7 @@ export class ReservationsService {
     },
   ];
 
-async createReservationWithProfile(dto: CreateReservationDto) {
-  const formatTime = (value: string) => value.slice(0, 5);
-
+  async holdReservation(dto: HoldReservationDto) {
   const group = await this.groupRepo.findOne({
     where: { groupCode: dto.groupCode },
   });
@@ -146,6 +145,29 @@ async createReservationWithProfile(dto: CreateReservationDto) {
 
   if (!participant) {
     throw new NotFoundException('找不到團體名冊資料');
+  }
+
+  const existingPending = await this.reservationRepo.findOne({
+    where: {
+      participantId: participant.groupParticipantId,
+      reservationStatus: 'pending',
+    },
+    order: { reservationId: 'DESC' },
+  });
+
+  if (
+    existingPending &&
+    existingPending.confirmTokenExpiresAt &&
+    new Date(existingPending.confirmTokenExpiresAt) > new Date()
+  ) {
+    return {
+      message: '已有尚未完成的待確認預約',
+      reservationId: existingPending.reservationId,
+      slotId: existingPending.slotId,
+      reservationStatus: existingPending.reservationStatus,
+      quotaStatus: existingPending.quotaStatus,
+      expiresAt: existingPending.confirmTokenExpiresAt,
+    };
   }
 
   const slot = await this.timeSlotRepo.findOne({
@@ -167,6 +189,153 @@ async createReservationWithProfile(dto: CreateReservationDto) {
     throw new BadRequestException('此時段已滿額');
   }
 
+  const branchPackage = await this.branchPackageRepo.findOne({
+    where: { branchPackageId: slot.branchPackageId },
+  });
+
+  if (!branchPackage) {
+    throw new NotFoundException('找不到院區套餐資料');
+  }
+
+  const holdExpireMinutes = 15;
+  const expiresAt = new Date(Date.now() + holdExpireMinutes * 60 * 1000);
+
+  const reservation = this.reservationRepo.create({
+    participantId: participant.groupParticipantId,
+    packageId: branchPackage.packageId,
+    slotId: dto.slotId,
+    medicalProfileId: null,
+    quotaStatus: 'pending',
+    confirmToken: null,
+    confirmTokenExpiresAt: expiresAt,
+    cancelToken: null,
+    cancelTokenExpiresAt: expiresAt,
+    reservationStatus: 'pending',
+  });
+
+  await this.reservationRepo.save(reservation);
+
+  slot.slotReservedCount += 1;
+
+  if (slot.slotReservedCount >= slot.slotCapacity) {
+    slot.slotStatus = 'full';
+  }
+
+  await this.timeSlotRepo.save(slot);
+
+  return {
+    message: '時段名額已暫時保留',
+    reservationId: reservation.reservationId,
+    participantId: participant.groupParticipantId,
+    packageId: branchPackage.packageId,
+    slotId: reservation.slotId,
+    quotaStatus: reservation.quotaStatus,
+    reservationStatus: reservation.reservationStatus,
+    expiresAt,
+  };
+}
+
+async createReservationWithProfile(dto: CreateReservationDto) {
+  const formatTime = (value: string) => String(value).slice(0, 5);
+
+  const group = await this.groupRepo.findOne({
+    where: { groupCode: dto.groupCode },
+  });
+
+  if (!group) {
+    throw new NotFoundException('找不到團體資料');
+  }
+
+  const participant = await this.participantRepo.findOne({
+    where: {
+      groupId: group.groupId,
+      idNumber: dto.idNumber,
+    },
+  });
+
+  if (!participant) {
+    throw new NotFoundException('找不到團體名冊資料');
+  }
+
+  const reservation = await this.reservationRepo.findOne({
+    where: { reservationId: Number(dto.reservationId) },
+  });
+
+  if (!reservation) {
+    throw new NotFoundException('找不到待完成的預約資料');
+  }
+
+  if (Number(reservation.participantId) !== Number(participant.groupParticipantId)) {
+    throw new BadRequestException('此預約資料與受檢者不符');
+  }
+
+  if (reservation.reservationStatus !== 'pending') {
+    throw new BadRequestException('此預約已非待確認狀態');
+  }
+
+  if (
+    reservation.confirmTokenExpiresAt &&
+    new Date(reservation.confirmTokenExpiresAt) <= new Date()
+  ) {
+    const expiredSlot = await this.timeSlotRepo.findOne({
+      where: { slotId: Number(reservation.slotId) },
+    });
+
+    if (!expiredSlot) {
+      throw new NotFoundException('找不到對應時段資料');
+    }
+
+    if (expiredSlot.slotReservedCount > 0) {
+      expiredSlot.slotReservedCount -= 1;
+    }
+
+    if (expiredSlot.slotStatus === 'full') {
+      expiredSlot.slotStatus = 'open';
+    }
+
+    await this.timeSlotRepo.save(expiredSlot);
+
+    await this.reservationRepo.update(
+      { reservationId: Number(reservation.reservationId) },
+      {
+        quotaStatus: 'cancelled',
+        reservationStatus: 'cancelled',
+      },
+    );
+
+    throw new BadRequestException('此預約保留已逾時，名額已釋放，請重新選擇時段');
+  }
+
+  const reservationSlotId = Number(reservation.slotId);
+  const dtoSlotId = Number(dto.slotId);
+
+  if (reservationSlotId !== dtoSlotId) {
+    throw new BadRequestException('預約時段不一致，請重新選擇時段');
+  }
+
+  const slot = await this.timeSlotRepo.findOne({
+    where: { slotId: Number(reservation.slotId) },
+  });
+
+  if (!slot) {
+    throw new NotFoundException('找不到預約時段');
+  }
+
+  const branchPackage = await this.branchPackageRepo.findOne({
+    where: { branchPackageId: Number(slot.branchPackageId) },
+  });
+
+  if (!branchPackage) {
+    throw new NotFoundException('找不到院區套餐資料');
+  }
+
+  const branchPackageId = Number(branchPackage.packageId);
+  const dtoPackageId = Number(dto.packageId);
+
+  if (branchPackageId !== dtoPackageId) {
+    throw new BadRequestException('預約套餐不一致，請重新選擇套餐');
+  }
+
   const medicalProfile = await this.medicalProfileRepo.save({
     bloodType: dto.medicalProfile?.bloodType || null,
     allergies: dto.medicalProfile?.allergies || null,
@@ -179,62 +348,48 @@ async createReservationWithProfile(dto: CreateReservationDto) {
   const cancelToken = randomUUID();
 
   const tokenExpireMinutes = 15;
+  const confirmTokenExpiresAt = new Date(
+    Date.now() + tokenExpireMinutes * 60 * 1000,
+  );
+  const cancelTokenExpiresAt = new Date(
+    Date.now() + tokenExpireMinutes * 60 * 1000,
+  );
 
-const confirmTokenExpiresAt = new Date(
-  Date.now() + tokenExpireMinutes * 60 * 1000,
-);
+  await this.reservationRepo.update(
+    { reservationId: Number(dto.reservationId) },
+    {
+      packageId: Number(branchPackage.packageId),
+      slotId: Number(dto.slotId),
+      medicalProfileId: medicalProfile.medicalProfileId,
+      confirmToken,
+      confirmTokenExpiresAt,
+      cancelToken,
+      cancelTokenExpiresAt,
+      quotaStatus: 'pending',
+      reservationStatus: 'pending',
+    },
+  );
 
-const cancelTokenExpiresAt = new Date(
-  Date.now() + tokenExpireMinutes * 60 * 1000,
-);
-
-  const branchPackage = await this.branchPackageRepo.findOne({
-  where: { branchPackageId: slot.branchPackageId },
-});
-
-if (!branchPackage) {
-  throw new NotFoundException('找不到院區套餐資料');
-}
-
-  const reservation = this.reservationRepo.create({
-    participantId: participant.groupParticipantId,
-    packageId: branchPackage.packageId,
-    slotId: dto.slotId,
-    medicalProfileId: medicalProfile.medicalProfileId,
-    quotaStatus: 'pending',
-    confirmToken,
-    confirmTokenExpiresAt,
-    cancelToken,
-    cancelTokenExpiresAt,
-    reservationStatus: 'pending',
+  const updatedReservation = await this.reservationRepo.findOne({
+    where: { reservationId: Number(dto.reservationId) },
   });
-
-  await this.reservationRepo.save(reservation);
 
   participant.medicalProfileId = medicalProfile.medicalProfileId;
   await this.participantRepo.save(participant);
 
-  slot.slotReservedCount += 1;
+  const branch = await this.branchRepo.findOne({
+    where: { branchId: Number(branchPackage.branchId) },
+  });
 
-  if (slot.slotReservedCount >= slot.slotCapacity) {
-    slot.slotStatus = 'full';
+  const packageInfo = await this.packageRepo.findOne({
+    where: { packageId: Number(branchPackage.packageId) },
+  });
+
+  if (!branch || !packageInfo || !updatedReservation) {
+    throw new NotFoundException('找不到院區、套餐或更新後的預約資料');
   }
 
-  await this.timeSlotRepo.save(slot);
-
-const branch = await this.branchRepo.findOne({
-  where: { branchId: branchPackage.branchId },
-});
-
-const packageInfo = await this.packageRepo.findOne({
-  where: { packageId: branchPackage.packageId },
-});
-
-if (!branch || !packageInfo) {
-  throw new NotFoundException('找不到院區或套餐名稱');
-}
-
-  const reservationNo = `R${String(reservation.reservationId).padStart(8, '0')}`;
+  const reservationNo = `R${String(updatedReservation.reservationId).padStart(8, '0')}`;
 
   await this.mailService.sendReservationActionEmail({
     to: participant.email,
@@ -250,16 +405,16 @@ if (!branch || !packageInfo) {
     cancelToken,
   });
 
-    return {
-      reservationId: reservation.reservationId,
-      reservationNo,
-      participantId: participant.groupParticipantId,
-      medicalProfileId: medicalProfile.medicalProfileId,
-      packageId: branchPackage.packageId,
-      slotId: dto.slotId,
-      quotaStatus: reservation.quotaStatus,
-      reservationStatus: reservation.reservationStatus,
-    };
+  return {
+    reservationId: updatedReservation.reservationId,
+    reservationNo,
+    participantId: participant.groupParticipantId,
+    medicalProfileId: medicalProfile.medicalProfileId,
+    packageId: Number(branchPackage.packageId),
+    slotId: Number(dto.slotId),
+    quotaStatus: updatedReservation.quotaStatus,
+    reservationStatus: updatedReservation.reservationStatus,
+  };
 }
 
   async lookupByIdAndBirthday(

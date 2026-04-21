@@ -43,6 +43,7 @@ export class NotificationsService {
     const reservation = await this.reservationRepo.findOne({
       where: { reservationId: payload.reservationId },
     });
+    
 
     if (!reservation) {
       throw new NotFoundException('找不到預約資料');
