@@ -17,6 +17,7 @@ export class MailTestController {
         timeSlot: '10:00-12:00',
         confirmToken: 'test-confirm-token',
         cancelToken: 'test-cancel-token',
+        lookupCode: 'TEST1234',
         });
   }
 }

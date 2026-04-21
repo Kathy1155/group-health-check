@@ -21,6 +21,7 @@ export class MailService {
     timeSlot: string;
     confirmToken: string;
     cancelToken: string;
+    lookupCode: string | null;
   }) {
     const frontendBaseUrl =
       process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
@@ -47,6 +48,19 @@ export class MailService {
           <li>時段：${payload.timeSlot}</li>
         </ul>
 
+        <p style="margin-top: 16px;">
+          您的預約查詢驗證碼為：
+          <strong style="font-size: 20px; letter-spacing: 2px;">
+            ${payload.lookupCode ?? '尚未產生'}
+          </strong>
+        </p>
+
+        <p>日後若需查詢預約，請使用「身分證字號 + 查詢驗證碼」進行查詢。</p>
+
+        <p>
+          <a href="${lookupLink}" target="_blank">查詢預約</a>
+        </p>
+
         <p>請點擊下方連結進行操作：</p>
 
         <p>
@@ -55,10 +69,6 @@ export class MailService {
 
         <p>
           <a href="${cancelLink}" target="_blank">取消預約</a>
-        </p>
-
-        <p>
-          <a href="${lookupLink}" target="_blank">查詢預約</a>
         </p>
 
         <hr />

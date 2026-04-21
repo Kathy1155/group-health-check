@@ -80,89 +80,78 @@ export class ReservationsController {
     return this.reservationsService.findAllAdmin();
   }
 
-  /**
-   * GET /api/reservations/lookup?idNumber=xxx&birthday=yyyy-mm-dd
-   * 前台查詢預約時會呼叫這支 API
-   */
-  @Get('lookup')
-  lookup(
-    @Query('idNumber') idNumber: string,
-    @Query('birthday') birthday: string,
-  ) {
-    if (!idNumber || !birthday) {
-      throw new BadRequestException('idNumber 與 birthday 為必填參數');
+    /**
+     * GET /api/reservations/lookup?idNumber=xxx&lookupCode=ABCDEFGH
+     * 前台查詢預約時會呼叫這支 API
+     */
+    @Get('lookup')
+    lookupByIdAndLookupCode(
+      @Query('idNumber') idNumber: string,
+      @Query('lookupCode') lookupCode: string,
+    ) {
+      return this.reservationsService.lookupByIdAndLookupCode(
+        idNumber,
+        lookupCode,
+      );
     }
 
-    return this.reservationsService.lookupByIdAndBirthday(
-      idNumber,
-      birthday,
+/**
+ * GET /api/reservations/action?token=xxx&action=confirm
+ * Email 連結：確認 / 取消預約
+ */
+@Get('action')
+async handleReservationAction(
+  @Query('token') token: string,
+  @Query('action') action: 'confirm' | 'cancel',
+  @Res() res: Response,
+) {
+  const frontendBaseUrl =
+    process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+
+  if (!token || !action) {
+    return res.redirect(
+      `${frontendBaseUrl}/reservation-action-result?result=invalid`,
     );
   }
 
-  /**
-   * GET /api/reservations/action?token=xxx&action=confirm
-   * Email 連結：確認 / 取消預約
-   */
-  @Get('action')
-  async handleReservationAction(
-    @Query('token') token: string,
-    @Query('action') action: 'confirm' | 'cancel',
-    @Res() res: Response,
-  ) {
-    const frontendBaseUrl =
-      process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-
-    if (!token || !action) {
-      return res.redirect(
-        `${frontendBaseUrl}/reservation-action-result?result=invalid`,
-      );
-    }
-
-    if (action !== 'confirm' && action !== 'cancel') {
-      return res.redirect(
-        `${frontendBaseUrl}/reservation-action-result?result=invalid`,
-      );
-    }
-
-    try {
-      const result = await this.reservationsService.handleAction(token, action);
-
-      const redirectResult =
-        result.reservationStatus === 'confirmed'
-          ? 'confirmed'
-          : result.reservationStatus === 'cancelled'
-          ? 'cancelled'
-          : 'success';
-
-      return res.redirect(
-        `${frontendBaseUrl}/reservation-action-result?result=${redirectResult}`,
-      );
-    } catch (error: any) {
-      const message = error?.message ?? '';
-
-      if (message.includes('已確認')) {
-        return res.redirect(
-          `${frontendBaseUrl}/reservation-action-result?result=already-confirmed`,
-        );
-      }
-
-      if (message.includes('已取消')) {
-        return res.redirect(
-          `${frontendBaseUrl}/reservation-action-result?result=already-cancelled`,
-        );
-      }
-
-      if (message.includes('找不到')) {
-        return res.redirect(
-          `${frontendBaseUrl}/reservation-action-result?result=invalid`,
-        );
-      }
-
-      return res.redirect(
-        `${frontendBaseUrl}/reservation-action-result?result=error`,
-      );
-    }
+  if (action !== 'confirm' && action !== 'cancel') {
+    return res.redirect(
+      `${frontendBaseUrl}/reservation-action-result?result=invalid`,
+    );
   }
+
+  try {
+    const result = await this.reservationsService.handleAction(token, action);
+
+    const redirectResult =
+      result.reservationStatus === 'confirmed'
+        ? 'confirmed'
+        : result.reservationStatus === 'cancelled'
+        ? 'cancelled'
+        : 'success';
+
+    return res.redirect(
+      `${frontendBaseUrl}/reservation-action-result?result=${redirectResult}`,
+    );
+  } catch (error: any) {
+    const message = error?.message ?? '';
+    let reason = 'system';
+
+    if (message.includes('已過期') || message.includes('名額已釋放')) {
+      reason = 'expired';
+    } else if (message.includes('已確認')) {
+      reason = 'already-confirmed';
+    } else if (message.includes('已取消')) {
+      reason = 'already-cancelled';
+    } else if (message.includes('找不到')) {
+      reason = 'invalid';
+    }
+
+    return res.redirect(
+      `${frontendBaseUrl}/reservation-action-result?result=error&reason=${reason}&action=${action}`,
+    );
+  }
+}
 
   /**
    * PATCH /api/reservations/:id

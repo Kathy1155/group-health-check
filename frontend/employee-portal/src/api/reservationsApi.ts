@@ -13,15 +13,15 @@ export type ReservationLookupDto = {
 };
 
 /**
- * 依「身分證字號 + 生日」查詢預約資料
+ * 依「身分證字號 + 查詢驗證碼」查詢預約資料
  */
 export async function lookupReservation(
   idNumber: string,
-  birthday: string
+  lookupCode: string
 ): Promise<ReservationLookupDto> {
   const params = new URLSearchParams({
-    idNumber,
-    birthday,
+    idNumber: idNumber.trim().toUpperCase(),
+    lookupCode: lookupCode.trim().toUpperCase(),
   });
 
   const res = await fetch(

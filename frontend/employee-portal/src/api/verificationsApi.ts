@@ -8,6 +8,7 @@ export type RequestOtpDto = {
 
 export type RequestOtpRes = {
   verificationId: string;
+  expiresAt: number;
 };
 
 export async function requestOtp(dto: RequestOtpDto): Promise<RequestOtpRes> {

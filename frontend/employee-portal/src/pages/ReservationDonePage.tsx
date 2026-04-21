@@ -34,8 +34,33 @@ function formatSlot(slot: string) {
 const ReservationDonePage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
   const state = location.state as DonePageState | null;
+
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [resendCooldownUntil, setResendCooldownUntil] = useState<number | null>(
+    null
+  );
+  const [resendRemainingSeconds, setResendRemainingSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!resendCooldownUntil) return;
+
+    const updateRemainingTime = () => {
+      const diff = Math.max(
+        0,
+        Math.floor((resendCooldownUntil - Date.now()) / 1000)
+      );
+      setResendRemainingSeconds(diff);
+    };
+
+    updateRemainingTime();
+
+    const timer = window.setInterval(updateRemainingTime, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [resendCooldownUntil]);
 
   if (!state) {
     return (
@@ -67,34 +92,30 @@ const ReservationDonePage: React.FC = () => {
 
   const displaySlot = formatSlot(slot);
 
-useEffect(() => {
-  const key = `reservation:${personalInfo.idNumber}:${personalInfo.birthday}`;
+  useEffect(() => {
+    const key = `reservation:${personalInfo.idNumber}:${personalInfo.birthday}`;
 
-  const mockLookupResult = {
-    name: personalInfo.name,
+    const mockLookupResult = {
+      name: personalInfo.name,
+      groupName,
+      branchName,
+      packageName,
+      date,
+      slot: displaySlot,
+      status: "已預約",
+    };
+
+    localStorage.setItem(key, JSON.stringify(mockLookupResult));
+  }, [
+    personalInfo.idNumber,
+    personalInfo.birthday,
+    personalInfo.name,
     groupName,
     branchName,
     packageName,
     date,
-    slot: displaySlot,
-    status: "已預約",
-  };
-
-  localStorage.setItem(key, JSON.stringify(mockLookupResult));
-}, [
-  personalInfo.idNumber,
-  personalInfo.birthday,
-  personalInfo.name,
-  groupName,
-  branchName,
-  packageName,
-  date,
-  displaySlot,
-]);
-
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
+    displaySlot,
+  ]);
 
   const onResend = async () => {
     setSending(true);
@@ -113,6 +134,8 @@ useEffect(() => {
         slot: displaySlot,
       });
       setSent(true);
+      setResendCooldownUntil(Date.now() + 5 * 60 * 1000);
+      setResendRemainingSeconds(5 * 60);
     } catch (e) {
       console.error(e);
       setSendError("重新寄送失敗，請稍後再試。");
@@ -197,9 +220,17 @@ useEffect(() => {
           type="button"
           className="btn btn-secondary"
           onClick={onResend}
-          disabled={sending}
+          disabled={sending || resendRemainingSeconds > 0}
         >
-          {sending ? "寄送中..." : "重新寄送確認信"}
+          {sending
+            ? "寄送中..."
+            : resendRemainingSeconds > 0
+            ? `重新寄送確認信（${String(
+                Math.floor(resendRemainingSeconds / 60)
+              ).padStart(2, "0")}:${String(
+                resendRemainingSeconds % 60
+              ).padStart(2, "0")}）`
+            : "重新寄送確認信"}
         </button>
 
         {sent && (
