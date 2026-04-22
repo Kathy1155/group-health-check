@@ -20,10 +20,13 @@ function ReservationActionResultPage() {
     title = '連結無效';
     message = '此連結可能已失效、錯誤或不存在。';
   } else if (result === 'error') {
-    if (reason === 'expired') {
+    if (reason === 'cancel-deadline') {
+      title = '已超過取消期限';
+      message = '已超過線上取消期限，請聯絡健檢中心或團體窗口協助處理。';
+    } else if (reason === 'expired') {
       title = '連結已失效';
       message =
-        '因逾時未完成確認或取消，此連結已失效，系統已自動釋放名額。如仍需預約，請重新操作或聯絡團體窗口。';
+        '因逾時未完成確認，此連結已失效，系統已自動釋放名額。如仍需預約，請重新操作或聯絡團體窗口。';
     } else if (reason === 'already-confirmed') {
       title = '預約已確認';
       message = '這筆預約先前已確認過，無需重複操作。';

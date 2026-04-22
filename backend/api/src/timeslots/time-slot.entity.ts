@@ -13,22 +13,22 @@ export class TimeSlotEntity {
     unsigned: true,
     name: 'slot_id',
   })
-  slotId: number;
+  slotId!: number;
 
   @Column({ type: 'date', name: 'slot_date' })
-  slotDate: string;
+  slotDate!: string;
 
   @Column({ type: 'time', name: 'slot_startTime' })
-  slotStartTime: string;
+  slotStartTime!: string;
 
   @Column({ type: 'time', name: 'slot_endTime' })
-  slotEndTime: string;
+  slotEndTime!: string;
 
   @Column({ type: 'int', name: 'slot_capacity', default: 20 })
-  slotCapacity: number;
+  slotCapacity!: number;
 
   @Column({ type: 'int', name: 'slot_reserved_count', default: 0 })
-  slotReservedCount: number;
+  slotReservedCount!: number;
 
   @Column({
     type: 'enum',
@@ -36,18 +36,18 @@ export class TimeSlotEntity {
     name: 'slot_status',
     default: 'open',
   })
-  slotStatus: 'open' | 'closed' | 'full';
+  slotStatus!: 'open' | 'closed' | 'full';
 
   @Column({
     type: 'bigint',
     unsigned: true,
     name: 'branch_package_id',
   })
-  branchPackageId: number;
+  branchPackageId!: number;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }
