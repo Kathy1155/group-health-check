@@ -137,7 +137,9 @@ async handleReservationAction(
     const message = error?.message ?? '';
     let reason = 'system';
 
-    if (message.includes('已過期') || message.includes('名額已釋放')) {
+    if (message.includes('已超過線上取消期限')) {
+      reason = 'cancel-deadline';
+    } else if (message.includes('已過期') || message.includes('名額已釋放')) {
       reason = 'expired';
     } else if (message.includes('已確認')) {
       reason = 'already-confirmed';

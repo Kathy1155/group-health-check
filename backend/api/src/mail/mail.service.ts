@@ -33,52 +33,95 @@ export class MailService {
     const lookupLink = `${frontendBaseUrl}/reservation-lookup`;
 
     const html = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.8; color: #333;">
-        <h2>團體健檢預約通知</h2>
+      <div style="margin: 0; padding: 24px; background-color: #f6f8fb; font-family: Arial, 'Microsoft JhengHei', sans-serif; color: #1f2937; line-height: 1.8;">
+        <div style="max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+          
+          <div style="padding: 28px 32px; background: #e8f3ff; border-bottom: 1px solid #dbeafe;">
+            <h2 style="margin: 0; font-size: 28px; color: #1d4ed8;">團體健檢預約通知</h2>
+            <p style="margin: 10px 0 0; font-size: 16px; color: #374151;">
+              ${payload.name} 您好，您的健檢預約已建立，請確認以下資訊。
+            </p>
+          </div>
 
-        <p>${payload.name} 您好：</p>
+          <div style="padding: 32px;">
+            <div style="margin-bottom: 24px;">
+              <h3 style="margin: 0 0 12px; font-size: 20px; color: #111827;">預約資訊</h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
+                <tr>
+                  <td style="padding: 10px 0; width: 120px; color: #6b7280;">預約編號</td>
+                  <td style="padding: 10px 0; color: #111827; font-weight: 600;">${payload.reservationNo}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #6b7280;">院區</td>
+                  <td style="padding: 10px 0; color: #111827;">${payload.branchName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #6b7280;">套餐</td>
+                  <td style="padding: 10px 0; color: #111827;">${payload.packageName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #6b7280;">日期</td>
+                  <td style="padding: 10px 0; color: #111827;">${payload.date}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; color: #6b7280;">時段</td>
+                  <td style="padding: 10px 0; color: #111827;">${payload.timeSlot}</td>
+                </tr>
+              </table>
+            </div>
 
-        <p>您的健檢預約已建立，以下為預約資訊：</p>
+            <div style="margin-bottom: 24px; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;">
+              <p style="margin: 0 0 8px; font-size: 15px; color: #6b7280;">預約查詢驗證碼</p>
+              <p style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 3px; color: #111827;">
+                ${payload.lookupCode ?? '尚未產生'}
+              </p>
+              <p style="margin: 12px 0 0; font-size: 15px; color: #4b5563;">
+                日後若需查詢預約，請使用「身分證字號 + 查詢驗證碼」進行查詢。
+              </p>
+              <p style="margin: 12px 0 0;">
+                <a href="${lookupLink}" target="_blank" style="color: #2563eb; font-size: 15px; text-decoration: none; font-weight: 600;">
+                  前往查詢預約
+                </a>
+              </p>
+            </div>
 
-        <ul>
-          <li>預約編號：${payload.reservationNo}</li>
-          <li>院區：${payload.branchName}</li>
-          <li>套餐：${payload.packageName}</li>
-          <li>日期：${payload.date}</li>
-          <li>時段：${payload.timeSlot}</li>
-        </ul>
+            <div style="margin-bottom: 24px; padding: 20px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px;">
+              <h3 style="margin: 0 0 10px; font-size: 18px; color: #9a3412;">重要提醒</h3>
+              <ul style="margin: 0; padding-left: 20px; font-size: 15px; color: #7c2d12;">
+                <li>請於 15 分鐘內完成預約確認，逾時系統將自動釋放名額。</li>
+                <li>如需取消預約，請於健檢日前一天 17:00 前完成線上取消。</li>
+                <li>超過期限後，請聯絡健檢中心或團體窗口協助處理。</li>
+              </ul>
+            </div>
 
-        <p style="margin-top: 16px;">
-          您的預約查詢驗證碼為：
-          <strong style="font-size: 20px; letter-spacing: 2px;">
-            ${payload.lookupCode ?? '尚未產生'}
-          </strong>
-        </p>
+            <div style="margin-bottom: 24px;">
+              <h3 style="margin: 0 0 14px; font-size: 20px; color: #111827;">請點擊下方連結進行操作</h3>
 
-        <p>日後若需查詢預約，請使用「身分證字號 + 查詢驗證碼」進行查詢。</p>
+              <div style="margin-bottom: 14px;">
+                <a href="${confirmLink}" target="_blank" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 16px; font-weight: 600;">
+                  確認預約
+                </a>
+              </div>
 
-        <p>
-          <a href="${lookupLink}" target="_blank">查詢預約</a>
-        </p>
+              <div>
+                <a href="${cancelLink}" target="_blank" style="display: inline-block; padding: 12px 20px; background: #ffffff; color: #dc2626; text-decoration: none; border: 1px solid #fecaca; border-radius: 10px; font-size: 16px; font-weight: 600;">
+                  取消預約
+                </a>
+              </div>
+            </div>
 
-        <p>請點擊下方連結進行操作：</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 28px 0;" />
 
-        <p>
-          <a href="${confirmLink}" target="_blank">確認預約</a>
-        </p>
-
-        <p>
-          <a href="${cancelLink}" target="_blank">取消預約</a>
-        </p>
-
-        <hr />
-
-        <p>健檢前注意事項：</p>
-        <ul>
-          <li>請攜帶身分證件與健保卡。</li>
-          <li>請依健檢規定空腹或遵照注意事項準備。</li>
-          <li>若需更改或取消，請盡早處理。</li>
-        </ul>
+            <div>
+              <h3 style="margin: 0 0 10px; font-size: 18px; color: #111827;">健檢前注意事項</h3>
+              <ul style="margin: 0; padding-left: 20px; font-size: 15px; color: #374151;">
+                <li>請攜帶身分證件與健保卡。</li>
+                <li>請依健檢規定空腹或遵照注意事項準備。</li>
+                <li>若需更改或取消，請儘早處理。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 

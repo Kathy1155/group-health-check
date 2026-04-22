@@ -21,6 +21,8 @@ import { BranchPackageEntity } from '../branch-packages/entities/branch-package.
 import { HospitalBranchEntity } from '../branches/entities/hospital-branch.entity';
 import { HealthExaminationPackageEntity } from '../packages/entities/health-examination-package.entity';
 
+import { Cron } from '@nestjs/schedule';
+
 export type ReservationLookupResult = {
   name: string;
   groupName: string;
@@ -375,12 +377,14 @@ const medicalProfile = await this.medicalProfileRepo.save({
   const cancelToken = randomUUID();
 
   const tokenExpireMinutes = 15;
+
   const confirmTokenExpiresAt = new Date(
     Date.now() + tokenExpireMinutes * 60 * 1000,
   );
-  const cancelTokenExpiresAt = new Date(
-    Date.now() + tokenExpireMinutes * 60 * 1000,
-  );
+
+  const cancelTokenExpiresAt = new Date(`${slot.slotDate}T00:00:00`);
+  cancelTokenExpiresAt.setDate(cancelTokenExpiresAt.getDate() - 1);
+  cancelTokenExpiresAt.setHours(17, 0, 0, 0);
 
   await this.reservationRepo.update(
     { reservationId: Number(dto.reservationId) },
@@ -442,6 +446,58 @@ const medicalProfile = await this.medicalProfileRepo.save({
     slotId: Number(dto.slotId),
     quotaStatus: updatedReservation.quotaStatus,
     reservationStatus: updatedReservation.reservationStatus,
+  };
+}
+
+@Cron('0 * * * * *')
+async releaseExpiredPendingReservations() {
+  const now = new Date();
+
+  const expiredReservations = await this.reservationRepo.find({
+    where: {
+      reservationStatus: 'pending',
+    },
+  });
+
+  const targetReservations = expiredReservations.filter(
+    (reservation) =>
+      reservation.confirmTokenExpiresAt &&
+      new Date(reservation.confirmTokenExpiresAt) <= now
+  );
+
+  for (const reservation of targetReservations) {
+    const slot = await this.timeSlotRepo.findOne({
+      where: { slotId: Number(reservation.slotId) },
+    });
+
+    if (slot) {
+      if (slot.slotReservedCount > 0) {
+        slot.slotReservedCount -= 1;
+      }
+
+      if (slot.slotStatus === 'full') {
+        slot.slotStatus = 'open';
+      }
+
+      await this.timeSlotRepo.save(slot);
+    }
+
+    await this.reservationRepo.update(
+      { reservationId: Number(reservation.reservationId) },
+      {
+        reservationStatus: 'cancelled',
+        quotaStatus: 'cancelled',
+      },
+    );
+  }
+
+  if (targetReservations.length > 0) {
+  console.log(`[Scheduler] 已釋放過期 pending 預約 ${targetReservations.length} 筆`);
+}
+
+  return {
+    message: '過期 pending 預約清理完成',
+    releasedCount: targetReservations.length,
   };
 }
 
@@ -550,7 +606,7 @@ async lookupByIdAndLookupCode(
     return this.adminReservations[index];
   }
 
- async handleAction(token: string, action: 'confirm' | 'cancel') {
+async handleAction(token: string, action: 'confirm' | 'cancel') {
   const reservation = await this.reservationRepo.findOne({
     where:
       action === 'confirm'
@@ -572,7 +628,8 @@ async lookupByIdAndLookupCode(
   }
 
   // token 過期：釋放名額 + 將預約改為 cancelled
-  if (new Date() > new Date(expiresAt)) {
+if (new Date() > new Date(expiresAt)) {
+  if (action === 'confirm') {
     if (reservation.reservationStatus !== 'cancelled') {
       const slot = await this.timeSlotRepo.findOne({
         where: { slotId: reservation.slotId },
@@ -596,11 +653,14 @@ async lookupByIdAndLookupCode(
       reservation.reservationStatus = 'cancelled';
       await this.reservationRepo.save(reservation);
 
-      throw new BadRequestException('此驗證連結已過期，名額已釋放');
+      throw new BadRequestException('此確認連結已過期，名額已釋放');
     }
 
-    throw new BadRequestException('此驗證連結已過期');
+    throw new BadRequestException('此確認連結已過期');
   }
+
+  throw new BadRequestException('已超過線上取消期限，請聯絡健檢中心');
+}
 
   if (reservation.reservationStatus === 'cancelled') {
     throw new BadRequestException('此預約已取消');
@@ -608,6 +668,27 @@ async lookupByIdAndLookupCode(
 
   if (reservation.reservationStatus === 'confirmed' && action === 'confirm') {
     throw new BadRequestException('此預約已確認');
+  }
+
+  // 線上取消期限：健檢日前一天 17:00 前
+  if (action === 'cancel') {
+    const slot = await this.timeSlotRepo.findOne({
+      where: { slotId: reservation.slotId },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('找不到對應時段資料');
+    }
+
+    const slotDate = new Date(`${slot.slotDate}T00:00:00`);
+    const cancelDeadline = new Date(slotDate);
+
+    cancelDeadline.setDate(cancelDeadline.getDate() - 1);
+    cancelDeadline.setHours(17, 0, 0, 0);
+
+    if (new Date() > cancelDeadline) {
+      throw new BadRequestException('已超過線上取消期限，請聯絡健檢中心');
+    }
   }
 
   // 確認預約
