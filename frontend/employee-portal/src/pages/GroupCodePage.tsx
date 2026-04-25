@@ -39,7 +39,6 @@ function GroupCodePage() {
     setLoading(true);
 
     try {
-      // 2-1. 向後端查詢團體資料
       const group: GroupDto | null = await fetchGroupByCode(groupCode);
 
       if (!group) {
@@ -47,7 +46,6 @@ function GroupCodePage() {
         return;
       }
 
-      // 2-2. 向後端查詢此員工是否存在於該團體名冊
       const participant = await fetchRosterProfile(groupCode, idNumber);
 
       if (!participant) {
@@ -55,21 +53,21 @@ function GroupCodePage() {
         return;
       }
 
-    const { verificationId, expiresAt } = await requestOtp({
-      groupCode,
-      idNumber,
-    });
-
-    navigate("/otp", {
-      state: {
-        verificationId,
-        expiresAt,
-        group,
-        participant,
-        idNumber,
+      const { verificationId, expiresAt } = await requestOtp({
         groupCode,
-      },
-    });
+        idNumber,
+      });
+
+      navigate("/otp", {
+        state: {
+          verificationId,
+          expiresAt,
+          group,
+          participant,
+          idNumber,
+          groupCode,
+        },
+      });
     } catch (error) {
       console.error(error);
       setGroupError("資料驗證失敗或系統忙碌，請稍後再試。");
@@ -79,49 +77,67 @@ function GroupCodePage() {
   };
 
   return (
-    <form onSubmit={handleNext} className="page-form">
-      <h2>步驟 1：輸入團體代碼 / 身分證字號</h2>
-
-      <div>
-        <label>
-          團體代碼：
-          <input
-            value={groupCode}
-            onChange={(e) => setGroupCode(e.target.value.toUpperCase())}
-            maxLength={10}
-            required
-            disabled={loading}
-          />
-        </label>
-        {groupError && (
-          <p style={{ color: "red", marginTop: "4px" }}>{groupError}</p>
-        )}
+    <div className="reservation-page">
+      <div className="reservation-page-header">
+        <span className="page-badge">Step 1</span>
+        <h1>輸入團體代碼與身分證字號</h1>
+        <p>
+          請輸入公司提供的團體代碼與個人身分證字號，系統將確認您的團體資格，
+          並寄送查詢驗證碼至名冊中的信箱。
+        </p>
       </div>
 
-      <div style={{ marginTop: "12px" }}>
-        <label>
-          身分證字號：
-          <input
-            value={idNumber}
-            onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
-            maxLength={10}
-            required
-            disabled={loading}
-          />
-        </label>
-        {employeeWarning && (
-          <p style={{ color: "darkorange", marginTop: "4px" }}>
-            {employeeWarning}
-          </p>
-        )}
-      </div>
+      <form onSubmit={handleNext} className="reservation-card">
+        <div className="reservation-card-header">
+          <div>
+            <h2>身份驗證資料</h2>
+            <p>請確認輸入資料正確，避免無法查詢團體名冊。</p>
+          </div>
+        </div>
 
-      <div className="form-footer">
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "寄送驗證碼中..." : "下一步"}
-        </button>
-      </div>
-    </form>
+        <div className="form-stack">
+          <div className="form-row">
+            <label htmlFor="groupCode">團體代碼</label>
+            <input
+              id="groupCode"
+              value={groupCode}
+              onChange={(e) => setGroupCode(e.target.value.toUpperCase())}
+              maxLength={10}
+              required
+              disabled={loading}
+              placeholder="請輸入 10 碼團體代碼，例如 AB12345678"
+            />
+            {groupError && <p className="form-error">{groupError}</p>}
+          </div>
+
+          <div className="form-row">
+            <label htmlFor="idNumber">身分證字號</label>
+            <input
+              id="idNumber"
+              value={idNumber}
+              onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
+              maxLength={10}
+              required
+              disabled={loading}
+              placeholder="請輸入 10 碼身分證字號"
+            />
+            {employeeWarning && (
+              <p className="form-warning">{employeeWarning}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="reservation-tip">
+          驗證通過後，系統會寄送一次性驗證碼，請至名冊登記的信箱查看。
+        </div>
+
+        <div className="form-footer">
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? "寄送驗證碼中..." : "下一步"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

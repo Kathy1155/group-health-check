@@ -14,9 +14,10 @@ import "./App.css";
 function App() {
   const location = useLocation();
 
-  // 只有這幾個 path 算是「流程中的步驟」
+  // OTP 是團體代碼驗證流程的一部分，所以也要算在流程內
   const stepPaths = [
     "/reserve",
+    "/otp",
     "/select-branch-package",
     "/select-slot",
     "/fill-profile",
@@ -36,6 +37,12 @@ function App() {
     (step) => step.path === location.pathname
   );
 
+  // OTP 頁面視為第 1 步「團體代碼」的一部分
+  if (location.pathname === "/otp") {
+    currentStepIndex = 0;
+  }
+
+  // 完成頁視為最後一步
   if (location.pathname === "/done") {
     currentStepIndex = steps.length - 1;
   }
@@ -55,7 +62,6 @@ function App() {
       <header className="app-header">
         <h1 className="app-title">線上預約</h1>
 
-        {/* 只有在流程中才顯示進度條 */}
         {inWizard && (
           <div className="progress-wrapper">
             <div className="progress-bar-bg">
@@ -69,14 +75,19 @@ function App() {
               {steps.map((step, index) => {
                 const isCurrent = index === currentStepIndex;
                 const isDone = index < currentStepIndex;
-                const color = isCurrent ? "#4caf50" : isDone ? "#333" : "#888";
+
+                const color = isCurrent
+                  ? "#2563eb"
+                  : isDone
+                    ? "#0f2742"
+                    : "#8a9aad";
 
                 return (
                   <span
                     key={step.path}
                     style={{
                       color,
-                      fontWeight: isCurrent ? 600 : 400,
+                      fontWeight: isCurrent ? 800 : 500,
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -90,9 +101,9 @@ function App() {
       </header>
 
       <Routes>
-        <Route path="/otp" element={<OtpVerifyPage />} />
         <Route path="/" element={<HomePage />} />
         <Route path="/reserve" element={<GroupCodePage />} />
+        <Route path="/otp" element={<OtpVerifyPage />} />
         <Route
           path="/select-branch-package"
           element={<SelectBranchPackagePage />}

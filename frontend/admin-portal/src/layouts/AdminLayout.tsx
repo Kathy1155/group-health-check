@@ -19,22 +19,6 @@ function getRole(): Role {
   return "admin";
 }
 
-// function getDisplayName() {
-//   return (
-//     localStorage.getItem("employeeDisplayName") ||
-//     localStorage.getItem("displayName") ||
-//     localStorage.getItem("name") ||
-//     ""
-//   );
-// }
-
-export default function AdminLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const role = getRole();
-
 function getDisplayName() {
   return (
     localStorage.getItem("employeeDisplayName") ||
@@ -44,8 +28,13 @@ function getDisplayName() {
   );
 }
 
-const USER_NAME = getDisplayName();
+export default function AdminLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  const role = getRole();
+  const USER_NAME = getDisplayName();
 
   const title = useMemo(() => {
     if (role === "business") return "團體健檢預約系統 - 業務中心後台";
@@ -81,7 +70,6 @@ const USER_NAME = getDisplayName();
       ];
     }
 
-    // admin（之後如果你要做總管理員再擴充）
     return [
       {
         title: "後台",
@@ -98,10 +86,11 @@ const USER_NAME = getDisplayName();
 
   const handleLogout = () => {
     setSidebarOpen(false);
-    // 只清後台登入相關資訊，避免你們 demo 其它資料被清掉
+
     localStorage.removeItem("role");
     localStorage.removeItem("adminRole");
     localStorage.removeItem("userRole");
+
     navigate("/admin/login");
   };
 
@@ -117,12 +106,52 @@ const USER_NAME = getDisplayName();
             type="button"
             className="hamburger-button"
             aria-label="開啟功能選單"
-            onClick={() => setSidebarOpen((p) => !p)}
+            onClick={() => setSidebarOpen((prev) => !prev)}
           >
             <span />
             <span />
             <span />
           </button>
+
+          <aside
+            className={`sidebar-flyout ${sidebarOpen ? "open" : ""}`}
+            aria-hidden={!sidebarOpen}
+          >
+            <nav className="sidebar-nav">
+              {navSections.map((section, idx) => (
+                <div key={idx} className="sidebar-section">
+                  <h3 className="sidebar-section-title">{section.title}</h3>
+
+                  {section.links.map((link) => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      className={({ isActive }) =>
+                        "sidebar-link" + (isActive ? " active" : "")
+                      }
+                      onClick={closeSidebar}
+                    >
+                      {link.label}
+                    </NavLink>
+                  ))}
+
+                  {idx < navSections.length - 1 && (
+                    <div className="sidebar-section-divider" />
+                  )}
+                </div>
+              ))}
+
+              <div className="sidebar-section-divider" />
+
+              <button
+                type="button"
+                className="sidebar-link sidebar-logout"
+                onClick={handleLogout}
+              >
+                登出
+              </button>
+            </nav>
+          </aside>
         </div>
 
         <div className="app-title-block">
@@ -131,48 +160,7 @@ const USER_NAME = getDisplayName();
             <div className="app-welcome">{USER_NAME} 歡迎您！</div>
           )}
         </div>
-
       </header>
-
-      <aside
-        className={`sidebar-flyout ${sidebarOpen ? "open" : ""}`}
-        aria-hidden={!sidebarOpen}
-      >
-        <nav className="sidebar-nav">
-          {navSections.map((section, idx) => (
-            <div key={idx} className="sidebar-section">
-              <h3 className="sidebar-section-title">{section.title}</h3>
-
-              {section.links.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={({ isActive }) =>
-                    "sidebar-link" + (isActive ? " active" : "")
-                  }
-                  onClick={closeSidebar}
-                >
-                  {link.label}
-                </NavLink>
-              ))}
-
-              {idx < navSections.length - 1 && (
-                <div className="sidebar-section-divider" />
-              )}
-            </div>
-          ))}
-
-          <div className="sidebar-section-divider" />
-
-          <button
-            type="button"
-            className="sidebar-link sidebar-logout"
-            onClick={handleLogout}
-          >
-            登出
-          </button>
-        </nav>
-      </aside>
 
       <main className="app-main">
         <Outlet key={location.pathname} />
