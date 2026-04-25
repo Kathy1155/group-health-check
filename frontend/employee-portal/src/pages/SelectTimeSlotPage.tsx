@@ -48,24 +48,35 @@ function SelectTimeSlotPage() {
     !state.packageName
   ) {
     return (
-      <div className="page-form">
-        <h2>資料遺失</h2>
-        <p>請從預約流程重新開始。</p>
-        <button type="button" onClick={() => navigate("/")}>
-          回首頁
-        </button>
+      <div className="reservation-page">
+        <div className="reservation-page-header">
+          <span className="page-badge">流程中斷</span>
+          <h1>資料遺失</h1>
+          <p>請從首頁重新開始預約流程。</p>
+        </div>
+
+        <div className="reservation-card">
+          <div className="reservation-card-header">
+            <h2>無法繼續預約</h2>
+            <p>系統沒有取得院區、套餐或團體資料。</p>
+          </div>
+
+          <div className="form-footer">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/")}
+            >
+              回首頁
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const {
-    group,
-    idNumber,
-    branchId,
-    branchName,
-    packageId,
-    packageName,
-  } = state;
+  const { group, idNumber, branchId, branchName, packageId, packageName } =
+    state;
 
   useEffect(() => {
     if (!date) {
@@ -149,80 +160,115 @@ function SelectTimeSlotPage() {
   };
 
   return (
-    <form onSubmit={handleNext} className="page-form">
-      <h2>步驟 3：選擇日期與時段</h2>
-      <p>團體名稱：{group.name}</p>
-      <p>預約院區：{branchName}</p>
-      <p>健檢套餐：{packageName}</p>
-
-      <div style={{ marginTop: "1rem" }}>
-        <label>
-          日期：
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setSelectedSlotId(null);
-              setSlot("");
-            }}
-            required
-            style={{ marginLeft: "0.5rem", padding: "0.4rem" }}
-          />
-        </label>
-      </div>
-
-      <div style={{ marginTop: "1rem" }}>
-        <label>
-          時段：
-          <select
-            value={selectedSlotId ?? ""}
-            onChange={(e) => {
-              const id = Number(e.target.value);
-              const selected = slots.find((s) => Number(s.slotId) === id);
-
-              setSelectedSlotId(id);
-              setSlot(selected ? formatSlotTime(selected.time) : "");
-            }}
-            required
-            disabled={!date || loadingSlots || slots.length === 0 || submitting}
-            style={{ marginLeft: "0.5rem", padding: "0.4rem" }}
-          >
-            <option value="">{renderSlotPlaceholder()}</option>
-            {slots.map((s) => (
-              <option key={s.slotId} value={s.slotId}>
-                {formatSlotTime(s.time)}（剩餘 {s.remaining} 位）
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {slotsError && date && (
-        <p style={{ color: "darkred", marginTop: "0.5rem" }}>
-          {slotsError}
+    <div className="reservation-page">
+      <div className="reservation-page-header">
+        <span className="page-badge">Step 3</span>
+        <h1>選擇健檢日期與時段</h1>
+        <p>
+          請選擇欲前往健檢的日期，系統會依照院區與套餐設定，
+          <br />
+          顯示該日期可預約的時段與剩餘名額。
         </p>
-      )}
-
-      <div className="form-footer">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handlePrev}
-          disabled={submitting}
-        >
-          上一步
-        </button>
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={!date || !slot || selectedSlotId == null || submitting}
-        >
-          {submitting ? "處理中..." : "下一步"}
-        </button>
       </div>
-    </form>
+
+      <form onSubmit={handleNext} className="reservation-card slot-card">
+        <div className="reservation-card-header">
+          <h2>時段預約資料</h2>
+          <p>請確認團體、院區與套餐資訊後，再選擇日期與時段。</p>
+        </div>
+
+        <div className="slot-content">
+          <section className="slot-summary-panel">
+            <h3>目前預約項目</h3>
+
+            <div className="summary-list">
+              <div className="summary-item">
+                <span>團體名稱</span>
+                <strong>{group.name}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>預約院區</span>
+                <strong>{branchName}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>健檢套餐</span>
+                <strong>{packageName}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="slot-select-panel">
+            <div className="form-row">
+              <label htmlFor="date">健檢日期</label>
+              <input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setSelectedSlotId(null);
+                  setSlot("");
+                }}
+                required
+              />
+            </div>
+
+            <div className="form-row">
+              <label htmlFor="slot">健檢時段</label>
+              <select
+                id="slot"
+                value={selectedSlotId ?? ""}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  const selected = slots.find((s) => Number(s.slotId) === id);
+
+                  setSelectedSlotId(id);
+                  setSlot(selected ? formatSlotTime(selected.time) : "");
+                }}
+                required
+                disabled={
+                  !date || loadingSlots || slots.length === 0 || submitting
+                }
+              >
+                <option value="">{renderSlotPlaceholder()}</option>
+                {slots.map((s) => (
+                  <option key={s.slotId} value={s.slotId}>
+                    {formatSlotTime(s.time)}（剩餘 {s.remaining} 位）
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {slotsError && date && <p className="form-error">{slotsError}</p>}
+
+            <div className="reservation-tip slot-tip">
+              選擇時段後系統會暫時保留名額，請於後續流程完成資料填寫。
+            </div>
+          </section>
+        </div>
+
+        <div className="form-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handlePrev}
+            disabled={submitting}
+          >
+            上一步
+          </button>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!date || !slot || selectedSlotId == null || submitting}
+          >
+            {submitting ? "處理中..." : "下一步"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

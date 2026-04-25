@@ -27,12 +27,29 @@ function SelectBranchPackagePage() {
     console.error("缺少必要 state:", state);
 
     return (
-      <div className="page-form">
-        <h2>預約流程中斷</h2>
-        <p>缺少必要資料，請從首頁重新開始預約。</p>
-        <button type="button" onClick={() => navigate("/")}>
-          回首頁
-        </button>
+      <div className="reservation-page">
+        <div className="reservation-page-header">
+          <span className="page-badge">流程中斷</span>
+          <h1>預約流程中斷</h1>
+          <p>缺少必要資料，請從首頁重新開始預約。</p>
+        </div>
+
+        <div className="reservation-card">
+          <div className="reservation-card-header">
+            <h2>無法繼續預約</h2>
+            <p>系統沒有取得團體與身分驗證資料。</p>
+          </div>
+
+          <div className="form-footer">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/")}
+            >
+              回首頁
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -73,9 +90,35 @@ function SelectBranchPackagePage() {
       });
   }, [group]);
 
-  if (loading) return <p>載入中...</p>;
-  if (error) return <p>{error}</p>;
-  if (!options) return <p>沒有資料</p>;
+  if (loading) {
+    return (
+      <div className="reservation-page">
+        <div className="reservation-card reservation-status-card">
+          載入院區與套餐資料中...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="reservation-page">
+        <div className="reservation-card reservation-status-card form-error">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!options) {
+    return (
+      <div className="reservation-page">
+        <div className="reservation-card reservation-status-card">
+          沒有資料
+        </div>
+      </div>
+    );
+  }
 
   const branches = options.branches;
 
@@ -117,100 +160,118 @@ function SelectBranchPackagePage() {
   };
 
   return (
-    <form onSubmit={handleNext} className="sbp-form">
-      <h2>步驟 2：選擇院區與健檢套餐</h2>
-      <p>團體名稱：{group.name}</p>
-
-      <div className="sbp-layout">
-        <div className="sbp-left">
-          <label className="sbp-label">
-            院區：
-            <select
-              value={selectedBranchId}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSelectedBranchId(value ? Number(value) : "");
-                setSelectedPackageId(null);
-              }}
-              className="sbp-select"
-              required
-            >
-              <option value="">請選擇院區</option>
-              {branches.map((b) => (
-                <option key={String(b.branchId)} value={String(b.branchId)}>
-                  {b.branchName}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <p className="sbp-description">
-            請先選擇欲前往的院區，下方會依院區顯示可施作的健檢套餐。
-          </p>
-        </div>
-
-        <div className="sbp-form page-form">
-          <div className="sbp-packages-header">
-            <span>可選健檢套餐</span>
-            <span className="sbp-branch-label">
-              {currentBranch
-                ? `目前院區：${currentBranch.branchName}`
-                : "尚未選擇院區"}
-            </span>
-          </div>
-
-          <div className="sbp-packages">
-            {!currentBranch && (
-              <p className="sbp-hint">請先在左側選擇院區。</p>
-            )}
-
-            {currentBranch && currentBranch.packages.length === 0 && (
-              <p className="sbp-hint">此院區目前沒有可預約的健檢套餐。</p>
-            )}
-
-            {currentBranch &&
-              currentBranch.packages.map((p) => {
-                const active = Number(selectedPackageId) === Number(p.packageId);
-
-                return (
-                  <button
-                    key={String(p.packageId)}
-                    type="button"
-                    className={[
-                      "sbp-package-btn",
-                      "sbp-package-btn--available",
-                      active ? "sbp-package-btn--active" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => setSelectedPackageId(Number(p.packageId))}
-                  >
-                    <div className="sbp-package-main">{p.packageName}</div>
-                    <div className="sbp-package-sub"></div>
-                  </button>
-                );
-              })}
-          </div>
-        </div>
+    <div className="reservation-page">
+      <div className="reservation-page-header">
+        <span className="page-badge">Step 2</span>
+        <h1>選擇院區與健檢套餐</h1>
+        <p>
+          請選擇欲前往的健檢院區，系統會依照團體設定，
+          <br />
+          顯示該院區可預約的健檢套餐。
+        </p>
       </div>
 
-      <div className="form-footer">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handlePrev}
-        >
-          上一步
-        </button>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={!selectedBranchId || !selectedPackageId}
-        >
-          下一步
-        </button>
-      </div>
-    </form>
+      <form onSubmit={handleNext} className="reservation-card branch-card">
+        <div className="reservation-card-header">
+          <h2>預約項目選擇</h2>
+          <p>團體名稱：{group.name}</p>
+        </div>
+
+        <div className="branch-package-content">
+          <div className="branch-select-panel">
+            <div className="form-row">
+              <label htmlFor="branch">院區</label>
+              <select
+                id="branch"
+                value={selectedBranchId}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedBranchId(value ? Number(value) : "");
+                  setSelectedPackageId(null);
+                }}
+                required
+              >
+                <option value="">請選擇院區</option>
+                {branches.map((b) => (
+                  <option key={String(b.branchId)} value={String(b.branchId)}>
+                    {b.branchName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="reservation-tip branch-tip">
+              請先選擇欲前往的院區，右方會依院區顯示可施作的健檢套餐。
+            </div>
+          </div>
+
+          <div className="package-panel">
+            <div className="package-panel-header">
+              <div>
+                <h3>可選健檢套餐</h3>
+                <p>
+                  {currentBranch
+                    ? `目前院區：${currentBranch.branchName}`
+                    : "尚未選擇院區"}
+                </p>
+              </div>
+            </div>
+
+            <div className="package-list">
+              {!currentBranch && (
+                <p className="package-empty">請先在上方選擇院區。</p>
+              )}
+
+              {currentBranch && currentBranch.packages.length === 0 && (
+                <p className="package-empty">
+                  此院區目前沒有可預約的健檢套餐。
+                </p>
+              )}
+
+              {currentBranch &&
+                currentBranch.packages.map((p) => {
+                  const active =
+                    Number(selectedPackageId) === Number(p.packageId);
+
+                  return (
+                    <button
+                      key={String(p.packageId)}
+                      type="button"
+                      className={
+                        active
+                          ? "package-option package-option-active"
+                          : "package-option"
+                      }
+                      onClick={() => setSelectedPackageId(Number(p.packageId))}
+                    >
+                      <span>{p.packageName}</span>
+                      <small>{active ? "已選擇" : "點選此套餐"}</small>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        <div className="form-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handlePrev}
+          >
+            上一步
+          </button>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!selectedBranchId || !selectedPackageId}
+          >
+            下一步
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

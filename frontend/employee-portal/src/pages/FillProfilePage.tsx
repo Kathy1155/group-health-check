@@ -50,12 +50,29 @@ function FillProfilePage() {
     fromSlot.reservationId == null
   ) {
     return (
-      <div className="page-form">
-        <h2>預約流程中斷</h2>
-        <p>預約資訊遺失，請從首頁重新開始預約。</p>
-        <button type="button" onClick={() => navigate("/")}>
-          回首頁
-        </button>
+      <div className="reservation-page">
+        <div className="reservation-page-header">
+          <span className="page-badge">流程中斷</span>
+          <h1>預約流程中斷</h1>
+          <p>預約資訊遺失，請從首頁重新開始預約。</p>
+        </div>
+
+        <div className="reservation-card">
+          <div className="reservation-card-header">
+            <h2>無法繼續預約</h2>
+            <p>系統沒有取得完整的預約資料。</p>
+          </div>
+
+          <div className="form-footer">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/")}
+            >
+              回首頁
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -207,143 +224,193 @@ function FillProfilePage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="page-form">
-      <h2>步驟 4：確認基本資料與填寫病史</h2>
-      <p>預約院區：{branchName}</p>
-      <p>健檢套餐：{packageName}</p>
-
-      <section className="form-section">
-        <h3>一、個人基本資料</h3>
-
-        <p className="form-hint">
-          以下資料由團體名冊帶入，無法於線上修改。若資料有誤，請告知團體聯絡人或至現場櫃檯協助更正。
+    <div className="reservation-page">
+      <div className="reservation-page-header">
+        <span className="page-badge">Step 4</span>
+        <h1>確認基本資料與填寫病史</h1>
+        <p>
+          請確認個人基本資料與預約資訊，
+          <br />
+          並補充必要的個人病史後送出預約。
         </p>
-
-        {loadingProfile && <p className="form-hint">名冊資料載入中…</p>}
-
-        {profileError && (
-          <p className="form-hint" style={{ color: "#b00020" }}>
-            {profileError}
-          </p>
-        )}
-
-        <div className="form-grid">
-          <label>團體代碼</label>
-          <input value={personalInfo.groupCode} disabled />
-
-          <label>姓名</label>
-          <input value={personalInfo.name} disabled required />
-
-          <label>身分證字號</label>
-          <input value={personalInfo.idNumber} disabled />
-
-          <label>聯絡電話</label>
-          <input value={personalInfo.phone} disabled required />
-
-          <label>生日</label>
-          <input type="date" value={personalInfo.birthday} disabled required />
-        </div>
-      </section>
-
-      <section className="form-section">
-        <h3>二、個人病史</h3>
-        <div className="form-stack">
-          <div className="form-row">
-            <label>血型</label>
-            <select
-              value={medicalHistory.bloodType}
-              onChange={(e) => handleHistoryChange("bloodType", e.target.value)}
-            >
-              <option value="">請選擇</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="O">O</option>
-              <option value="AB">AB</option>
-              <option value="unknown">不清楚</option>
-            </select>
-          </div>
-
-          <div className="form-row">
-            <label>飲食習慣</label>
-            <select
-              value={medicalHistory.dietaryPreference}
-              onChange={(e) =>
-                handleHistoryChange("dietaryPreference", e.target.value)
-              }
-            >
-              <option value="">請選擇</option>
-              <option value="葷">葷</option>
-              <option value="素">素</option>
-            </select>
-          </div>
-
-          <div className="form-row">
-            <label>過敏史</label>
-            <input
-              value={medicalHistory.allergy}
-              onChange={(e) => handleHistoryChange("allergy", e.target.value)}
-              placeholder="例：海鮮、花生、藥物（無則免填）"
-            />
-          </div>
-
-          <div className="form-row">
-            <label>家族病史</label>
-            <input
-              value={medicalHistory.familyHistory}
-              onChange={(e) =>
-                handleHistoryChange("familyHistory", e.target.value)
-              }
-              placeholder="例：父親高血壓、母親糖尿病（無則免填）"
-            />
-          </div>
-
-          <div className="form-row">
-            <label>慢性疾病</label>
-            <input
-              value={medicalHistory.chronicDisease}
-              onChange={(e) =>
-                handleHistoryChange("chronicDisease", e.target.value)
-              }
-              placeholder="例：高血壓、糖尿病、氣喘（無則免填）"
-            />
-          </div>
-
-          <div className="form-row">
-            <label>服用藥物</label>
-            <textarea
-              value={medicalHistory.medication}
-              onChange={(e) => handleHistoryChange("medication", e.target.value)}
-              placeholder="例：血壓藥、胰島素、長期用藥（無則免填）"
-            />
-          </div>
-        </div>
-      </section>
-
-      {submitError && (
-        <p className="form-hint" style={{ color: "#b00020" }}>
-          {submitError}
-        </p>
-      )}
-
-      <div className="form-footer">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handlePrev}
-          disabled={submitting}
-        >
-          上一步
-        </button>
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loadingProfile || submitting || !!profileError}
-        >
-          {submitting ? "送出中..." : "送出預約"}
-        </button>
       </div>
-    </form>
+
+      <form onSubmit={handleSubmit} className="reservation-card profile-card">
+        <div className="reservation-card-header">
+          <h2>預約送出前確認</h2>
+          <p>基本資料由團體名冊帶入，若資料有誤請聯絡團體窗口或現場櫃檯。</p>
+        </div>
+
+        <div className="profile-content">
+          <section className="profile-panel">
+            <h3>目前預約資訊</h3>
+
+            <div className="summary-list">
+              <div className="summary-item">
+                <span>預約院區</span>
+                <strong>{branchName}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>健檢套餐</span>
+                <strong>{packageName}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>健檢日期</span>
+                <strong>{date}</strong>
+              </div>
+
+              <div className="summary-item">
+                <span>健檢時段</span>
+                <strong>{slot}</strong>
+              </div>
+            </div>
+
+            <h3 className="profile-section-title">個人基本資料</h3>
+
+            {loadingProfile && <p className="form-hint">名冊資料載入中…</p>}
+
+            {profileError && <p className="form-error">{profileError}</p>}
+
+            <div className="profile-readonly-list">
+              <div className="readonly-item">
+                <span>團體代碼</span>
+                <strong>{personalInfo.groupCode}</strong>
+              </div>
+
+              <div className="readonly-item">
+                <span>姓名</span>
+                <strong>{personalInfo.name}</strong>
+              </div>
+
+              <div className="readonly-item">
+                <span>身分證字號</span>
+                <strong>{personalInfo.idNumber}</strong>
+              </div>
+
+              <div className="readonly-item">
+                <span>聯絡電話</span>
+                <strong>{personalInfo.phone}</strong>
+              </div>
+
+              <div className="readonly-item">
+                <span>生日</span>
+                <strong>{personalInfo.birthday}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="profile-panel">
+            <h3>個人病史</h3>
+
+            <div className="form-stack profile-form-stack">
+              <div className="form-row">
+                <label htmlFor="bloodType">血型</label>
+                <select
+                  id="bloodType"
+                  value={medicalHistory.bloodType}
+                  onChange={(e) =>
+                    handleHistoryChange("bloodType", e.target.value)
+                  }
+                >
+                  <option value="">請選擇</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="O">O</option>
+                  <option value="AB">AB</option>
+                  <option value="unknown">不清楚</option>
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="dietaryPreference">飲食習慣</label>
+                <select
+                  id="dietaryPreference"
+                  value={medicalHistory.dietaryPreference}
+                  onChange={(e) =>
+                    handleHistoryChange("dietaryPreference", e.target.value)
+                  }
+                >
+                  <option value="">請選擇</option>
+                  <option value="葷">葷</option>
+                  <option value="素">素</option>
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="allergy">過敏史</label>
+                <input
+                  id="allergy"
+                  value={medicalHistory.allergy}
+                  onChange={(e) =>
+                    handleHistoryChange("allergy", e.target.value)
+                  }
+                  placeholder="例：海鮮、花生、藥物（無則免填）"
+                />
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="familyHistory">家族病史</label>
+                <input
+                  id="familyHistory"
+                  value={medicalHistory.familyHistory}
+                  onChange={(e) =>
+                    handleHistoryChange("familyHistory", e.target.value)
+                  }
+                  placeholder="例：父親高血壓、母親糖尿病（無則免填）"
+                />
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="chronicDisease">慢性疾病</label>
+                <input
+                  id="chronicDisease"
+                  value={medicalHistory.chronicDisease}
+                  onChange={(e) =>
+                    handleHistoryChange("chronicDisease", e.target.value)
+                  }
+                  placeholder="例：高血壓、糖尿病、氣喘（無則免填）"
+                />
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="medication">服用藥物</label>
+                <textarea
+                  id="medication"
+                  value={medicalHistory.medication}
+                  onChange={(e) =>
+                    handleHistoryChange("medication", e.target.value)
+                  }
+                  placeholder="例：血壓藥、胰島素、長期用藥（無則免填）"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {submitError && <p className="profile-submit-error">{submitError}</p>}
+
+        <div className="form-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handlePrev}
+            disabled={submitting}
+          >
+            上一步
+          </button>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loadingProfile || submitting || !!profileError}
+          >
+            {submitting ? "送出中..." : "送出預約"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

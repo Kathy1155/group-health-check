@@ -1,96 +1,615 @@
-/* 根容器 */
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* =========================
+   全域版面
+========================= */
+
+html {
+  font-size: 17px;
 }
 
-/* App 外層容器 */
+body {
+  color: #102a43;
+}
+
+#root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 .app-container {
-  max-width: 960px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 2rem 1.5rem;
   text-align: left;
 }
 
-/* Header 區塊 */
 .app-header {
-  margin-bottom: 2rem;      /* 標題區和下面內容拉開一點 */
+  margin-bottom: 2rem;
 }
 
 .app-title {
-  margin: 0;
+  margin: 0 0 0.75rem;
+  color: #0f2742;
   font-size: 1.4rem;
-  margin-bottom: 0.75rem;   /* 標題和進度條拉開 */
 }
 
-/* 進度條外層容器 */
+
+/* =========================
+   進度條
+========================= */
+
 .progress-wrapper {
   margin-top: 0.25rem;
 }
 
-/* 上方灰底條 */
 .progress-bar-bg {
   height: 8px;
-  background-color: #eee;
-  border-radius: 4px;
+  background-color: #e5e7eb;
+  border-radius: 999px;
   overflow: hidden;
 }
 
-/* 綠色進度條 */
 .progress-bar-fill {
   height: 100%;
-  background-color: #4caf50;
+  background: linear-gradient(90deg, #2563eb, #0b74d1);
   transition: width 0.3s ease;
 }
 
-/* 下方步驟文字列 */
 .progress-steps {
   display: flex;
   justify-content: space-between;
-  margin-top: 24px;         /* 進度條與文字之間的距離 → 整個系統共用 */
+  margin-top: 24px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+
+/* =========================
+   共用按鈕
+========================= */
+
+.btn {
+  min-height: 46px;
+  padding: 0.6rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2f80ed, #1d4ed8);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d6fe8, #1e40af);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #bcd0e0;
+  color: #ffffff;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #1d4ed8;
+  border-color: #9bbfec;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.form-footer {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+
+/* =========================
+   首頁 HomePage
+========================= */
+
+.home-page {
+  width: 100%;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 2rem;
+  align-items: stretch;
+  min-height: 420px;
+  padding: 2.5rem;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 34%),
+    linear-gradient(135deg, #f7fbff 0%, #eef6ff 48%, #ffffff 100%);
+  border: 1px solid #dbe7f6;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+.home-hero-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.home-brand-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  padding: 0.35rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #d7e6f7;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.08);
+}
+
+.home-brand-subtitle {
+  margin: 0;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home-brand-title {
+  margin: 0.25rem 0 0;
+  color: #102a43;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.page-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 0.55rem 1.15rem;
+  margin-bottom: 1.25rem;
+  border-radius: 999px;
+  background-color: #e8f2ff;
+  color: #0b63ce;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.home-title {
+  margin: 0;
+  color: #0f2742;
+  font-size: clamp(2.4rem, 4.3vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0.02em;
+}
+
+.home-description {
+  max-width: 620px;
+  margin: 1.25rem 0 0;
+  color: #425b76;
+  font-size: 1.05rem;
+  line-height: 1.9;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.home-main-btn {
+  min-width: 145px;
+  height: 54px;
+  border-radius: 14px;
+  font-size: 1rem;
+}
+
+.home-note {
+  margin: 1.25rem 0 0;
+  color: #6b7f95;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.home-info-panel {
+  align-self: center;
+  padding: 2rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #cfe0f3;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.home-info-kicker {
+  margin: 0 0 0.6rem;
+  color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home-info-panel h2 {
+  margin: 0 0 1.25rem;
+  color: #0f2742;
+  font-size: 1.55rem;
+}
+
+.home-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.home-info-item {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: 16px;
+  background: #f6faff;
+  border: 1px solid #e1edf8;
+}
+
+.home-info-item span {
+  flex: 0 0 auto;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.home-info-item p {
+  margin: 0;
+  color: #4d647d;
+  line-height: 1.7;
+}
+
+.home-process-card {
+  margin-top: 1.75rem;
+  padding: 2rem;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid #dfe8f3;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.06);
+}
+
+.section-title-row h2 {
+  margin: 0.25rem 0 0;
+  color: #0f2742;
+  font-size: 1.55rem;
+}
+
+.section-kicker {
+  color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.process-item {
+  padding: 1.25rem;
+  border-radius: 18px;
+  background: #f8fbff;
+  border: 1px solid #e2ecf7;
+}
+
+.process-number {
+  display: inline-block;
+  margin-bottom: 0.7rem;
+  color: #2563eb;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.process-item h3 {
+  margin: 0 0 0.5rem;
+  color: #132f4c;
+  font-size: 1.05rem;
+}
+
+.process-item p {
+  margin: 0;
+  color: #5c7188;
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+
+/* =========================
+   預約流程共用頁面
+========================= */
+
+.reservation-page {
+  width: 100%;
+}
+
+.reservation-page-header {
+  margin: 0 0 2rem;
+  text-align: center;
+}
+
+.reservation-page-header .page-badge {
+  margin-bottom: 1rem;
+  font-size: 1.08rem;
+  padding: 0.6rem 1.25rem;
+}
+
+.reservation-page-header h1 {
+  margin: 1.1rem 0;
+  color: #0f2742;
+  font-size: clamp(2.6rem, 4vw, 3.7rem);
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.reservation-page-header p {
+  max-width: 1080px;
+  margin: 0 auto;
+  color: #405a75;
+  font-size: 1.25rem;
+  line-height: 2;
+  word-break: keep-all;
+}
+
+.reservation-card {
+  max-width: 860px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid #dbe7f6;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
+}
+
+.reservation-card-header {
+  padding: 1.75rem 2rem;
+  background: linear-gradient(135deg, #f7fbff 0%, #eef6ff 100%);
+  border-bottom: 1px solid #e2edf8;
+}
+
+.reservation-card-header h2 {
+  margin: 0;
+  color: #0f2742;
+  font-size: 1.8rem;
+  font-weight: 850;
+}
+
+.reservation-card-header p {
+  margin: 0.55rem 0 0;
+  color: #5f748b;
+  font-size: 1.15rem;
+  line-height: 1.7;
+}
+
+.form-stack {
+  max-width: 720px;
+}
+
+.form-row {
+  margin-bottom: 1.15rem;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #102a43;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.reservation-card .form-stack {
+  max-width: none;
+  padding: 2rem 2.5rem 0;
+}
+
+.reservation-card input,
+.reservation-card select,
+.reservation-card textarea {
+  width: 100%;
+  max-width: 100%;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 0.85rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid #c9d8e8;
+  outline: none;
+  background: #ffffff;
+  color: #102a43;
+  font-size: 1.12rem;
+}
+
+.reservation-card input:focus,
+.reservation-card select:focus,
+.reservation-card textarea:focus {
+  border-color: #2f80ed;
+  box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.14);
+}
+
+.reservation-card input:disabled,
+.reservation-card select:disabled,
+.reservation-card textarea:disabled {
+  background: #f6f7f9;
+  color: #444;
+  border-color: #e2e2e2;
+}
+
+.reservation-card input::placeholder,
+.reservation-card textarea::placeholder {
+  color: #8fa1b5;
+  font-size: 1rem;
+}
+
+.form-error {
+  margin: 0.45rem 0 0;
+  color: #dc2626;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.form-warning {
+  margin: 0.45rem 0 0;
+  color: #d97706;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.reservation-tip {
+  margin: 0.5rem 2.5rem 0;
+  padding: 1rem 1.25rem;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  color: #506984;
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.reservation-card .form-footer {
+  margin-top: 0;
+  padding: 1.5rem 2.5rem 2rem;
+  justify-content: flex-end;
+}
+
+.reservation-card .btn {
+  min-width: 132px;
+  height: 50px;
+  border-radius: 14px;
+  font-size: 1.12rem;
+}
+
+
+/* =========================
+   一般 page-form 舊頁面共用
+   其他還沒改版的頁面會用到
+========================= */
+
+.page-form {
+  margin-top: 1rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+}
+
+.page-form h2 {
+  margin: 0 0 1rem;
+  color: #0f2742;
+  font-size: 1.35rem;
+}
+
+.page-form h3 {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.form-hint {
+  margin: 0.25rem 0 1rem;
+  color: #666666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.form-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.form-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  max-width: 720px;
+}
+
+.form-grid label {
+  font-weight: 600;
+  color: #333333;
+}
+
+.page-form input,
+.page-form select,
+.page-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  outline: none;
+  background: #ffffff;
+  font-size: 0.95rem;
+}
+
+.page-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.page-form input:focus,
+.page-form select:focus,
+.page-form textarea:focus {
+  border-color: #66afe9;
+  box-shadow: 0 0 0 3px rgba(102, 175, 233, 0.18);
+}
+
+.page-form input:disabled,
+.page-form select:disabled,
+.page-form textarea:disabled {
+  background: #f6f7f9;
+  color: #444444;
+  border-color: #e2e2e2;
+}
+
+.page-form input::placeholder,
+.page-form textarea::placeholder {
+  color: #999999;
   font-size: 0.85rem;
 }
 
-/* 以下是你原本 Vite 模板的東西，保留也沒差，只是目前用不到 */
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-/* SelectBranchPackagePage 版面 */
+/* =========================
+   SelectBranchPackagePage
+========================= */
 
 .sbp-form {
   margin-top: 1rem;
@@ -110,36 +629,34 @@
 
 .sbp-label {
   display: block;
-  font-weight: 600;
   margin-bottom: 0.25rem;
+  font-weight: 600;
 }
 
 .sbp-select {
   display: block;
+  min-width: 180px;
   margin-top: 0.25rem;
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
-  border: 1px solid #ccc;
-  min-width: 180px;
+  border: 1px solid #cccccc;
 }
 
 .sbp-description {
   margin-top: 0.5rem;
+  color: #666666;
   font-size: 0.85rem;
-  color: #666;
 }
-
-/* 右側區塊 */
 
 .sbp-packages-header {
   display: flex;
   justify-content: space-between;
-  font-size: 0.9rem;
   margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .sbp-branch-label {
-  color: #555;
+  color: #555555;
 }
 
 .sbp-packages {
@@ -149,18 +666,16 @@
 }
 
 .sbp-hint {
+  color: #888888;
   font-size: 0.85rem;
-  color: #888;
 }
-
-/* 套餐按鈕 */
 
 .sbp-package-btn {
   width: 100%;
-  text-align: left;
   padding: 0.45rem 0.6rem;
+  text-align: left;
   border-radius: 6px;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   background-color: #f7f7f7;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -191,191 +706,1036 @@
 }
 
 .sbp-package-sub {
+  color: #777777;
   font-size: 0.78rem;
-  color: #777;
 }
 
-/* 底部按鈕列（可讓上下步按鈕置中且留間距） */
-.sbp-footer,
-.form-footer {
+.sbp-footer {
   margin-top: 1.5rem;
   display: flex;
   gap: 1rem;
   justify-content: center;
 }
 
-/* 通用按鈕基底樣式 */
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+
+/* =========================
+   響應式
+========================= */
+
+@media (max-width: 900px) {
+
+  .home-hero {
+    grid-template-columns: 1fr;
+    padding: 2rem;
+  }
+
+  .home-info-panel {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .process-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Step 2：選院區與套餐，平板以下改上下排列 */
+  .branch-package-content {
+    grid-template-columns: 1fr;
+  }
+
+  /* Step 3：選日期與時段，平板以下改上下排列 */
+  .slot-content {
+    grid-template-columns: 1fr;
+  }
+
+  /* 舊版 SelectBranchPackagePage 若還有用到，先保留 */
+  .sbp-layout {
+    flex-direction: column;
+  }
 }
 
-/* 主要按鈕（下一步）——藍色 */
-.btn-primary {
-  background-color: #007bff; /* 藍色 */
-  color: #fff;
+@media (max-width: 600px) {
+
+  .done-content {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
-/* hover：深藍色 */
-.btn-primary:hover:not(:disabled) {
-  background-color: #0056b3; /* 深藍色 */
-  transform: translateY(-1px);
+.done-info-grid {
+  grid-template-columns: 1fr;
 }
 
-/* disabled：淡藍灰色 */
-.btn-primary:disabled {
-  background-color: #bcd0e0;
-  cursor: not-allowed;
-  transform: none;
+.done-actions {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  justify-content: stretch;
 }
 
-/* 次要按鈕：例如「上一步」、「取消」 */
-.btn-secondary {
-  background-color: #eee;
-  color: #333;
-  border: 1px solid #aaa;
+.done-actions .btn {
+  width: 100%;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: #e0e0e0;
-  transform: translateY(-1px);
+.profile-content {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
-/* 每一頁表單頂部與進度條的距離統一 */
-.page-form {
-  margin-top: 1rem;
-}
-/* ===== 表單共用美化（employee-portal）===== */
-
-.page-form {
-  margin-top: 1rem;
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 1.5rem 1.75rem;
+.profile-panel {
+  padding: 1.25rem;
 }
 
-.page-form h2 {
-  margin: 0 0 1rem 0;
-  font-size: 1.35rem;
+.summary-list,
+.profile-readonly-list,
+.profile-form-stack {
+  grid-template-columns: 1fr;
 }
 
-.page-form h3 {
-  margin: 1.25rem 0 0.75rem;
-  font-size: 1.05rem;
+.profile-submit-error {
+  margin-left: 1.25rem;
+  margin-right: 1.25rem;
 }
+  .app-container {
+    padding: 1rem;
+  }
 
-.form-hint {
-  font-size: 0.9rem;
-  color: #666;
-  margin: 0.25rem 0 1rem;
-  line-height: 1.5;
-}
+  .home-hero {
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
 
-/* 區塊視覺分隔 */
-.form-section {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #f0f0f0;
-}
-.form-section:first-of-type {
-  border-top: none;
+  .home-actions {
+    flex-direction: column;
+  }
+
+  .home-main-btn {
+    width: 100%;
+  }
+
+  .process-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-process-card {
+    padding: 1.5rem;
+  }
+
+  .reservation-page-header {
+    text-align: left;
+  }
+
+  .reservation-page-header h1 {
+    font-size: 2.15rem;
+  }
+
+  .reservation-page-header p {
+    font-size: 1.05rem;
+  }
+
+  .reservation-card {
+    border-radius: 20px;
+  }
+
+  .reservation-card-header,
+  .reservation-card .form-stack,
+  .reservation-card .form-footer {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .reservation-tip {
+    margin-left: 1.25rem;
+    margin-right: 1.25rem;
+  }
+
+  /* Step 2：手機版左右內距 */
+  .branch-package-content {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .package-panel {
+    padding: 1.25rem;
+  }
+
+  /* Step 3：手機版左右內距 */
+  .slot-content {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .slot-summary-panel,
+  .slot-select-panel {
+    padding: 1.25rem;
+  }
+
+  .reservation-card .form-footer {
+    justify-content: stretch;
+  }
+
+  .reservation-card .btn {
+    width: 100%;
+  }
+
+  /* 確認信結果頁：手機版 */
+.action-result-page {
   padding-top: 0;
 }
 
-/* 一行一欄位：左 label、右 input */
-.form-grid {
+.action-result-hero {
+  text-align: left;
+  margin-bottom: 1.25rem;
+}
+
+.action-result-hero .page-badge {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.action-result-icon {
+  width: 52px;
+  height: 52px;
+  font-size: 1.7rem;
+}
+
+.action-result-hero h1 {
+  font-size: 2rem;
+}
+
+.action-result-hero p {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.action-result-content {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.action-result-card {
+  max-width: 100%;
+}
+
+.action-result-tip {
+  font-size: 0.98rem;
+}
+}
+
+/* =========================
+   OTP 驗證頁
+========================= */
+
+.otp-card {
+  max-width: 760px;
+}
+
+.otp-countdown {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 1.15rem;
+  font-weight: 850;
+}
+
+.otp-countdown.expired {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #dc2626;
+}
+
+.otp-card input {
+  letter-spacing: 0.18em;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* =========================
+   Step 2 選擇院區與套餐：左右版
+========================= */
+
+.branch-card {
+  max-width: 1080px;
+}
+
+.branch-package-content {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 0.75rem 1rem;
-  align-items: center;
-  max-width: 720px;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 1.5rem;
+  align-items: start;
+  padding: 2rem 2.5rem 0;
 }
 
-.form-grid label {
-  font-weight: 600;
-  color: #333;
+.branch-select-panel {
+  margin-bottom: 0;
 }
 
-/* input/select/textarea 統一外觀 */
-.page-form input,
-.page-form select,
-.page-form textarea {
+.branch-select-panel .form-row {
+  margin-bottom: 1rem;
+}
+
+.branch-tip {
+  margin: 0;
+}
+
+.package-panel {
+  margin-top: 0;
+  padding: 1.5rem;
+  border-radius: 20px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  min-height: 230px;
+}
+
+.package-panel-header h3 {
+  margin: 0;
+  color: #0f2742;
+  font-size: 1.45rem;
+  font-weight: 850;
+}
+
+.package-panel-header p {
+  margin: 0.45rem 0 0;
+  color: #5f748b;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.package-list {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+}
+
+.package-empty {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px dashed #bfdbfe;
+  color: #506984;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.package-option {
   width: 100%;
-  box-sizing: border-box;
-  padding: 0.55rem 0.65rem;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  outline: none;
+  padding: 1.1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid #c9d8e8;
+  background: #ffffff;
+  color: #102a43;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.package-option:hover {
+  border-color: #2f80ed;
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.package-option span {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 850;
+}
+
+.package-option small {
+  display: block;
+  margin-top: 0.4rem;
+  color: #64748b;
   font-size: 0.95rem;
-  background: #fff;
 }
 
-.page-form textarea {
-  min-height: 92px;
-  resize: vertical;
+.package-option-active {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #eff6ff, #ffffff);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
 }
 
-.page-form input:focus,
-.page-form select:focus,
-.page-form textarea:focus {
-  border-color: #66afe9;
-  box-shadow: 0 0 0 3px rgba(102, 175, 233, 0.18);
+.package-option-active small {
+  color: #1d4ed8;
+  font-weight: 800;
 }
 
-/* 唯讀/disabled 更像「確認資料」 */
-.page-form input:disabled,
-.page-form select:disabled,
-.page-form textarea:disabled {
-  background: #f6f7f9;
-  color: #444;
-  border-color: #e2e2e2;
+.reservation-status-card {
+  max-width: 760px;
+  padding: 2rem;
+  color: #405a75;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
-/* 表單 footer 靠右更像一般系統 */
-.form-footer {
-  margin-top: 1.75rem;
+/* =========================
+   Step 3 選擇日期與時段
+========================= */
+
+.slot-card {
+  max-width: 1080px;
+}
+
+.slot-content {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 1.5rem;
+  align-items: start;
+  padding: 2rem 2.5rem 0;
+}
+
+.slot-summary-panel,
+.slot-select-panel {
+  padding: 1.5rem;
+  border-radius: 20px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.slot-summary-panel h3 {
+  margin: 0 0 1.25rem;
+  color: #0f2742;
+  font-size: 1.45rem;
+  font-weight: 850;
+}
+
+.summary-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.summary-item {
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2edf8;
+}
+
+.summary-item span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.summary-item strong {
+  display: block;
+  color: #102a43;
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+.slot-select-panel .form-row {
+  margin-bottom: 1.15rem;
+}
+
+.slot-tip {
+  margin: 1rem 0 0;
+}
+
+/* =========================
+   Step 4 確認資料與病史：直向版
+========================= */
+
+.profile-card {
+  max-width: 980px;
+}
+
+.profile-content {
+  display: block;
+  padding: 2rem 2.5rem 0;
+}
+
+.profile-panel {
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 20px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.profile-panel h3 {
+  margin: 0 0 1.25rem;
+  color: #0f2742;
+  font-size: 1.45rem;
+  font-weight: 850;
+}
+
+.profile-section-title {
+  margin-top: 2rem !important;
+}
+
+/* 預約資訊、個人基本資料改成卡片網格，比較好讀 */
+.summary-list,
+.profile-readonly-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.summary-item,
+.readonly-item {
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2edf8;
+}
+
+.summary-item span,
+.readonly-item span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.summary-item strong,
+.readonly-item strong {
+  display: block;
+  color: #102a43;
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+/* 病史表單不要太窄，統一撐滿 */
+.profile-form-stack {
+  max-width: none;
+}
+
+/* 病史欄位改成兩欄，文字輸入比較舒服 */
+.profile-form-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem 1.25rem;
+}
+
+.profile-form-stack .form-row {
+  margin-bottom: 0;
+}
+
+.profile-form-stack .form-row:last-child {
+  grid-column: 1 / -1;
+}
+
+.profile-form-stack textarea {
+  min-height: 110px;
+}
+
+.profile-submit-error {
+  margin: 1rem 2.5rem 0;
+  color: #dc2626;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* =========================
+   預約完成頁
+========================= */
+
+.done-hero {
+  text-align: center;
+  margin: 0 0 2rem;
+}
+
+.done-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 2.4rem;
+  font-weight: 900;
+  box-shadow: 0 14px 30px rgba(21, 128, 61, 0.14);
+}
+
+.done-hero .page-badge {
+  margin: 0 auto 1rem;
+}
+
+.done-hero h1 {
+  margin: 0 0 1rem;
+  color: #15803d;
+  font-size: clamp(2.6rem, 4vw, 3.8rem);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.done-hero p {
+  margin: 0 auto;
+  max-width: 760px;
+  color: #405a75;
+  font-size: 1.25rem;
+  line-height: 2;
+}
+
+.done-card {
+  max-width: 980px;
+}
+
+.done-content {
+  padding: 2rem 2.5rem 0;
+}
+
+.done-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.done-info-item {
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #e2edf8;
+}
+
+.done-info-highlight {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #eff6ff, #ffffff);
+  border-color: #bfdbfe;
+}
+
+.done-info-item span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.done-info-item strong {
+  display: block;
+  color: #102a43;
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+.done-info-highlight strong {
+  color: #1d4ed8;
+  font-size: 1.35rem;
+}
+
+.done-email-notice,
+.done-notice-card {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 20px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.done-email-notice h3,
+.done-notice-card h3 {
+  margin: 0 0 0.75rem;
+  color: #0f2742;
+  font-size: 1.45rem;
+  font-weight: 850;
+}
+
+.done-email-notice p {
+  margin: 0 0 1rem;
+  color: #506984;
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.done-success-text {
+  margin: 0.85rem 0 0;
+  color: #15803d;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.done-notice-card ul {
+  margin: 0;
+  padding-left: 1.3rem;
+  color: #405a75;
+  font-size: 1.05rem;
+  line-height: 2;
+}
+
+.done-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+  padding: 1.5rem 2.5rem 2rem;
 }
 
-/* 按鈕更像系統元件 */
-.btn {
-  padding: 0.55rem 1.1rem;
-  border-radius: 10px;
+/* =========================
+   確認信動作結果頁
+========================= */
+
+.action-result-page {
+  padding-top: 0.5rem;
+}
+
+.action-result-hero {
+  text-align: center;
+  margin: 0 0 1.5rem;
+}
+
+.action-result-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 0.9rem;
+  border-radius: 999px;
+  font-size: 1.9rem;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.action-result-success .action-result-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.action-result-warning .action-result-icon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.action-result-error .action-result-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.action-result-hero .page-badge {
+  margin: 0 auto 0.85rem;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+}
+
+.action-result-success .page-badge {
+  background: #e8f8ee;
+  color: #15803d;
+}
+
+.action-result-warning .page-badge {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.action-result-error .page-badge {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.action-result-hero h1 {
+  margin: 0 0 0.85rem;
+  color: #0f2742;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+.action-result-hero p {
+  max-width: 720px;
+  margin: 0 auto;
+  color: #405a75;
+  font-size: 1.08rem;
+  line-height: 1.8;
+}
+
+.action-result-card {
+  max-width: 760px;
+}
+
+.action-result-content {
+  padding: 1.5rem 2rem 0;
+}
+
+.action-result-tip {
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  color: #405a75;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* 確認信結果頁：再縮小 */
+.action-result-page {
+  padding-top: 0;
+}
+
+.action-result-hero {
+  margin: 0 0 1.25rem;
+}
+
+.action-result-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0.75rem;
+  font-size: 1.55rem;
+}
+
+.action-result-hero .page-badge {
+  margin: 0 auto 0.75rem;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.85rem;
+}
+
+.action-result-hero h1 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.65rem, 2.4vw, 2.25rem);
+  font-weight: 850;
+}
+
+.action-result-hero p {
+  max-width: 680px;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.action-result-card {
+  max-width: 680px;
+}
+
+.action-result-card .reservation-card-header {
+  padding: 1.35rem 1.6rem;
+}
+
+.action-result-card .reservation-card-header h2 {
+  font-size: 1.45rem;
+}
+
+.action-result-card .reservation-card-header p {
+  font-size: 1rem;
+}
+
+.action-result-content {
+  padding: 1.25rem 1.6rem 0;
+}
+
+.action-result-tip {
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.action-result-card .done-actions {
+  padding: 1.25rem 1.6rem 1.6rem;
+}
+
+.action-result-card .btn {
+  min-height: 42px;
+  padding: 0.5rem 1.05rem;
   font-size: 0.95rem;
 }
 
-.page-form input::placeholder,
-.page-form textarea::placeholder {
-  color: #999;
+/* ===== Employee Portal：整體尺寸微調（縮小版） ===== */
+
+.app-container {
+  max-width: 1040px;
+  padding: 1.25rem 1rem;
+}
+
+/* 上方進度列區 */
+.app-title {
+  font-size: 1.25rem;
+}
+
+.progress-steps {
+  font-size: 0.8rem;
+}
+
+/* 流程頁標題 */
+.reservation-page-header {
+  margin-bottom: 1.25rem;
+}
+
+.reservation-page-header .page-badge {
+  font-size: 0.82rem;
+  padding: 0.38rem 0.85rem;
+}
+
+.reservation-page-header h1 {
+  font-size: clamp(1.65rem, 2.5vw, 2.25rem);
+  margin: 0.65rem 0;
+  line-height: 1.25;
+}
+
+.reservation-page-header p {
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+/* 主卡片 */
+.reservation-card {
+  max-width: 800px;
+  border-radius: 18px;
+}
+
+.reservation-card-header {
+  padding: 1.15rem 1.5rem;
+}
+
+.reservation-card-header h2 {
+  font-size: 1.28rem;
+}
+
+.reservation-card-header p {
+  font-size: 0.92rem;
+}
+
+/* 表單 */
+.reservation-card .form-row label {
+  font-size: 0.92rem;
+}
+
+.reservation-card input,
+.reservation-card select,
+.reservation-card textarea {
+  min-height: 42px;
+  font-size: 0.95rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+}
+
+.reservation-tip {
+  font-size: 0.9rem;
+  padding: 0.75rem 0.9rem;
+}
+
+/* 按鈕 */
+.btn,
+.reservation-card .btn {
+  min-height: 40px;
+  padding: 0.48rem 1rem;
+  font-size: 0.92rem;
+  border-radius: 10px;
+}
+
+/* Step 2 / Step 3 / Step 4 內容區 */
+.branch-card,
+.slot-card,
+.profile-card,
+.done-card {
+  max-width: 860px;
+}
+
+.branch-package-content,
+.slot-content,
+.profile-content,
+.done-content {
+  padding: 1.25rem 1.5rem 0;
+  gap: 1rem;
+}
+
+.package-panel,
+.slot-summary-panel,
+.slot-select-panel,
+.profile-panel,
+.done-email-notice,
+.done-notice-card {
+  padding: 1rem;
+  border-radius: 16px;
+}
+
+.package-panel-header h3,
+.slot-summary-panel h3,
+.profile-panel h3,
+.done-email-notice h3,
+.done-notice-card h3 {
+  font-size: 1.12rem;
+}
+
+/* 小卡片文字 */
+.summary-item,
+.readonly-item,
+.done-info-item {
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+}
+
+.summary-item span,
+.readonly-item span,
+.done-info-item span {
   font-size: 0.85rem;
 }
-/* 病史：改成直向堆疊（每列 label 在上、欄位在下） */
-.form-stack {
-  max-width: 720px;
+
+.summary-item strong,
+.readonly-item strong,
+.done-info-item strong {
+  font-size: 0.95rem;
 }
 
-.form-row {
-  margin-bottom: 0.9rem;
+/* 首頁 */
+.home-hero {
+  min-height: 320px;
+  padding: 1.6rem;
+  border-radius: 20px;
 }
 
-.form-row label {
-  display: block;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 0.35rem;
+.home-title {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
 }
 
-.form-row input,
-.form-row select,
-.form-row textarea {
-  width: 100%;
+.home-description {
+  font-size: 0.95rem;
+  line-height: 1.7;
 }
 
+.home-main-btn {
+  height: 42px;
+  font-size: 0.9rem;
+}
+
+.home-process-card {
+  padding: 1.5rem;
+}
+
+.process-item {
+  padding: 1rem;
+}
+
+/* 完成頁 */
+.done-check {
+  width: 48px;
+  height: 48px;
+  font-size: 1.65rem;
+}
+
+.done-hero h1 {
+  font-size: clamp(1.75rem, 2.6vw, 2.4rem);
+}
+
+.done-hero p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.done-info-highlight strong {
+  font-size: 1.08rem;
+}
+
+/* 確認信結果頁 */
+.action-result-icon {
+  width: 42px;
+  height: 42px;
+  font-size: 1.35rem;
+}
+
+.action-result-hero h1 {
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+}
+
+.action-result-hero p {
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.action-result-card {
+  max-width: 620px;
+}
