@@ -8,12 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
-import { ReservationsService } from './reservations.service';
-import { CreateReservationDto } from './dto/update-reservation.dto';
-import { HoldReservationDto } from './dto/hold-reservation.dto';
-import { Res } from '@nestjs/common';
 import type { Response } from 'express';
+import { ReservationsService } from './reservations.service';
+import { HoldReservationDto } from './dto/hold-reservation.dto';
 
 @Controller('reservations')
 export class ReservationsController {
@@ -25,7 +24,6 @@ export class ReservationsController {
    */
   @Post()
   create(@Body() dto: any) {
-
     if (!dto.groupCode) {
       throw new BadRequestException('groupCode 為必填欄位');
     }
@@ -55,7 +53,6 @@ export class ReservationsController {
    */
   @Post('hold')
   hold(@Body() dto: HoldReservationDto) {
-
     if (!dto.groupCode) {
       throw new BadRequestException('groupCode 為必填欄位');
     }
@@ -80,87 +77,87 @@ export class ReservationsController {
     return this.reservationsService.findAllAdmin();
   }
 
-    /**
-     * GET /api/reservations/lookup?idNumber=xxx&lookupCode=ABCDEFGH
-     * 前台查詢預約時會呼叫這支 API
-     */
-    @Get('lookup')
-    lookupByIdAndLookupCode(
-      @Query('idNumber') idNumber: string,
-      @Query('lookupCode') lookupCode: string,
-    ) {
-      return this.reservationsService.lookupByIdAndLookupCode(
-        idNumber,
-        lookupCode,
+  /**
+   * GET /api/reservations/lookup?idNumber=xxx&lookupCode=ABCDEFGH
+   * 前台查詢預約時會呼叫這支 API
+   */
+  @Get('lookup')
+  lookupByIdAndLookupCode(
+    @Query('idNumber') idNumber: string,
+    @Query('lookupCode') lookupCode: string,
+  ) {
+    return this.reservationsService.lookupByIdAndLookupCode(
+      idNumber,
+      lookupCode,
+    );
+  }
+
+  /**
+   * GET /api/reservations/action?token=xxx&action=confirm
+   * Email 連結：確認 / 取消預約
+   */
+  @Get('action')
+  async handleReservationAction(
+    @Query('token') token: string,
+    @Query('action') action: 'confirm' | 'cancel',
+    @Res() res: Response,
+  ) {
+    const frontendBaseUrl =
+      process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
+
+    if (!token || !action) {
+      return res.redirect(
+        `${frontendBaseUrl}/reservation-action-result?result=invalid`,
       );
     }
 
-/**
- * GET /api/reservations/action?token=xxx&action=confirm
- * Email 連結：確認 / 取消預約
- */
-@Get('action')
-async handleReservationAction(
-  @Query('token') token: string,
-  @Query('action') action: 'confirm' | 'cancel',
-  @Res() res: Response,
-) {
-  const frontendBaseUrl =
-    process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-
-  if (!token || !action) {
-    return res.redirect(
-      `${frontendBaseUrl}/reservation-action-result?result=invalid`,
-    );
-  }
-
-  if (action !== 'confirm' && action !== 'cancel') {
-    return res.redirect(
-      `${frontendBaseUrl}/reservation-action-result?result=invalid`,
-    );
-  }
-
-  try {
-    const result = await this.reservationsService.handleAction(token, action);
-
-    const redirectResult =
-      result.reservationStatus === 'confirmed'
-        ? 'confirmed'
-        : result.reservationStatus === 'cancelled'
-        ? 'cancelled'
-        : 'success';
-
-    return res.redirect(
-      `${frontendBaseUrl}/reservation-action-result?result=${redirectResult}`,
-    );
-  } catch (error: any) {
-    const message = error?.message ?? '';
-    let reason = 'system';
-
-    if (message.includes('已超過線上取消期限')) {
-      reason = 'cancel-deadline';
-    } else if (message.includes('已過期') || message.includes('名額已釋放')) {
-      reason = 'expired';
-    } else if (message.includes('已確認')) {
-      reason = 'already-confirmed';
-    } else if (message.includes('已取消')) {
-      reason = 'already-cancelled';
-    } else if (message.includes('找不到')) {
-      reason = 'invalid';
+    if (action !== 'confirm' && action !== 'cancel') {
+      return res.redirect(
+        `${frontendBaseUrl}/reservation-action-result?result=invalid`,
+      );
     }
 
-    return res.redirect(
-      `${frontendBaseUrl}/reservation-action-result?result=error&reason=${reason}&action=${action}`,
-    );
+    try {
+      const result = await this.reservationsService.handleAction(token, action);
+
+      const redirectResult =
+        result.reservationStatus === 'confirmed'
+          ? 'confirmed'
+          : result.reservationStatus === 'cancelled'
+            ? 'cancelled'
+            : 'success';
+
+      return res.redirect(
+        `${frontendBaseUrl}/reservation-action-result?result=${redirectResult}`,
+      );
+    } catch (error: any) {
+      const message = error?.message ?? '';
+      let reason = 'system';
+
+      if (message.includes('已超過線上取消期限')) {
+        reason = 'cancel-deadline';
+      } else if (message.includes('已過期') || message.includes('名額已釋放')) {
+        reason = 'expired';
+      } else if (message.includes('已確認')) {
+        reason = 'already-confirmed';
+      } else if (message.includes('已取消')) {
+        reason = 'already-cancelled';
+      } else if (message.includes('找不到')) {
+        reason = 'invalid';
+      }
+
+      return res.redirect(
+        `${frontendBaseUrl}/reservation-action-result?result=error&reason=${reason}&action=${action}`,
+      );
+    }
   }
-}
 
   /**
-   * PATCH /api/reservations/:id
+   * PATCH /api/reservations/:id/status
    * 健檢中心後台：修改預約狀態
    */
-  @Patch(':id')
-  updateStatus(
+  @Patch(':id/status')
+  async updateStatus(
     @Param('id') id: string,
     @Body()
     body: {
@@ -169,26 +166,35 @@ async handleReservationAction(
   ) {
     const reservationId = Number(id);
 
-    if (!body?.status) {
-      throw new BadRequestException('status 為必填欄位');
-    }
-
     if (Number.isNaN(reservationId)) {
       throw new BadRequestException('id 格式錯誤');
     }
 
+    if (!body?.status) {
+      throw new BadRequestException('status 為必填欄位');
+    }
+
+    const allowedStatuses = ['已預約', '已報到', '已取消'];
+
+    if (!allowedStatuses.includes(body.status)) {
+      throw new BadRequestException('status 格式錯誤');
+    }
+
     try {
+      const data = await this.reservationsService.updateStatus(
+        reservationId,
+        body.status,
+      );
+
       return {
         message: `預約 ${reservationId} 狀態更新成功`,
-        data: this.reservationsService.updateStatus(
-          reservationId,
-          body.status,
-        ),
+        data,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
+
       throw error;
     }
   }
