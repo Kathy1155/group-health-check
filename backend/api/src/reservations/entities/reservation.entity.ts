@@ -9,19 +9,19 @@ import {
 @Entity({ name: 'reservation' })
 export class ReservationEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'reservation_id' })
-  reservationId: number;
+  reservationId!: number;
 
   @Column({ type: 'bigint', name: 'participant_id' })
-  participantId: number;
+  participantId!: number;
 
   @Column({ type: 'bigint', name: 'package_id' })
-  packageId: number;
+  packageId!: number;
 
   @Column({ type: 'bigint', name: 'slot_id' })
-  slotId: number;
+  slotId!: number;
 
   @Column({ type: 'bigint', name: 'medical_profile_id', nullable: true })
-  medicalProfileId: number | null;
+  medicalProfileId!: number | null;
 
   @Column({
     type: 'varchar',
@@ -29,7 +29,7 @@ export class ReservationEntity {
     name: 'quota_status',
     default: 'reserved',
   })
-  quotaStatus: 'pending' | 'confirmed' | 'cancelled';
+  quotaStatus!: 'pending' | 'confirmed' | 'cancelled';
 
   @Column({
     type: 'varchar',
@@ -37,14 +37,14 @@ export class ReservationEntity {
     name: 'confirm_token',
     nullable: true,
   })
-  confirmToken: string | null;
+  confirmToken!: string | null;
 
   @Column({
     type: 'datetime',
     name: 'confirm_token_expires_at',
     nullable: true,
   })
-  confirmTokenExpiresAt: Date | null;
+  confirmTokenExpiresAt!: Date | null;
 
   @Column({
     type: 'varchar',
@@ -52,14 +52,14 @@ export class ReservationEntity {
     name: 'cancel_token',
     nullable: true,
   })
-  cancelToken: string | null;
+  cancelToken!: string | null;
 
   @Column({
     type: 'datetime',
     name: 'cancel_token_expires_at',
     nullable: true,
   })
-  cancelTokenExpiresAt: Date | null;
+  cancelTokenExpiresAt!: Date | null;
 
   @Column({
     type: 'varchar',
@@ -67,7 +67,7 @@ export class ReservationEntity {
     name: 'lookup_code',
     nullable: true,
   })
-  lookupCode: string | null;
+  lookupCode!: string | null;
 
   @Column({
     type: 'varchar',
@@ -75,11 +75,11 @@ export class ReservationEntity {
     name: 'reservation_status',
     default: 'confirmed',
   })
-  reservationStatus: string;
+  reservationStatus!: string;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }
