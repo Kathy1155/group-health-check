@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TimeSlotEntity } from './time-slot.entity';
@@ -13,6 +17,14 @@ export class TimeslotsService {
     @InjectRepository(BranchPackageEntity)
     private readonly branchPackageRepository: Repository<BranchPackageEntity>,
   ) {}
+
+  private isSlotEnded(slot: TimeSlotEntity) {
+    const dateText = String(slot.slotDate).slice(0, 10);
+    const endTimeText = String(slot.slotEndTime).slice(0, 5);
+    const slotEndDateTime = new Date(`${dateText}T${endTimeText}:00`);
+
+    return slotEndDateTime.getTime() < Date.now();
+  }
 
   // 健檢中心後台列表
   async findAllAdmin() {
@@ -39,8 +51,10 @@ export class TimeslotsService {
 
     return rows.map((row) => {
       const branchPackage = branchPackageMap.get(Number(row.branchPackageId));
+      const isEnded = this.isSlotEnded(row);
 
       return {
+        slotId: row.slotId,
         date: row.slotDate,
         timeSlot: `${row.slotStartTime}-${row.slotEndTime}`,
         packageType: branchPackage?.package?.packageName ?? '未知套餐',
@@ -48,16 +62,15 @@ export class TimeslotsService {
         branchName: branchPackage?.branch?.branchName ?? '未知院區',
         branchId: branchPackage?.branchId ?? null,
         quota: row.slotCapacity,
+        reservedCount: row.slotReservedCount,
+        remaining: row.slotCapacity - row.slotReservedCount,
+        status: isEnded ? 'ended' : row.slotStatus,
       };
     });
   }
 
   // 員工前台查詢
-  async findByCondition(
-    branchId: number,
-    packageId: number,
-    date: string,
-  ) {
+  async findByCondition(branchId: number, packageId: number, date: string) {
     const branchPackage = await this.branchPackageRepository.findOne({
       where: {
         branchId,
@@ -86,6 +99,7 @@ export class TimeslotsService {
     });
 
     const slots = rows
+      .filter((row) => !this.isSlotEnded(row))
       .map((row) => {
         const remaining = row.slotCapacity - row.slotReservedCount;
 
@@ -142,5 +156,36 @@ export class TimeslotsService {
     });
 
     return this.timeSlotRepository.save(newSlot);
+  }
+
+  // 健檢中心後台修改既有時段名額
+  async updateQuota(slotId: number, quota: number) {
+    const slot = await this.timeSlotRepository.findOne({
+      where: { slotId },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('找不到此時段資料');
+    }
+
+    if (this.isSlotEnded(slot)) {
+      throw new BadRequestException('已結束的時段不可修改名額');
+    }
+
+    if (quota < slot.slotReservedCount) {
+      throw new BadRequestException(
+        `名額不可小於已預約人數，目前已預約 ${slot.slotReservedCount} 人`,
+      );
+    }
+
+    slot.slotCapacity = quota;
+
+    if (slot.slotCapacity <= slot.slotReservedCount) {
+      slot.slotStatus = 'full';
+    } else {
+      slot.slotStatus = 'open';
+    }
+
+    return this.timeSlotRepository.save(slot);
   }
 }
