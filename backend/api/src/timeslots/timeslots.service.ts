@@ -188,4 +188,28 @@ export class TimeslotsService {
 
     return this.timeSlotRepository.save(slot);
   }
+
+  // 健檢中心後台手動關閉 / 重新開放時段
+async updateStatus(slotId: number, status: 'open' | 'closed') {
+  const slot = await this.timeSlotRepository.findOne({
+    where: { slotId },
+  });
+
+  if (!slot) {
+    throw new NotFoundException('找不到此時段資料');
+  }
+
+  if (this.isSlotEnded(slot)) {
+    throw new BadRequestException('已結束的時段不可修改狀態');
+  }
+
+  if (status === 'open') {
+    slot.slotStatus =
+      slot.slotReservedCount >= slot.slotCapacity ? 'full' : 'open';
+  } else {
+    slot.slotStatus = 'closed';
+  }
+
+  return this.timeSlotRepository.save(slot);
+}
 }
