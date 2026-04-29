@@ -39,6 +39,8 @@ const TIME_SLOT_OPTIONS = [
   { value: "15:00-17:00", label: "15:00 - 17:00" },
 ];
 
+const MAX_QUOTA = 200;
+
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -50,6 +52,7 @@ const getDatesForView = () => {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
+
   const dayAfterTomorrow = new Date(today);
   dayAfterTomorrow.setDate(today.getDate() + 2);
 
@@ -66,6 +69,7 @@ const normalizeTimeSlot = (value: string) =>
   value.replace(/:00(?=[:-])/g, "").replace(/:00$/g, "").trim();
 
 const getReservedCount = (slot: TimeSlot) => Number(slot.reservedCount ?? 0);
+
 const getRemainingCount = (slot: TimeSlot) =>
   Number(slot.remaining ?? Number(slot.quota ?? 0) - getReservedCount(slot));
 
@@ -75,9 +79,9 @@ const parseSlotEndDateTime = (slot: TimeSlot) => {
 
   if (!slot.date || !endPart) return null;
 
-  const normalizedEnd = endPart.includes(":") ? endPart : `:00`;
-  const endTime = normalizedEnd.length === 5 ? `:00` : normalizedEnd;
-  const dateTime = new Date(`T`);
+  const dateText = String(slot.date).slice(0, 10);
+  const endTimeText = endPart.length === 5 ? `${endPart}:00` : endPart;
+  const dateTime = new Date(`${dateText}T${endTimeText}`);
 
   if (Number.isNaN(dateTime.getTime())) return null;
 
@@ -85,6 +89,8 @@ const parseSlotEndDateTime = (slot: TimeSlot) => {
 };
 
 const isSlotEnded = (slot: TimeSlot) => {
+  if (slot.status === "ended") return true;
+
   const endDateTime = parseSlotEndDateTime(slot);
   if (!endDateTime) return false;
 
@@ -108,6 +114,7 @@ function TimeSlotViewPage() {
   const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
   const [editQuota, setEditQuota] = useState("");
   const [isSavingQuota, setIsSavingQuota] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const loadInitData = async () => {
     try {
@@ -123,9 +130,11 @@ function TimeSlotViewPage() {
       if (!timeSlotRes.ok) {
         throw new Error(`無法載入時段資料 (HTTP ${timeSlotRes.status})`);
       }
+
       if (!branchRes.ok) {
         throw new Error(`無法載入院區資料 (HTTP ${branchRes.status})`);
       }
+
       if (!packageRes.ok) {
         throw new Error(`無法載入套餐資料 (HTTP ${packageRes.status})`);
       }
@@ -153,23 +162,29 @@ function TimeSlotViewPage() {
     if (date === DATES.today) {
       return <span className="status-tag status-confirmed">今天</span>;
     }
+
     if (date === DATES.tomorrow) {
       return <span className="status-tag status-booked">明天</span>;
     }
+
     if (date === DATES.dayAfterTomorrow) {
       return (
-        <span className="status-tag" style={{ background: "#fef3c7", color: "#b45309" }}>
+        <span
+          className="status-tag"
+          style={{ background: "#fef3c7", color: "#b45309" }}
+        >
           後天
         </span>
       );
     }
+
     return null;
   };
 
   const getStatusText = (slot: TimeSlot) => {
     if (isSlotEnded(slot)) return "已結束";
-    if (slot.status === "full") return "已滿";
     if (slot.status === "closed") return "已關閉";
+    if (slot.status === "full") return "已額滿";
     return "開放中";
   };
 
@@ -188,7 +203,9 @@ function TimeSlotViewPage() {
       );
       if (branchCompare !== 0) return branchCompare;
 
-      return String(a.packageType ?? "").localeCompare(String(b.packageType ?? ""));
+      return String(a.packageType ?? "").localeCompare(
+        String(b.packageType ?? ""),
+      );
     });
   };
 
@@ -224,7 +241,8 @@ function TimeSlotViewPage() {
         item.date === DATES.dayAfterTomorrow;
 
       const branchMatch = !branchId || String(item.branchId) === String(branchId);
-      const packageMatch = !packageId || String(item.packageId) === String(packageId);
+      const packageMatch =
+        !packageId || String(item.packageId) === String(packageId);
 
       return dateMatch && branchMatch && packageMatch;
     });
@@ -248,6 +266,16 @@ function TimeSlotViewPage() {
     setEditQuota("");
   };
 
+  const applySlotUpdate = (slotId: number, updates: Partial<TimeSlot>) => {
+    const updateOne = (slot: TimeSlot): TimeSlot => {
+      if (Number(slot.slotId) !== Number(slotId)) return slot;
+      return { ...slot, ...updates };
+    };
+
+    setLoadedTimeSlots((prev) => prev.map(updateOne));
+    setSearchResults((prev) => (prev ? prev.map(updateOne) : prev));
+  };
+
   const handleUpdateQuota = async () => {
     if (!editingSlot) return;
 
@@ -259,8 +287,13 @@ function TimeSlotViewPage() {
     const nextQuota = Number(editQuota);
     const reservedCount = getReservedCount(editingSlot);
 
-    if (!Number.isInteger(nextQuota) || nextQuota < 0) {
-      alert("名額必須是大於等於 0 的整數");
+    if (!Number.isInteger(nextQuota) || nextQuota < 1) {
+      alert("名額必須是大於等於 1 的整數");
+      return;
+    }
+
+    if (nextQuota > MAX_QUOTA) {
+      alert(`名額不可超過 ${MAX_QUOTA} 人`);
       return;
     }
 
@@ -278,33 +311,28 @@ function TimeSlotViewPage() {
         body: JSON.stringify({ quota: nextQuota }),
       });
 
+      const result = await response.json().catch(() => null);
+
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `更新名額失敗 (${response.status})`);
+        throw new Error(result?.message || `更新名額失敗 (${response.status})`);
       }
 
-      const updatedPayload = await response.json();
-      const updatedSlot = updatedPayload?.data;
+      const updatedSlot = result?.data;
 
       const nextReservedCount = Number(
         updatedSlot?.slotReservedCount ?? editingSlot.reservedCount ?? 0,
       );
-      const nextStatus = String(updatedSlot?.slotStatus ?? editingSlot.status ?? "open");
+      const nextStatus = String(
+        updatedSlot?.slotStatus ?? editingSlot.status ?? "open",
+      );
 
-      const applyUpdate = (slot: TimeSlot): TimeSlot => {
-        if (Number(slot.slotId) !== Number(editingSlot.slotId)) return slot;
+      applySlotUpdate(editingSlot.slotId, {
+        quota: nextQuota,
+        reservedCount: nextReservedCount,
+        remaining: nextQuota - nextReservedCount,
+        status: nextStatus,
+      });
 
-        return {
-          ...slot,
-          quota: nextQuota,
-          reservedCount: nextReservedCount,
-          remaining: nextQuota - nextReservedCount,
-          status: nextStatus,
-        };
-      };
-
-      setLoadedTimeSlots((prev) => prev.map(applyUpdate));
-      setSearchResults((prev) => (prev ? prev.map(applyUpdate) : prev));
       closeEditModal();
       alert("時段名額更新成功");
     } catch (error) {
@@ -312,6 +340,53 @@ function TimeSlotViewPage() {
       alert(error instanceof Error ? error.message : "更新名額失敗");
     } finally {
       setIsSavingQuota(false);
+    }
+  };
+
+  const handleToggleSlotStatus = async (slot: TimeSlot) => {
+    if (isSlotEnded(slot)) {
+      alert("已結束的時段不可修改狀態");
+      return;
+    }
+
+    const nextStatus = slot.status === "closed" ? "open" : "closed";
+    const actionText = nextStatus === "closed" ? "關閉" : "重新開放";
+
+    const ok = window.confirm(
+      `確定要${actionText}這個時段嗎？\n\n${slot.branchName}｜${slot.packageType}｜${slot.date}｜${normalizeTimeSlot(
+        slot.timeSlot,
+      )}`,
+    );
+
+    if (!ok) return;
+
+    try {
+      setIsUpdatingStatus(true);
+
+      const response = await fetch(`${API_ENDPOINT}/${slot.slotId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.message || "更新時段狀態失敗");
+      }
+
+      const updatedStatus = String(result?.data?.slotStatus ?? nextStatus);
+
+      applySlotUpdate(slot.slotId, {
+        status: updatedStatus,
+      });
+
+      alert(`${actionText}成功`);
+    } catch (error) {
+      console.error("更新時段狀態失敗:", error);
+      alert(error instanceof Error ? error.message : "更新時段狀態失敗");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -333,31 +408,52 @@ function TimeSlotViewPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.slotId}>
-                <td>{item.branchName}</td>
-                <td>{item.packageType}</td>
-                <td>
-                  {item.date} {showDateTag && getDateTag(item.date)}
-                </td>
-                <td>{normalizeTimeSlot(item.timeSlot)}</td>
-                <td>{item.quota}</td>
-                <td>{getReservedCount(item)}</td>
-                <td>{getRemainingCount(item)}</td>
-                <td>{getStatusText(item)}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => openEditModal(item)}
-                    disabled={isSlotEnded(item)}
-                    title={isSlotEnded(item) ? "已結束的時段不能修改名額" : "編輯名額"}
-                  >
-                    {isSlotEnded(item) ? "不可編輯" : "編輯名額"}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {items.map((item) => {
+              const ended = isSlotEnded(item);
+              const closed = item.status === "closed";
+
+              return (
+                <tr key={item.slotId}>
+                  <td>{item.branchName}</td>
+                  <td>{item.packageType}</td>
+                  <td>
+                    {item.date} {showDateTag && getDateTag(item.date)}
+                  </td>
+                  <td>{normalizeTimeSlot(item.timeSlot)}</td>
+                  <td>{item.quota}</td>
+                  <td>{getReservedCount(item)}</td>
+                  <td>{getRemainingCount(item)}</td>
+                  <td>{getStatusText(item)}</td>
+                  <td>
+                    <div className="result-action-stack">
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => openEditModal(item)}
+                        disabled={ended}
+                        title={ended ? "已結束的時段不能修改名額" : "編輯名額"}
+                        style={{ cursor: ended ? "not-allowed" : "pointer" }}
+                      >
+                        {ended ? "不可編輯" : "編輯名額"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => handleToggleSlotStatus(item)}
+                        disabled={ended || isUpdatingStatus}
+                        title={ended ? "已結束的時段不可修改狀態" : ""}
+                        style={{
+                          cursor: ended || isUpdatingStatus ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {closed ? "重新開放" : "關閉時段"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -464,14 +560,18 @@ function TimeSlotViewPage() {
         </form>
 
         {loadingStatus === "loading" && <p className="form-hint">資料載入中...</p>}
+
         {loadingStatus === "error" && (
-          <p className="form-hint">載入失敗：{errorMessage || "請檢查後端服務是否運行。"}</p>
+          <p className="form-hint">
+            載入失敗：{errorMessage || "請檢查後端服務是否運行。"}
+          </p>
         )}
 
         {searchResults !== null && (
           <>
             <hr className="section-divider" />
             <h3 className="result-title">查詢結果</h3>
+
             {searchResults.length > 0 ? (
               renderTimeSlotTable(searchResults)
             ) : (
@@ -496,9 +596,10 @@ function TimeSlotViewPage() {
         <div className="modal-backdrop">
           <div className="modal-content">
             <h3 className="modal-title">編輯時段名額</h3>
+
             <p className="modal-subtext">
-              {editingSlot.branchName}｜{editingSlot.packageType}｜{editingSlot.date}｜
-              {normalizeTimeSlot(editingSlot.timeSlot)}
+              {editingSlot.branchName}｜{editingSlot.packageType}｜
+              {editingSlot.date}｜{normalizeTimeSlot(editingSlot.timeSlot)}
             </p>
 
             <div className="modal-summary-row">
@@ -506,13 +607,19 @@ function TimeSlotViewPage() {
                 <p className="modal-summary-label">目前總名額</p>
                 <p className="modal-summary-value total">{editingSlot.quota}</p>
               </div>
+
               <div className="modal-summary-item">
                 <p className="modal-summary-label">已預約</p>
-                <p className="modal-summary-value booked">{getReservedCount(editingSlot)}</p>
+                <p className="modal-summary-value booked">
+                  {getReservedCount(editingSlot)}
+                </p>
               </div>
+
               <div className="modal-summary-item">
                 <p className="modal-summary-label">目前剩餘</p>
-                <p className="modal-summary-value remaining">{getRemainingCount(editingSlot)}</p>
+                <p className="modal-summary-value remaining">
+                  {getRemainingCount(editingSlot)}
+                </p>
               </div>
             </div>
 
@@ -523,14 +630,16 @@ function TimeSlotViewPage() {
               <input
                 id="editQuota"
                 type="number"
-                min={getReservedCount(editingSlot)}
+                min={Math.max(1, getReservedCount(editingSlot))}
+                max={MAX_QUOTA}
                 value={editQuota}
                 onChange={(e) => setEditQuota(e.target.value)}
                 className="form-input"
                 disabled={isSavingQuota}
               />
               <p className="form-hint">
-                新名額不可小於已預約人數：{getReservedCount(editingSlot)} 人
+                新名額不可小於已預約人數：{getReservedCount(editingSlot)} 人，
+                且不可超過 {MAX_QUOTA} 人。
               </p>
             </div>
 
@@ -543,6 +652,7 @@ function TimeSlotViewPage() {
               >
                 {isSavingQuota ? "儲存中..." : "儲存"}
               </button>
+
               <button
                 type="button"
                 className="secondary-button"
