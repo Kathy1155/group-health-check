@@ -102,4 +102,34 @@ export class TimeslotsController {
       data,
     };
   }
+
+  /**
+ * PATCH /api/timeslots/:id/status
+ * 健檢中心後台：手動關閉 / 重新開放時段
+ */
+@Patch(':id/status')
+async updateStatus(
+  @Param('id') id: string,
+  @Body()
+  body: {
+    status: 'open' | 'closed';
+  },
+) {
+  const slotId = Number(id);
+
+  if (Number.isNaN(slotId)) {
+    throw new BadRequestException('slotId 格式錯誤');
+  }
+
+  if (body.status !== 'open' && body.status !== 'closed') {
+    throw new BadRequestException('status 只能是 open 或 closed');
+  }
+
+  const data = await this.timeslotsService.updateStatus(slotId, body.status);
+
+  return {
+    message: '時段狀態更新成功',
+    data,
+  };
+  }
 }
