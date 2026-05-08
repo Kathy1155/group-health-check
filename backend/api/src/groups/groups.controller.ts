@@ -24,6 +24,13 @@ export class GroupsController {
     return this.groupsService.findByCode(code);
   }
 
+  @Get('code/:code')
+  findByCode(
+    @Param('code') code: string,
+  ): any {
+    return this.groupsService.findByCode(code);
+  }
+
   @Get(':id/options')
   getOptions(
     @Param('id', ParseIntPipe) id: number,

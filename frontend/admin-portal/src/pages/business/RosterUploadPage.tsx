@@ -26,7 +26,7 @@ const RosterUploadPage: React.FC = () => {
   const handleConfirmCode = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  const trimmed = groupCodeInput.trim();
+ const trimmed = groupCodeInput.trim().toUpperCase();
   if (!trimmed) {
     alert('請先輸入團體代碼');
     return;
@@ -137,7 +137,7 @@ const RosterUploadPage: React.FC = () => {
                     id="groupCodeInput"
                     className="form-input"
                     value={groupCodeInput}
-                    onChange={(e) => setGroupCodeInput(e.target.value)}
+                    onChange={(e) => setGroupCodeInput(e.target.value.toUpperCase())}
                   />
                 </div>
               </div>
