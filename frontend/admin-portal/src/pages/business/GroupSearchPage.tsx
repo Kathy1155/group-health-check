@@ -1,211 +1,225 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchGroupByCode, type GroupDetailDto } from "../../api/groupsApi";
+import { fetchGroups, type GroupDetailDto } from "../../api/groupsApi";
 
-type GroupStatus = "active" | "inactive";
+type ReservationStatusView = {
+  text: string;
+  className: string;
+};
 
-interface GroupDetail {
-  id: number;
-  groupName: string;
-  groupCode: string;
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  reservationStartDate?: string;
-  reservationEndDate?: string;
-  availablePackageIds?: number[];
-  availablePackages?: {
-    packageId: number;
-    packageName: string;
-  }[];
-  status: GroupStatus;
-}
-
-const formatPackageNames = (
-  availablePackages?: { packageId: number; packageName: string }[],
-) => {
-  if (!availablePackages || availablePackages.length === 0) {
-    return "未設定";
+const getReservationStatus = (group: GroupDetailDto): ReservationStatusView => {
+  if (group.status === "inactive") {
+    return {
+      text: "停用",
+      className: "inactive",
+    };
   }
 
-  const names = availablePackages
-    .map((pkg) => pkg.packageName?.trim())
-    .filter((name): name is string => Boolean(name));
-
-  if (names.length === 0) {
-    return "未設定";
+  if (!group.reservationStartDate || !group.reservationEndDate) {
+    return {
+      text: "未設定",
+      className: "unset",
+    };
   }
 
-  return names.join("、");
+  const today = new Date();
+  const start = new Date(`${group.reservationStartDate}T00:00:00`);
+  const end = new Date(`${group.reservationEndDate}T23:59:59`);
+
+  if (today < start) {
+    const days = Math.ceil(
+      (start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    return {
+      text: `尚未開始 ${days} 天`,
+      className: "upcoming",
+    };
+  }
+
+  if (today > end) {
+    return {
+      text: "已結束",
+      className: "expired",
+    };
+  }
+
+  const remainingDays = Math.ceil(
+    (end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (remainingDays <= 30) {
+    return {
+      text: `剩餘 ${remainingDays} 天`,
+      className: "warning",
+    };
+  }
+
+  const remainingMonths = Math.max(1, Math.floor(remainingDays / 30));
+
+  return {
+    text: `約剩餘 ${remainingMonths} 個月`,
+    className: "active",
+  };
 };
 
 const GroupSearchPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [groupCode, setGroupCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [groupData, setGroupData] = useState<GroupDetail | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [groups, setGroups] = useState<GroupDetailDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  useEffect(() => {
+    let alive = true;
 
-    const trimmedCode = groupCode.trim();
-    if (!trimmedCode) {
-      alert("請輸入團體代碼");
-      return;
-    }
+    const loadGroups = async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
 
-    setLoading(true);
-    setSearched(false);
-    setGroupData(null);
+        const data = await fetchGroups();
 
-    try {
-      const data: GroupDetailDto | null = await fetchGroupByCode(trimmedCode);
+        if (!alive) return;
 
-      if (!data) {
-        setSearched(true);
-        setGroupData(null);
-        return;
+        setGroups(data);
+      } catch (err) {
+        console.error("讀取團體列表失敗：", err);
+
+        if (!alive) return;
+
+        setLoadError("無法讀取團體列表，請確認後端與資料庫是否已啟動。");
+      } finally {
+        if (alive) {
+          setLoading(false);
+        }
       }
+    };
 
-      const normalizedGroupData: GroupDetail = {
-        id: data.id,
-        groupName: data.groupName ?? "",
-        groupCode: data.groupCode ?? "",
-        contactName: data.contactName ?? "",
-        contactPhone: data.contactPhone ?? "",
-        contactEmail: data.contactEmail ?? "",
-        reservationStartDate: data.reservationStartDate ?? "",
-        reservationEndDate: data.reservationEndDate ?? "",
-        availablePackageIds: data.availablePackageIds ?? [],
-        availablePackages: data.availablePackages ?? [],
-        status: data.status ?? "active",
-      };
+    loadGroups();
 
-      setGroupData(normalizedGroupData);
-      setSearched(true);
-    } catch (err) {
-      console.error("查詢失敗：", err);
-      alert("無法連線到伺服器，請確認後端是否有啟動");
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const filteredGroups = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toUpperCase();
+
+    if (!normalizedKeyword) return groups;
+
+    return groups.filter((group) => {
+      const code = group.groupCode.toUpperCase();
+      const name = group.groupName.toUpperCase();
+
+      return code.includes(normalizedKeyword) || name.includes(normalizedKeyword);
+    });
+  }, [groups, keyword]);
 
   return (
-    <div className="page-container business-scope">
+    <div className="page-container business-scope group-search-page">
       <div className="page-card">
-        <h2 className="page-title">查詢 / 編輯團體資料</h2>
+        <h2 className="page-title">查詢/編輯團體資料</h2>
 
-        <form className="page-form" onSubmit={handleSearch}>
-          <div className="form-row single">
-            <div className="form-field form-field-narrow">
-              <label className="form-label" htmlFor="groupCodeSearch">
-                團體代碼：
-              </label>
+        <section className="group-list-panel">
+          <div className="group-list-search-row">
+            <div className="group-list-search-box">
+              <span className="search-icon">⌕</span>
               <input
-                id="groupCodeSearch"
-                className="form-input"
-                value={groupCode}
-                onChange={(e) => setGroupCode(e.target.value.toUpperCase())}
-                placeholder="請輸入團體代碼"
+                className="group-list-search-input"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="輸入團體代碼或公司名稱："
               />
             </div>
-          </div>
 
-          <div className="form-actions-center">
-            <button
-              type="submit"
-              className="primary-button full-width-button"
-              disabled={loading}
-            >
-              {loading ? "查詢中..." : "查詢"}
+            <button type="button" className="group-list-search-button">
+              搜尋
             </button>
           </div>
-        </form>
 
-        {searched && !groupData && (
-          <div style={{ marginTop: 24, textAlign: "center", color: "#dc2626" }}>
-            查無此團體資料
-          </div>
-        )}
+          {loading && (
+            <div className="group-list-message">團體資料載入中...</div>
+          )}
 
-        {groupData && (
-          <div style={{ marginTop: 32 }}>
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 16,
-                padding: 24,
-                background: "#f9fafb",
-              }}
-            >
-              <h3 style={{ marginTop: 0, marginBottom: 20 }}>查詢結果</h3>
+          {loadError && !loading && (
+            <div className="group-list-message error">{loadError}</div>
+          )}
 
-              <div style={{ display: "grid", gap: 12 }}>
-                <div>
-                  <strong>團體名稱：</strong>
-                  {groupData.groupName}
-                </div>
-                <div>
-                  <strong>團體代碼：</strong>
-                  {groupData.groupCode}
-                </div>
-                <div>
-                  <strong>聯絡人姓名：</strong>
-                  {groupData.contactName}
-                </div>
-                <div>
-                  <strong>聯絡人電話：</strong>
-                  {groupData.contactPhone}
-                </div>
-                <div>
-                  <strong>聯絡人郵件：</strong>
-                  {groupData.contactEmail}
-                </div>
-                <div>
-                  <strong>開放預約開始日：</strong>
-                  {groupData.reservationStartDate || "未設定"}
-                </div>
-                <div>
-                  <strong>開放預約截止日：</strong>
-                  {groupData.reservationEndDate || "未設定"}
-                </div>
-                <div>
-                  <strong>可預約套餐：</strong>
-                  {formatPackageNames(groupData.availablePackages)}
-                </div>
-                <div>
-                  <strong>團體狀態：</strong>
-                  {groupData.status === "active" ? "啟用" : "停用"}
-                </div>
-              </div>
+          {!loading && !loadError && (
+            <>
+            <div className="group-list-section-title">團體列表</div>
+            
+            <div className="group-list-table-card">
+              <table className="group-list-table">
+                <thead>
+                  <tr>
+                    <th className="action-column"></th>
+                    <th>團體代碼</th>
+                    <th>公司名稱</th>
+                    <th>團體預約狀態</th>
+                  </tr>
+                </thead>
 
-              <div className="form-actions-center gap" style={{ marginTop: 24 }}>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => navigate("/admin/home")}
-                >
-                  返回
-                </button>
+                <tbody>
+                  {filteredGroups.length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>
+                        <div className="group-list-empty">
+                          找不到符合條件的團體資料
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredGroups.map((group) => {
+                      const status = getReservationStatus(group);
 
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() =>
-                    navigate(`/admin/business/groups/edit/${groupData.id}`, {
-                      state: { groupData },
+                      return (
+                        <tr key={group.id}>
+                          <td className="action-column">
+                            <button
+                              type="button"
+                              className="edit-group-button"
+                              onClick={() =>
+                                navigate(`/admin/business/groups/edit/${group.id}`, {
+                                  state: { groupData: group },
+                                })
+                              }
+                            >
+                              <span>╱</span>
+                              編輯
+                            </button>
+                          </td>
+
+                          <td className="group-code-cell">{group.groupCode}</td>
+
+                          <td className="group-name-cell">{group.groupName}</td>
+
+                          <td>
+                            <div className="reservation-status-cell">
+                              <span
+                                className={`reservation-status-pill ${status.className}`}
+                              >
+                                {status.text}
+                              </span>
+
+                              <span className="reservation-deadline">
+                                DEADLINE:{" "}
+                                {group.reservationEndDate || "未設定"}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
                     })
-                  }
-                >
-                  編輯資料
-                </button>
-              </div>
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
-        )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );
