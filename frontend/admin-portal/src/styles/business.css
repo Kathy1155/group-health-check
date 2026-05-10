@@ -920,4 +920,69 @@
   .package-branch-page .branch-grid {
     grid-template-columns: 1fr;
   }
+  
+}
+
+/* ===== Package setting mobile polish ===== */
+
+@media (max-width: 768px) {
+  .package-branch-page {
+    max-width: none;
+  }
+
+  .package-setting-form {
+    max-width: none;
+  }
+
+  .package-setting-section {
+    margin-bottom: 30px;
+  }
+
+  .package-custom-select {
+    min-height: 54px;
+    font-size: 15px;
+    padding: 0 16px;
+  }
+
+  .package-branch-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .package-branch-card {
+    width: 100%;
+    min-height: 58px;
+    padding: 0 18px;
+    border-radius: 16px;
+  }
+
+  .package-status-row {
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .package-setting-actions {
+    align-items: stretch;
+  }
+
+  .package-setting-actions .primary-button {
+    width: 100%;
+    max-width: 220px;
+    align-self: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .package-setting-section {
+    margin-bottom: 26px;
+  }
+
+  .package-branch-card {
+    min-height: 56px;
+    font-size: 14px;
+  }
+
+  .package-status-row {
+    gap: 22px;
+  }
 }
