@@ -27,8 +27,6 @@ type InitialState = {
 } | null;
 
 const PackageBranchSettingPage: React.FC = () => {
-  const [step, setStep] = useState<1 | 2>(1);
-
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
 
@@ -40,9 +38,10 @@ const PackageBranchSettingPage: React.FC = () => {
   const [selectedBranchIds, setSelectedBranchIds] = useState<number[]>([]);
   const [status, setStatus] = useState<PackageStatus>("active");
   const [initial, setInitial] = useState<InitialState>(null);
+  const [savedMessage, setSavedMessage] = useState("");
+  const [packageDropdownOpen, setPackageDropdownOpen] = useState(false);
 
   const isDirty =
-    step === 2 &&
     initial !== null &&
     (initial.status !== status ||
       initial.selectedBranchIds.length !== selectedBranchIds.length ||
@@ -83,7 +82,6 @@ const PackageBranchSettingPage: React.FC = () => {
         setPackages(normalizedPackages);
         setBranches(normalizedBranches);
 
-        // 預設選第一個套餐（若有資料）
         if (normalizedPackages.length > 0) {
           setSelectedPackageId(normalizedPackages[0].packageId);
         }
@@ -91,9 +89,7 @@ const PackageBranchSettingPage: React.FC = () => {
         console.error("loadInitialData error:", error);
         alert("初始化資料失敗，請確認後端與資料庫是否正常");
       } finally {
-        if (mounted) {
-          setLoadingPage(false);
-        }
+        if (mounted) setLoadingPage(false);
       }
     };
 
@@ -109,26 +105,16 @@ const PackageBranchSettingPage: React.FC = () => {
     return packages.find((item) => item.packageId === Number(selectedPackageId));
   }, [packages, selectedPackageId]);
 
-  const toggleBranch = (branchId: number) => {
-    setSelectedBranchIds((prev) =>
-      prev.includes(branchId)
-        ? prev.filter((id) => id !== branchId)
-        : [...prev, branchId],
-    );
-  };
+  const selectedPackageLabel = selectedPackage
+    ? `${selectedPackage.packageName}${selectedPackage.isDisable ? "（已停用）" : ""}`
+    : "請選擇套餐";
 
-  const handleNext = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (selectedPackageId === "") {
-      alert("請先選擇套餐");
-      return;
-    }
-
+  const loadPackageSetting = async (packageId: number) => {
     try {
       setLoadingSetting(true);
+      setSavedMessage("");
 
-      const data: any = await fetchPackageBranches(Number(selectedPackageId));
+      const data: any = await fetchPackageBranches(packageId);
 
       const normalizedSelectedBranchIds = (data?.selectedBranchIds ?? []).map(
         (id: any) => Number(id),
@@ -143,10 +129,8 @@ const PackageBranchSettingPage: React.FC = () => {
         selectedBranchIds: normalizedSelectedBranchIds,
         status: nextStatus,
       });
-
-      setStep(2);
     } catch (error) {
-      console.error("handleNext error:", error);
+      console.error("loadPackageSetting error:", error);
       alert(
         error instanceof Error
           ? `讀取套餐設定失敗：${error.message}`
@@ -157,8 +141,25 @@ const PackageBranchSettingPage: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    setStep(1);
+  useEffect(() => {
+    if (selectedPackageId === "" || loadingPage) return;
+    loadPackageSetting(Number(selectedPackageId));
+  }, [selectedPackageId, loadingPage]);
+
+  const handleSelectPackage = (packageId: number) => {
+    setSelectedPackageId(packageId);
+    setPackageDropdownOpen(false);
+    setSavedMessage("");
+  };
+
+  const toggleBranch = (branchId: number) => {
+    setSavedMessage("");
+
+    setSelectedBranchIds((prev) =>
+      prev.includes(branchId)
+        ? prev.filter((id) => id !== branchId)
+        : [...prev, branchId],
+    );
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -171,6 +172,7 @@ const PackageBranchSettingPage: React.FC = () => {
 
     try {
       setSaving(true);
+      setSavedMessage("");
 
       const result: any = await savePackageBranches(Number(selectedPackageId), {
         selectedBranchIds,
@@ -191,12 +193,10 @@ const PackageBranchSettingPage: React.FC = () => {
         status: nextStatus,
       });
 
-      alert("儲存成功");
+      setSavedMessage("套餐設定已同步更新到預約系統");
     } catch (error) {
       console.error("handleSave error:", error);
-      alert(
-        error instanceof Error ? `儲存失敗：${error.message}` : "儲存失敗",
-      );
+      alert(error instanceof Error ? `儲存失敗：${error.message}` : "儲存失敗");
     } finally {
       setSaving(false);
     }
@@ -205,11 +205,8 @@ const PackageBranchSettingPage: React.FC = () => {
   if (loadingPage) {
     return (
       <div className="page-container business-scope package-branch-page">
-        <div className="page-container">
-          <div className="page-card">
-            <h2 className="page-title">指定套餐院區界面</h2>
-            <p>資料載入中...</p>
-          </div>
+        <div className="page-card">
+          <p className="form-hint">資料載入中...</p>
         </div>
       </div>
     );
@@ -218,127 +215,120 @@ const PackageBranchSettingPage: React.FC = () => {
   return (
     <div className="page-container business-scope package-branch-page">
       <div className="page-card">
-          <h2 className="page-title">指定套餐院區界面</h2>
+        <form className="package-setting-form" onSubmit={handleSave}>
+          <section className="package-setting-section package-select-section">
+            <label className="package-setting-label">目前套餐</label>
 
-          {step === 1 && (
-            <form className="page-form" onSubmit={handleNext}>
-              <div className="form-row single">
-                <div className="form-field form-field-narrow">
-                  <label className="form-label" htmlFor="packageSelect">
-                    請選擇欲設定之套餐：
-                  </label>
+            <div className="package-custom-select-wrap">
+              <button
+                type="button"
+                className={`package-custom-select ${
+                  packageDropdownOpen ? "open" : ""
+                }`}
+                onClick={() => setPackageDropdownOpen((prev) => !prev)}
+                disabled={loadingSetting || saving || packages.length === 0}
+              >
+                <span>{selectedPackageLabel}</span>
+                <span className="package-select-arrow">
+                  {packageDropdownOpen ? "⌃" : "⌄"}
+                </span>
+              </button>
 
-                  <select
-                    id="packageSelect"
-                    className="form-select"
-                    value={selectedPackageId}
-                    onChange={(e) =>
-                      setSelectedPackageId(
-                        e.target.value ? Number(e.target.value) : "",
-                      )
-                    }
-                  >
-                    {packages.length === 0 && <option value="">目前沒有套餐資料</option>}
+              {packageDropdownOpen && (
+                <div className="package-custom-menu">
+                  {packages.map((pkg) => {
+                    const active = selectedPackageId === pkg.packageId;
 
-                    {packages.map((pkg) => (
-                      <option key={pkg.packageId} value={pkg.packageId}>
+                    return (
+                      <button
+                        key={pkg.packageId}
+                        type="button"
+                        className={active ? "active" : ""}
+                        onClick={() => handleSelectPackage(pkg.packageId)}
+                      >
                         {pkg.packageName}
                         {pkg.isDisable ? "（已停用）" : ""}
-                      </option>
-                    ))}
-                  </select>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
+            </div>
 
-              <div className="form-actions-center">
-                <button
-                  type="submit"
-                  className="primary-button full-width-button"
-                  disabled={loadingSetting || selectedPackageId === ""}
-                >
-                  {loadingSetting ? "讀取中..." : "下一步"}
-                </button>
-              </div>
-            </form>
-          )}
+            {loadingSetting && (
+              <p className="form-hint">正在讀取套餐施作院區設定...</p>
+            )}
+          </section>
 
-          {step === 2 && (
-            <form className="page-form" onSubmit={handleSave}>
-              <div className="form-row single">
-                <div className="form-field">
-                  <div className="form-label">目前套餐</div>
-                  <div className="readonly-box">
-                    {selectedPackage?.packageName ?? "未選擇套餐"}
-                  </div>
-                </div>
-              </div>
+          <section className="package-setting-section">
+            <div className="group-list-section-title">請選擇可施作院區</div>
 
-              <div className="form-row single">
-                <div className="form-field">
-                  <span className="form-label">套餐狀態</span>
-                  <div className="radio-group">
-                    <label>
-                      <input
-                        type="radio"
-                        value="active"
-                        checked={status === "active"}
-                        onChange={() => setStatus("active")}
-                      />
-                      啟用
-                    </label>
+            <div className="package-branch-grid">
+              {branches.map((branch) => (
+                <label key={branch.branchId} className="package-branch-card">
+                  <input
+                    type="checkbox"
+                    checked={selectedBranchIds.includes(branch.branchId)}
+                    onChange={() => toggleBranch(branch.branchId)}
+                    disabled={loadingSetting || saving}
+                  />
+                  <span>{branch.branchName}</span>
+                </label>
+              ))}
+            </div>
+          </section>
 
-                    <label>
-                      <input
-                        type="radio"
-                        value="inactive"
-                        checked={status === "inactive"}
-                        onChange={() => setStatus("inactive")}
-                      />
-                      停用
-                    </label>
-                  </div>
-                </div>
-              </div>
+          <section className="package-setting-section">
+            <label className="package-setting-label">套餐狀態</label>
 
-              <div className="form-row single">
-                <div className="form-field">
-                  <div className="form-label">請選擇可施作院區</div>
-                  <div className="branch-grid">
-                    {branches.map((branch) => (
-                      <label key={branch.branchId} className="branch-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={selectedBranchIds.includes(branch.branchId)}
-                          onChange={() => toggleBranch(branch.branchId)}
-                        />
-                        <span>{branch.branchName}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div className="package-status-row">
+              <label>
+                <input
+                  type="radio"
+                  value="active"
+                  checked={status === "active"}
+                  onChange={() => {
+                    setStatus("active");
+                    setSavedMessage("");
+                  }}
+                  disabled={loadingSetting || saving}
+                />
+                啟用
+              </label>
 
-              <p className="form-hint">
-                {isDirty ? "目前有尚未儲存的變更" : "目前設定已同步"}
-              </p>
+              <label>
+                <input
+                  type="radio"
+                  value="inactive"
+                  checked={status === "inactive"}
+                  onChange={() => {
+                    setStatus("inactive");
+                    setSavedMessage("");
+                  }}
+                  disabled={loadingSetting || saving}
+                />
+                停用
+              </label>
+            </div>
+          </section>
 
-              <div className="form-actions-center gap">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={handleBack}
-                  disabled={saving}
-                >
-                  上一步
-                </button>
+          <div className="package-setting-actions">
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={saving || loadingSetting || selectedPackageId === ""}
+            >
+              {saving ? "儲存中..." : "儲存"}
+            </button>
 
-                <button type="submit" className="primary-button" disabled={saving}>
-                  {saving ? "儲存中..." : "儲存"}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+            {savedMessage && <p className="package-saved-message">{savedMessage}</p>}
+
+            {!savedMessage && isDirty && (
+              <p className="package-unsaved-message">目前有尚未儲存的變更</p>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

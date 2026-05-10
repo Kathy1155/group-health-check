@@ -118,6 +118,22 @@ export async function fetchPackages(): Promise<PackageItem[]> {
     );
 }
 
+export async function fetchGroups(): Promise<GroupDetailDto[]> {
+  const res = await fetch(`${API_BASE_URL}/groups`);
+
+  if (!res.ok) {
+    throw new Error(`讀取團體列表失敗，status = ${res.status}`);
+  }
+
+  const data = await res.json();
+
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((item) => normalizeGroupDetail(item))
+    .filter((item) => Number.isInteger(item.id) && item.id > 0);
+}
+
 export async function fetchGroupByCode(
   code: string,
 ): Promise<GroupDetailDto | null> {

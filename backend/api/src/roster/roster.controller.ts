@@ -45,4 +45,13 @@ export class RosterController {
   ) {
     return this.rosterService.findOneByGroupAndId(groupCode, idNumber);
   }
+
+  @Get()
+  findAllByGroupCode(@Query('groupCode') groupCode: string) {
+    if (!groupCode) {
+      throw new BadRequestException('請提供團體代碼');
+    }
+
+    return this.rosterService.findAllByGroupCode(groupCode);
+  }
 }

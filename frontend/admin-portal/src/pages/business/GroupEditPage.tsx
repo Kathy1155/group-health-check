@@ -28,11 +28,13 @@ interface GroupDetail {
 const normalizePackageIds = (ids: unknown): number[] => {
   if (!Array.isArray(ids)) return [];
 
-  return [...new Set(
-    ids
-      .map((id) => Number(id))
-      .filter((id) => Number.isInteger(id) && id > 0),
-  )];
+  return [
+    ...new Set(
+      ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  ];
 };
 
 const GroupEditPage: React.FC = () => {
@@ -327,8 +329,7 @@ const GroupEditPage: React.FC = () => {
 
   const isDirty =
     initialData !== null &&
-    (
-      groupName !== initialData.groupName ||
+    (groupName !== initialData.groupName ||
       contactName !== initialData.contactName ||
       contactPhone !== normalizedInitialPhone ||
       contactEmail !== initialData.contactEmail ||
@@ -338,8 +339,7 @@ const GroupEditPage: React.FC = () => {
       currentNormalizedPackageIds.length !== currentInitialPackageIds.length ||
       currentNormalizedPackageIds.some(
         (idValue) => !currentInitialPackageIds.includes(idValue),
-      )
-    );
+      ));
 
   useUnsavedChangesWarning(isDirty);
 
@@ -394,38 +394,31 @@ const GroupEditPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="page-container business-scope">
+      <div className="page-container business-scope group-edit-page">
         <div className="page-card">
-          <p>資料載入中...</p>
+          <p className="form-hint">資料載入中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page-container business-scope">
+    <div className="page-container business-scope group-edit-page">
       <div className="page-card">
-        <h2 className="page-title">編輯團體資料界面</h2>
+        <h2 className="page-title">編輯團體資料</h2>
 
-        <form className="page-form" onSubmit={handleSubmit}>
+        <form className="page-form group-create-form" onSubmit={handleSubmit}>
           {submitError && (
-            <p
-              ref={submitErrorRef}
-              style={{
-                color: "red",
-                marginBottom: "12px",
-                fontSize: "14px",
-              }}
-            >
+            <p ref={submitErrorRef} className="form-error">
               {submitError}
             </p>
           )}
 
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label" htmlFor="groupName">
-                團體名稱：
-              </label>
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="groupName">
+              團體名稱：
+            </label>
+            <div className="group-form-control">
               <input
                 id="groupName"
                 className="form-input"
@@ -434,31 +427,29 @@ const GroupEditPage: React.FC = () => {
                 required
               />
             </div>
+          </div>
 
-            <div className="form-field">
-              <label className="form-label" htmlFor="groupCode">
-                團體代碼：
-              </label>
-
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="groupCode">
+              團體代碼：
+            </label>
+            <div className="group-form-control">
               <input
                 id="groupCode"
                 className="form-input"
                 value={groupCode}
                 disabled
                 readOnly
+                title="團體代碼建立後不可修改"
               />
-
-              <p style={{ marginTop: 4, fontSize: "14px", color: "#6b7280" }}>
-                團體代碼建立後不可修改
-              </p>
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label" htmlFor="contactName">
-                聯絡人姓名：
-              </label>
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="contactName">
+              聯絡人姓名：
+            </label>
+            <div className="group-form-control">
               <input
                 id="contactName"
                 className="form-input"
@@ -467,39 +458,41 @@ const GroupEditPage: React.FC = () => {
                 required
               />
             </div>
+          </div>
 
-            <div className="form-field">
-              <label className="form-label" htmlFor="contactPhone">
-                聯絡人電話：
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ whiteSpace: "nowrap" }}>+886</span>
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="contactPhone">
+              聯絡人電話：
+            </label>
+            <div className="group-form-control">
+              <div className="phone-input-row">
+                <span className="phone-prefix">+886</span>
                 <input
                   id="contactPhone"
                   className="form-input"
                   value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) =>
+                    setContactPhone(e.target.value.replace(/\D/g, ""))
+                  }
                   placeholder="請輸入 10 碼數字"
                   maxLength={10}
                   required
                 />
               </div>
+
               {errors.contactPhone && (
-                <p
-                  ref={contactPhoneErrorRef}
-                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
-                >
+                <p ref={contactPhoneErrorRef} className="form-error">
                   {errors.contactPhone}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="form-row single">
-            <div className="form-field">
-              <label className="form-label" htmlFor="contactEmail">
-                聯絡人郵件：
-              </label>
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="contactEmail">
+              聯絡人郵件：
+            </label>
+            <div className="group-form-control">
               <input
                 id="contactEmail"
                 type="email"
@@ -509,22 +502,20 @@ const GroupEditPage: React.FC = () => {
                 placeholder="例如：example@gmail.com"
                 required
               />
+
               {errors.contactEmail && (
-                <p
-                  ref={contactEmailErrorRef}
-                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
-                >
+                <p ref={contactEmailErrorRef} className="form-error">
                   {errors.contactEmail}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label" htmlFor="reservationStartDate">
-                開放預約開始日：
-              </label>
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="reservationStartDate">
+              開放預約開始日：
+            </label>
+            <div className="group-form-control">
               <input
                 id="reservationStartDate"
                 type="date"
@@ -532,20 +523,20 @@ const GroupEditPage: React.FC = () => {
                 value={reservationStartDate}
                 onChange={(e) => setReservationStartDate(e.target.value)}
               />
+
               {errors.reservationStartDate && (
-                <p
-                  ref={startDateErrorRef}
-                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
-                >
+                <p ref={startDateErrorRef} className="form-error">
                   {errors.reservationStartDate}
                 </p>
               )}
             </div>
+          </div>
 
-            <div className="form-field">
-              <label className="form-label" htmlFor="reservationEndDate">
-                開放預約截止日：
-              </label>
+          <div className="group-form-row">
+            <label className="form-label" htmlFor="reservationEndDate">
+              開放預約截止日：
+            </label>
+            <div className="group-form-control">
               <input
                 id="reservationEndDate"
                 type="date"
@@ -553,11 +544,9 @@ const GroupEditPage: React.FC = () => {
                 value={reservationEndDate}
                 onChange={(e) => setReservationEndDate(e.target.value)}
               />
+
               {errors.reservationEndDate && (
-                <p
-                  ref={endDateErrorRef}
-                  style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
-                >
+                <p ref={endDateErrorRef} className="form-error">
                   {errors.reservationEndDate}
                 </p>
               )}
@@ -565,69 +554,61 @@ const GroupEditPage: React.FC = () => {
           </div>
 
           {errors.reservationDateOrder && (
-            <p
-              ref={dateOrderErrorRef}
-              style={{ color: "red", marginTop: "4px", fontSize: "14px" }}
-            >
+            <p ref={dateOrderErrorRef} className="form-error">
               {errors.reservationDateOrder}
             </p>
           )}
 
-          <div className="form-row single">
-            <div className="form-field">
-              <span className="form-label">可預約套餐：</span>
+          <div className="group-package-section">
+            <span className="form-label">可預約套餐：</span>
 
-              {loadingPackages ? (
-                <p>套餐資料載入中...</p>
-              ) : (
-                <div className="branch-grid">
-                  {packages.map((pkg) => (
-                    <label key={pkg.packageId} className="branch-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={currentNormalizedPackageIds.includes(pkg.packageId)}
-                        onChange={() => togglePackage(pkg.packageId)}
-                      />
-                      <span>{pkg.packageName}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+            {loadingPackages ? (
+              <p className="form-hint">套餐資料載入中...</p>
+            ) : (
+              <div className="branch-grid">
+                {packages.map((pkg) => (
+                  <label key={pkg.packageId} className="branch-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={currentNormalizedPackageIds.includes(pkg.packageId)}
+                      onChange={() => togglePackage(pkg.packageId)}
+                    />
+                    <span>{pkg.packageName}</span>
+                  </label>
+                ))}
+              </div>
+            )}
 
-              {errors.availablePackageIds && (
-                <p
-                  ref={packageErrorRef}
-                  style={{ color: "red", marginTop: "8px", fontSize: "14px" }}
-                >
-                  {errors.availablePackageIds}
-                </p>
-              )}
-            </div>
+            {errors.availablePackageIds && (
+              <p ref={packageErrorRef} className="form-error">
+                {errors.availablePackageIds}
+              </p>
+            )}
           </div>
 
-          <div className="form-row single">
-            <div className="form-field">
-              <span className="form-label">團體狀態：</span>
-              <div className="radio-group">
-                <label>
-                  <input
-                    type="radio"
-                    value="active"
-                    checked={status === "active"}
-                    onChange={() => setStatus("active")}
-                  />
-                  啟用
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    value="inactive"
-                    checked={status === "inactive"}
-                    onChange={() => setStatus("inactive")}
-                  />
-                  停用
-                </label>
-              </div>
+          <div className="group-status-section">
+            <span className="form-label">團體狀態：</span>
+
+            <div className="radio-group">
+              <label>
+                <input
+                  type="radio"
+                  value="active"
+                  checked={status === "active"}
+                  onChange={() => setStatus("active")}
+                />
+                啟用
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="inactive"
+                  checked={status === "inactive"}
+                  onChange={() => setStatus("inactive")}
+                />
+                停用
+              </label>
             </div>
           </div>
 
