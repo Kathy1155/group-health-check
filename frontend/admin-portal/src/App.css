@@ -35,6 +35,15 @@
   flex-shrink: 0;
 }
 
+/* ===== Sidebar brand home button ===== */
+
+.sidebar-brand-button {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
 .layout-logo-mark {
   width: 42px;
   height: 42px;
@@ -864,13 +873,14 @@
 .login-page {
   width: 100%;
   min-height: 100vh;
+  height: 100vh;
   background: #f4f9f9;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 28px;
-  padding: 42px 18px 56px;
+  gap: 18px;
+  padding: 28px 18px 40px;
   overflow-y: auto;
 }
 
@@ -941,6 +951,7 @@
 
 .login-card {
   width: min(100%, 420px);
+  flex-shrink: 0;
   background: #ffffff;
   border: 1px solid #dbe3ec;
   border-radius: 34px;
@@ -964,10 +975,10 @@
 }
 
 .login-form {
-  padding: 34px;
+  padding: 28px 34px 30px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   position: relative;
 }
 
@@ -1227,5 +1238,325 @@
     align-items: flex-start;
     font-size: 15px;
     line-height: 1.6;
+  }
+}
+
+/* 健檢中心獨立使用部分 */
+
+.healthcenter-scope .radio-group-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.healthcenter-scope .radio-group-column label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f2742;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.healthcenter-scope .form-actions-center.gap {
+  gap: 12px;
+}
+
+/* 健檢中心 Dashboard */
+
+.healthcenter-dashboard-page {
+  max-width: 1280px;
+}
+
+.healthcenter-dashboard-page .dashboard-hero {
+  margin-bottom: 28px;
+  padding: 30px 34px;
+  border-radius: 28px;
+  border: 1px solid #dbe3ec;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 39, 66, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.healthcenter-dashboard-page .dashboard-kicker {
+  margin: 0 0 8px;
+  color: #007a82;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.healthcenter-dashboard-page .dashboard-title {
+  margin: 0;
+  color: #0f2742;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.healthcenter-dashboard-page .dashboard-subtitle {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.healthcenter-dashboard-page .dashboard-refresh-button {
+  min-width: 112px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid #007a82;
+  background: #ffffff;
+  color: #007a82;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.healthcenter-dashboard-page .dashboard-refresh-button:hover {
+  background: #007a82;
+  color: #ffffff;
+}
+
+.healthcenter-dashboard-page .dashboard-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.healthcenter-dashboard-page .dashboard-stat-card {
+  min-height: 122px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid #dbe3ec;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 39, 66, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.healthcenter-dashboard-page .dashboard-stat-label {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.healthcenter-dashboard-page .dashboard-stat-value {
+  color: #0f2742;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.healthcenter-dashboard-page .dashboard-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.healthcenter-dashboard-page .dashboard-panel {
+  padding: 26px;
+  border-radius: 26px;
+  border: 1px solid #dbe3ec;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 39, 66, 0.06);
+}
+
+.healthcenter-dashboard-page .dashboard-panel-header {
+  margin-bottom: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.healthcenter-dashboard-page .dashboard-panel-header h3 {
+  margin: 0;
+  color: #0f2742;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.healthcenter-dashboard-page .dashboard-panel-header span {
+  color: #8aa0b8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.healthcenter-dashboard-page .dashboard-empty-text {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-list,
+.healthcenter-dashboard-page .dashboard-branch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-item,
+.healthcenter-dashboard-page .dashboard-branch-item {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-item strong,
+.healthcenter-dashboard-page .dashboard-branch-item span {
+  color: #0f2742;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-item p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.healthcenter-dashboard-page .dashboard-branch-item strong {
+  color: #007a82;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-badge {
+  min-width: 76px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-badge.normal {
+  background: #ecfeff;
+  color: #007a82;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-badge.warning {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.healthcenter-dashboard-page .dashboard-slot-badge.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.healthcenter-dashboard-page .dashboard-warning-panel {
+  margin-bottom: 22px;
+}
+
+.healthcenter-dashboard-page .dashboard-warning-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.9;
+}
+
+.healthcenter-dashboard-page .dashboard-quick-section {
+  margin-top: 4px;
+}
+
+.healthcenter-dashboard-page .dashboard-quick-section h3 {
+  margin: 0 0 14px;
+  color: #0f2742;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.healthcenter-dashboard-page .dashboard-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.healthcenter-dashboard-page .dashboard-quick-card {
+  min-height: 112px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid #dbe3ec;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(15, 39, 66, 0.06);
+  transition: 0.16s ease;
+}
+
+.healthcenter-dashboard-page .dashboard-quick-card:hover {
+  transform: translateY(-2px);
+  border-color: #007a82;
+  box-shadow: 0 14px 28px rgba(0, 122, 130, 0.12);
+}
+
+.healthcenter-dashboard-page .dashboard-quick-card strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #007a82;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.healthcenter-dashboard-page .dashboard-quick-card span {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+@media (max-width: 1024px) {
+  .healthcenter-dashboard-page .dashboard-stat-grid,
+  .healthcenter-dashboard-page .dashboard-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .healthcenter-dashboard-page .dashboard-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .healthcenter-dashboard-page .dashboard-hero {
+    padding: 24px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .healthcenter-dashboard-page .dashboard-title {
+    font-size: 24px;
+  }
+
+  .healthcenter-dashboard-page .dashboard-stat-grid,
+  .healthcenter-dashboard-page .dashboard-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .healthcenter-dashboard-page .dashboard-panel {
+    padding: 22px;
+  }
+
+  .healthcenter-dashboard-page .dashboard-slot-item,
+  .healthcenter-dashboard-page .dashboard-branch-item {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

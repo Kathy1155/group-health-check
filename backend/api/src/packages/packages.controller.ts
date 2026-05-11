@@ -23,6 +23,13 @@ export class PackagesController {
     return this.packagesService.findAllBranches();
   }
 
+  @Get('branches/:branchId/packages')
+  findBranchPackages(
+    @Param('branchId', ParseIntPipe) branchId: number,
+  ) {
+    return this.packagesService.findBranchPackages(branchId);
+  }
+
   @Get('packages/:packageId/branches')
   findPackageBranches(
     @Param('packageId', ParseIntPipe) packageId: number,

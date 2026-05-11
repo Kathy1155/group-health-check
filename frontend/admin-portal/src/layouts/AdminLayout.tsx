@@ -4,6 +4,11 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 type Role = "business" | "center" | "admin";
 
 function getRole(): Role {
+  const path = window.location.pathname;
+
+  if (path.includes("/admin/business")) return "business";
+  if (path.includes("/admin/center")) return "center";
+
   const raw =
     (localStorage.getItem("role") ||
       localStorage.getItem("adminRole") ||
@@ -12,9 +17,6 @@ function getRole(): Role {
 
   if (raw === "business" || raw === "center" || raw === "admin") return raw;
 
-  const path = window.location.pathname;
-  if (path.includes("/admin/business")) return "business";
-  if (path.includes("/admin/center")) return "center";
   return "admin";
 }
 
@@ -150,14 +152,20 @@ export default function AdminLayout() {
       )}
 
       <aside className={`admin-sidebar ${mobileMenuOpen ? "open" : ""}`}>
-        <div className="sidebar-brand">
+        <button
+          type="button"
+          className="sidebar-brand sidebar-brand-button"
+          onClick={() =>
+            navigate(role === "center" ? "/admin/center" : "/admin/business")
+          }
+        >
           <HospitalLogo />
 
           <div>
             <div className="sidebar-brand-title">團體健檢管理</div>
             <div className="sidebar-brand-subtitle">GROUP-HEALTH-CHECK</div>
           </div>
-        </div>
+        </button>
 
         <nav className="sidebar-menu">
           <div className="sidebar-section-title">{navSections.sectionTitle}</div>
@@ -206,6 +214,7 @@ export default function AdminLayout() {
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.to === "/admin/center/timeslots"}
               className={({ isActive }) =>
                 "sidebar-main-link" + (isActive ? " active" : "")
               }

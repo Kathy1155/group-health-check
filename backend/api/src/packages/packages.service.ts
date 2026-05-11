@@ -49,6 +49,28 @@ export class PackagesService {
     }));
   }
 
+  async findBranchPackages(branchId: number) {
+    const branch = await this.branchRepo.findOne({
+      where: { branchId },
+    });
+
+    if (!branch) {
+      throw new NotFoundException('找不到此院區');
+    }
+
+    const branchPackages = await this.branchPackageRepo.find({
+      where: { branchId },
+      order: { packageId: 'ASC' },
+    });
+
+    return branchPackages.map((item) => ({
+      branchPackageId: Number(item.branchPackageId),
+      branchId: Number(item.branchId),
+      packageId: Number(item.packageId),
+      branchPackageStatus: item.branchPackageStatus,
+    }));
+  }
+  
   async findPackageBranches(packageId: number) {
     const pkg = await this.packageRepo.findOne({
       where: { packageId },

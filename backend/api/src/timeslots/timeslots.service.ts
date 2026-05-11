@@ -35,7 +35,9 @@ export class TimeslotsService {
       },
     });
 
-    const branchPackageIds = [...new Set(rows.map((row) => row.branchPackageId))];
+    const branchPackageIds = [
+      ...new Set(rows.map((row) => row.branchPackageId)),
+    ];
 
     const branchPackages =
       branchPackageIds.length > 0
@@ -128,6 +130,35 @@ export class TimeslotsService {
     timeSlot: string;
     quota: number;
   }) {
+    if (!Number.isInteger(data.branchId) || data.branchId <= 0) {
+      throw new BadRequestException('branchId 必須是大於 0 的整數');
+    }
+
+    if (!Number.isInteger(data.packageId) || data.packageId <= 0) {
+      throw new BadRequestException('packageId 必須是大於 0 的整數');
+    }
+
+    if (!data.date) {
+      throw new BadRequestException('date 為必填欄位');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const selectedDate = new Date(`${data.date}T00:00:00`);
+
+    if (selectedDate < today) {
+      throw new BadRequestException('不能設定已經過去的日期');
+    }
+
+    if (!data.timeSlot) {
+      throw new BadRequestException('timeSlot 為必填欄位');
+    }
+
+    if (!Number.isInteger(data.quota) || data.quota <= 0) {
+      throw new BadRequestException('quota 必須是大於 0 的整數');
+    }
+
     const branchPackage = await this.branchPackageRepository.findOne({
       where: {
         branchId: data.branchId,
@@ -139,11 +170,27 @@ export class TimeslotsService {
       throw new BadRequestException('找不到對應的院區＋套餐設定(branch_package)');
     }
 
-    const [start, end] = data.timeSlot.split('-');
+    const [start, end] = data.timeSlot.split('-').map((item) => item.trim());
 
     if (!start || !end) {
       throw new BadRequestException('timeSlot 格式錯誤，應為 開始時間-結束時間');
     }
+
+    const existingSlot = await this.timeSlotRepository.findOne({
+      where: {
+        slotDate: data.date,
+        slotStartTime: start,
+        slotEndTime: end,
+        branchPackageId: branchPackage.branchPackageId,
+      },
+    });
+
+    if (existingSlot) {
+    throw new BadRequestException(
+    '此院區、套餐、日期與時段已設定過名額；若要修改名額，請至「時段名額查詢」頁面進行修改',
+    );
+    }
+    
 
     const newSlot = this.timeSlotRepository.create({
       slotDate: data.date,
@@ -172,6 +219,10 @@ export class TimeslotsService {
       throw new BadRequestException('已結束的時段不可修改名額');
     }
 
+    if (!Number.isInteger(quota) || quota < 0) {
+      throw new BadRequestException('quota 必須是大於等於 0 的整數');
+    }
+
     if (quota < slot.slotReservedCount) {
       throw new BadRequestException(
         `名額不可小於已預約人數，目前已預約 ${slot.slotReservedCount} 人`,
@@ -190,26 +241,26 @@ export class TimeslotsService {
   }
 
   // 健檢中心後台手動關閉 / 重新開放時段
-async updateStatus(slotId: number, status: 'open' | 'closed') {
-  const slot = await this.timeSlotRepository.findOne({
-    where: { slotId },
-  });
+  async updateStatus(slotId: number, status: 'open' | 'closed') {
+    const slot = await this.timeSlotRepository.findOne({
+      where: { slotId },
+    });
 
-  if (!slot) {
-    throw new NotFoundException('找不到此時段資料');
+    if (!slot) {
+      throw new NotFoundException('找不到此時段資料');
+    }
+
+    if (this.isSlotEnded(slot)) {
+      throw new BadRequestException('已結束的時段不可修改狀態');
+    }
+
+    if (status === 'open') {
+      slot.slotStatus =
+        slot.slotReservedCount >= slot.slotCapacity ? 'full' : 'open';
+    } else {
+      slot.slotStatus = 'closed';
+    }
+
+    return this.timeSlotRepository.save(slot);
   }
-
-  if (this.isSlotEnded(slot)) {
-    throw new BadRequestException('已結束的時段不可修改狀態');
-  }
-
-  if (status === 'open') {
-    slot.slotStatus =
-      slot.slotReservedCount >= slot.slotCapacity ? 'full' : 'open';
-  } else {
-    slot.slotStatus = 'closed';
-  }
-
-  return this.timeSlotRepository.save(slot);
-}
 }
