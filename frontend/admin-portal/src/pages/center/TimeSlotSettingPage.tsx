@@ -23,7 +23,7 @@ function TimeSlotSettingPage() {
   const [quota, setQuota] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitLoading, setIsInitLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const loadInitData = async () => {
@@ -48,7 +48,7 @@ function TimeSlotSettingPage() {
         setBranches(branchData);
         setPackages(packageData.filter((item: any) => !item.isDisable));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "初始化資料載入失敗");
+        alert(err instanceof Error ? err.message : "初始化資料載入失敗");
       } finally {
         setIsInitLoading(false);
       }
@@ -113,7 +113,7 @@ function TimeSlotSettingPage() {
     setDate("");
     setTimeSlot("");
     setQuota("");
-    setError(null);
+    alert(null);
   };
 
   const todayText = new Date().toISOString().slice(0, 10);
@@ -150,7 +150,7 @@ function TimeSlotSettingPage() {
     };
 
     setIsLoading(true);
-    setError(null);
+    alert(null);
 
     try {
       const response = await fetch(API_ENDPOINT, {

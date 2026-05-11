@@ -317,10 +317,6 @@ function ReservationListPage() {
     loadAvailablePackages();
   }, [branchName, branches]);
 
-  const refetchData = () => {
-    loadPageData();
-    setSearchResults(null);
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
