@@ -27,9 +27,10 @@ interface PackageItem {
 }
 
 const TIME_SLOT_OPTIONS = [
-  { value: "8:00-10:00", label: "8:00 - 10:00" },
+  { value: "08:00-10:00", label: "8:00 - 10:00" },
   { value: "10:00-12:00", label: "10:00 - 12:00" },
   { value: "13:00-15:00", label: "13:00 - 15:00" },
+  { value: "15:00-17:00", label: "15:00 - 17:00" },
 ];
 
 const STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到", "已取消"];
@@ -37,6 +38,7 @@ const STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到", "已取�
 const RESERVATION_API_ENDPOINT = "http://localhost:3000/api/reservations";
 const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
 const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
+const BRANCH_PACKAGE_API_ENDPOINT = "http://localhost:3000/api/branches";
 
 const toggleAll = <T,>(current: T[], allOptions: T[]) => {
   return current.length === allOptions.length ? [] : allOptions;
@@ -155,7 +157,8 @@ function ReservationListPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [packages, setPackages] = useState<PackageItem[]>([]);
-
+  const [availablePackageIds, setAvailablePackageIds] = useState<number[]>([]);
+  const [isLoadingBranchPackages, setIsLoadingBranchPackages] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState<"loading" | "success" | "error">(
     "loading",
   );
@@ -254,6 +257,66 @@ function ReservationListPage() {
     loadPageData();
   }, []);
 
+  useEffect(() => {
+    if (branchName === "all") {
+      setAvailablePackageIds([]);
+      setPackageType("all");
+      return;
+    }
+
+    const selectedBranch = branches.find(
+      (branch) => branch.branchName === branchName,
+    );
+
+    if (!selectedBranch) {
+      setAvailablePackageIds([]);
+      setPackageType("all");
+      return;
+    }
+
+    const loadAvailablePackages = async () => {
+      try {
+        setIsLoadingBranchPackages(true);
+        setPackageType("all");
+        setAvailablePackageIds([]);
+
+        const response = await fetch(
+          `${BRANCH_PACKAGE_API_ENDPOINT}/${selectedBranch.branchId}/packages`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`院區可查詢套餐載入失敗 (HTTP ${response.status})`);
+        }
+
+        const data = await response.json();
+
+        const ids = (Array.isArray(data) ? data : data?.data ?? [])
+          .filter((item: any) => {
+            const status =
+              item.branchPackageStatus ??
+              item.status ??
+              item.branch_package_status ??
+              "open";
+
+            return status === "open";
+          })
+          .map((item: any) => Number(item.packageId ?? item.package_id))
+          .filter((id: number) => Number.isInteger(id) && id > 0);
+
+        setAvailablePackageIds(ids);
+      } catch (error) {
+        console.error("院區可查詢套餐載入失敗:", error);
+        alert(error instanceof Error ? error.message : "院區可查詢套餐載入失敗");
+        setAvailablePackageIds([]);
+        setPackageType("all");
+      } finally {
+        setIsLoadingBranchPackages(false);
+      }
+    };
+
+    loadAvailablePackages();
+  }, [branchName, branches]);
+
   const refetchData = () => {
     loadPageData();
     setSearchResults(null);
@@ -265,6 +328,20 @@ function ReservationListPage() {
     if (!date) {
       alert("請選擇查詢日期");
       return;
+    }
+
+    if (branchName !== "all" && packageType !== "all") {
+      const selectedPackage = packages.find(
+        (pkg) => pkg.packageName === packageType,
+      );
+
+      if (
+        selectedPackage &&
+        !availablePackageIds.includes(Number(selectedPackage.packageId))
+      ) {
+        alert("此院區不可查詢此套餐，請重新選擇套餐");
+        return;
+      }
     }
 
     if (selectedTimeSlots.length === 0) {
@@ -361,6 +438,7 @@ function ReservationListPage() {
   const handleReset = () => {
     setBranchName("all");
     setPackageType("all");
+    setAvailablePackageIds([]);
     setDate("");
     setSelectedTimeSlots(TIME_SLOT_OPTIONS.map((item) => item.value));
     setSelectedStatuses(STATUS_OPTIONS);
@@ -453,7 +531,11 @@ function ReservationListPage() {
               <select
                 id="branchName"
                 value={branchName}
-                onChange={(e) => setBranchName(e.target.value)}
+                onChange={(e) => {
+                  setBranchName(e.target.value);
+                  setPackageType("all");
+                  setSearchResults(null);
+                }}
                 className="form-select"
                 disabled={loadingStatus !== "success"}
               >
@@ -473,16 +555,40 @@ function ReservationListPage() {
               <select
                 id="packageType"
                 value={packageType}
-                onChange={(e) => setPackageType(e.target.value)}
+                onChange={(e) => {
+                  setPackageType(e.target.value);
+                  setSearchResults(null);
+                }}
                 className="form-select"
-                disabled={loadingStatus !== "success"}
+                disabled={
+                  loadingStatus !== "success" ||
+                  branchName === "all" ||
+                  isLoadingBranchPackages
+                }
               >
-                <option value="all">所有套餐</option>
-                {packages.map((pkg) => (
-                  <option key={pkg.packageId} value={pkg.packageName}>
-                    {pkg.packageName}
-                  </option>
-                ))}
+                <option value="all">
+                  {branchName === "all"
+                    ? "所有套餐"
+                    : isLoadingBranchPackages
+                      ? "套餐載入中..."
+                      : "所有套餐"}
+                </option>
+
+                {packages.map((pkg) => {
+                  const canSelect =
+                    branchName === "all" || availablePackageIds.includes(Number(pkg.packageId));
+
+                  return (
+                    <option
+                      key={pkg.packageId}
+                      value={pkg.packageName}
+                      disabled={!canSelect}
+                    >
+                      {pkg.packageName}
+                      {!canSelect ? "（此院區不可查詢）" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

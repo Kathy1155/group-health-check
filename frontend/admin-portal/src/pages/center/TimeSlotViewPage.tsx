@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 const API_ENDPOINT = "http://localhost:3000/api/timeslots";
 const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
 const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
+const BRANCH_PACKAGE_API_ENDPOINT = "http://localhost:3000/api/branches";
 
 type LoadingStatus = "loading" | "success" | "error";
 
@@ -105,6 +106,8 @@ function TimeSlotViewPage() {
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [packages, setPackages] = useState<PackageOption[]>([]);
+  const [availablePackageIds, setAvailablePackageIds] = useState<number[]>([]);
+  const [isLoadingBranchPackages, setIsLoadingBranchPackages] = useState(false);
   const [loadedTimeSlots, setLoadedTimeSlots] = useState<TimeSlot[]>([]);
   const [searchResults, setSearchResults] = useState<TimeSlot[] | null>(null);
 
@@ -157,6 +160,56 @@ function TimeSlotViewPage() {
   useEffect(() => {
     loadInitData();
   }, []);
+
+  useEffect(() => {
+    if (!branchId) {
+      setAvailablePackageIds([]);
+      setPackageId("");
+      return;
+    }
+
+    const loadAvailablePackages = async () => {
+      try {
+        setIsLoadingBranchPackages(true);
+        setPackageId("all");
+        setAvailablePackageIds([]);
+
+        const response = await fetch(
+          `${BRANCH_PACKAGE_API_ENDPOINT}/${branchId}/packages`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`院區可設定套餐載入失敗 (${response.status})`);
+        }
+
+        const data = await response.json();
+
+        const ids = (Array.isArray(data) ? data : data?.data ?? [])
+          .filter((item: any) => {
+            const status =
+              item.branchPackageStatus ??
+              item.status ??
+              item.branch_package_status ??
+              "open";
+
+            return status === "open";
+          })
+          .map((item: any) => Number(item.packageId ?? item.package_id))
+          .filter((id: number) => Number.isInteger(id) && id > 0);
+
+        setAvailablePackageIds(ids);
+      } catch (error) {
+        console.error("院區可設定套餐載入失敗:", error);
+        alert(error instanceof Error ? error.message : "院區可設定套餐載入失敗");
+        setAvailablePackageIds([]);
+        setPackageId("");
+      } finally {
+        setIsLoadingBranchPackages(false);
+      }
+    };
+
+    loadAvailablePackages();
+  }, [branchId]);
 
   const getDateTag = (date: string) => {
     if (date === DATES.today) {
@@ -217,11 +270,19 @@ function TimeSlotViewPage() {
       return;
     }
 
+    if (
+      packageId !== "all" &&
+      !availablePackageIds.includes(Number(packageId))
+    ) {
+      alert("此院區不可查詢此套餐，請重新選擇套餐");
+      return;
+    }
+
     const effectiveTimeSlot = searchTimeSlot === "all" ? null : searchTimeSlot;
 
     const results = loadedTimeSlots.filter((slot) => {
       const branchMatch = String(slot.branchId) === String(branchId);
-      const packageMatch = String(slot.packageId) === String(packageId);
+      const packageMatch = packageId === "all" || String(slot.packageId) === String(packageId);
       const dateMatch = slot.date === searchDate;
       const timeMatch =
         effectiveTimeSlot === null ||
@@ -241,10 +302,10 @@ function TimeSlotViewPage() {
         item.date === DATES.dayAfterTomorrow;
 
       const branchMatch = !branchId || String(item.branchId) === String(branchId);
-      const packageMatch =
-        !packageId || String(item.packageId) === String(packageId);
-
-      return dateMatch && branchMatch && packageMatch;
+      const packageMatch = !packageId || 
+      packageId === "all" || 
+      String(item.packageId) === String(packageId);
+        return dateMatch && branchMatch && packageMatch;
     });
 
     return sortSlots(items);
@@ -474,7 +535,11 @@ function TimeSlotViewPage() {
               <select
                 id="branchId"
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
+                onChange={(e) => {
+                  setBranchId(e.target.value);
+                  setPackageId("");
+                  setSearchResults(null);
+                }}
                 className="form-select"
                 required
                 disabled={loadingStatus === "loading"}
@@ -495,17 +560,44 @@ function TimeSlotViewPage() {
               <select
                 id="packageId"
                 value={packageId}
-                onChange={(e) => setPackageId(e.target.value)}
+                onChange={(e) => {
+                  setPackageId(e.target.value);
+                  setSearchResults(null);
+                }}
                 className="form-select"
                 required
-                disabled={loadingStatus === "loading"}
+                disabled={
+                  loadingStatus === "loading" ||
+                  !branchId ||
+                  isLoadingBranchPackages
+                }
               >
-                <option value="">請選擇套餐</option>
-                {packages.map((pkg) => (
-                  <option key={pkg.packageId} value={pkg.packageId}>
-                    {pkg.packageName}
-                  </option>
-                ))}
+                <option value="">
+                  {!branchId
+                    ? "請先選擇院區"
+                    : isLoadingBranchPackages
+                      ? "套餐載入中..."
+                      : "請選擇套餐"}
+                </option>
+
+                {branchId && !isLoadingBranchPackages && (
+                  <option value="all">所有套餐</option>
+                )}
+
+                {packages.map((pkg) => {
+                  const canSelect = availablePackageIds.includes(Number(pkg.packageId));
+
+                  return (
+                    <option
+                      key={pkg.packageId}
+                      value={pkg.packageId}
+                      disabled={!canSelect}
+                    >
+                      {pkg.packageName}
+                      {!canSelect ? "（此院區不可查詢）" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
