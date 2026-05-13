@@ -13,6 +13,7 @@ import TimeSlotViewPage from "./pages/center/TimeSlotViewPage";
 import ReservationListPage from "./pages/center/ReservationListPage";
 import GroupSearchPage from "./pages/business/GroupSearchPage";
 import GroupEditPage from "./pages/business/GroupEditPage";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 
 
@@ -22,20 +23,87 @@ export default function App() {
       <Route path="/" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route path="/admin/home" element={<HomeRedirectPage />} />
-      <Route path="/admin/403" element={<ForbiddenPage />} />
+      <Route path="/admin/forbidden" element={<ForbiddenPage />} />
 
       <Route path="/admin" element={<AdminLayout />}>
-        <Route path="business" element={<BusinessHomePage />} />
-        <Route path="business/groups/new" element={<GroupCreatePage />} />
-        <Route path="business/groups/search" element={<GroupSearchPage />} />
-        <Route path="business/groups/edit/:id" element={<GroupEditPage />} />
-        <Route path="business/package-branches" element={<PackageBranchSettingPage />} />
-        <Route path="business/roster/upload" element={<RosterUploadPage />} />
+        <Route index element={<Navigate to="/admin/home" replace />} />
 
-        <Route path="center" element={<DefaultHomePage />} />
-        <Route path="center/timeslots" element={<TimeSlotSettingPage />} />
-        <Route path="center/timeslots/view" element={<TimeSlotViewPage />} />
-        <Route path="center/reservations" element={<ReservationListPage />} />
+        <Route path="business"
+          element={
+            <ProtectedRoute allow={["Business", "Admin"]}>
+              <BusinessHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="business/groups/new"
+          element={
+            <ProtectedRoute allow={["Business", "Admin"]}>
+              <GroupCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="business/groups/search"
+          element={
+            <ProtectedRoute allow={["Business", "Admin"]}>
+              <GroupSearchPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="business/groups/edit/:id"
+          element={
+            <ProtectedRoute allow={["Business", "Admin"]}>
+              <GroupEditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="business/package-branches"
+          element={
+            <ProtectedRoute allow={["Business", "Admin"]}>
+              <PackageBranchSettingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="business/roster/upload"
+          element={
+            <ProtectedRoute allow={["Business", "Admin"]}>
+              <RosterUploadPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="center"
+          element={
+            <ProtectedRoute allow={["HealthExamination", "Admin"]}>
+              <DefaultHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="center/timeslots"
+          element={
+            <ProtectedRoute allow={["HealthExamination", "Admin"]}>
+              <TimeSlotSettingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="center/timeslots/view"
+          element={
+            <ProtectedRoute allow={["HealthExamination", "Admin"]}>
+              <TimeSlotViewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="center/reservations"
+          element={
+            <ProtectedRoute allow={["HealthExamination", "Admin"]}>
+              <ReservationListPage />
+            </ProtectedRoute>
+          }
+        />
 </Route>
 
       <Route path="*" element={<Navigate to="/admin/login" replace />} />

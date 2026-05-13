@@ -294,22 +294,26 @@ function TimeSlotViewPage() {
     setSearchResults(sortSlots(results));
   };
 
+  const handleClearSearch = () => {
+    setBranchId("");
+    setPackageId("");
+    setSearchDate("");
+    setSearchTimeSlot("all");
+    setSearchResults(null);
+    setAvailablePackageIds([]);
+  };
+
   const filteredPreviewData = useMemo(() => {
     const items = loadedTimeSlots.filter((item) => {
-      const dateMatch =
+      return (
         item.date === DATES.today ||
         item.date === DATES.tomorrow ||
-        item.date === DATES.dayAfterTomorrow;
-
-      const branchMatch = !branchId || String(item.branchId) === String(branchId);
-      const packageMatch = !packageId || 
-      packageId === "all" || 
-      String(item.packageId) === String(packageId);
-        return dateMatch && branchMatch && packageMatch;
+        item.date === DATES.dayAfterTomorrow
+      );
     });
 
     return sortSlots(items);
-  }, [loadedTimeSlots, branchId, packageId]);
+  }, [loadedTimeSlots]);
 
   const openEditModal = (slot: TimeSlot) => {
     if (isSlotEnded(slot)) {
@@ -538,7 +542,6 @@ function TimeSlotViewPage() {
                 onChange={(e) => {
                   setBranchId(e.target.value);
                   setPackageId("");
-                  setSearchResults(null);
                 }}
                 className="form-select"
                 required
@@ -562,7 +565,6 @@ function TimeSlotViewPage() {
                 value={packageId}
                 onChange={(e) => {
                   setPackageId(e.target.value);
-                  setSearchResults(null);
                 }}
                 className="form-select"
                 required
@@ -638,13 +640,22 @@ function TimeSlotViewPage() {
             </div>
 
             <div className="form-field form-field-narrow">
-              <div className="form-actions-center">
+              <div className="form-actions-center gap">
                 <button
                   type="submit"
-                  className="primary-button full-width-button"
+                  className="primary-button"
                   disabled={loadingStatus === "loading"}
                 >
                   查詢
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={handleClearSearch}
+                  disabled={loadingStatus === "loading"}
+                >
+                  清空查詢
                 </button>
               </div>
             </div>
