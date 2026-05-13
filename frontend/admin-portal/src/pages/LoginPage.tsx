@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-type Role = "business" | "center" ;
+type Role = "business" | "center";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 function HospitalLogo() {
   return (
@@ -18,23 +21,71 @@ export default function LoginPage() {
   const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role | "">("");
-  const navigate = useNavigate();
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
 
     if (!account.trim() || !password.trim()) return;
 
     if (!role) {
-      alert("請先選擇角色");
+      setErrorMessage("請先選擇要登入的後台");
       return;
     }
 
-    localStorage.setItem("employeeDisplayName", account.trim());
-    localStorage.setItem("role", role);
+    try {
+      setIsLoading(true);
 
-    navigate("/admin/home");
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          staffEmail: account.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.message || "登入失敗，請確認帳號密碼");
+        return;
+      }
+
+      const staffRole = data.staff_role;
+
+      const isAllowed =
+        staffRole === "Admin" ||
+        (role === "business" && staffRole === "Business") ||
+        (role === "center" && staffRole === "HealthExamination");
+
+      if (!isAllowed) {
+        setErrorMessage("此帳號沒有該後台的登入權限");
+        return;
+      }
+
+    localStorage.setItem("staffUser", JSON.stringify(data));
+    localStorage.setItem("employeeDisplayName", data.staff_name);
+    localStorage.setItem("role", staffRole);
+    localStorage.setItem("loginEntry", role);
+
+    if (role === "business") {
+      navigate("/admin/business");
+    } else if (role === "center") {
+      navigate("/admin/center");
+    }
+    } catch (error) {
+      setErrorMessage("無法連線到伺服器，請確認後端是否已啟動");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,7 +111,7 @@ export default function LoginPage() {
               id="account"
               value={account}
               onChange={(e) => setAccount(e.target.value)}
-              placeholder="請輸入員工帳號"
+              placeholder="請輸入員工 Email"
               required
             />
           </div>
@@ -82,11 +133,21 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className={`login-custom-select ${roleDropdownOpen ? "open" : ""}`}
+              className={`login-custom-select ${
+                roleDropdownOpen ? "open" : ""
+              }`}
               onClick={() => setRoleDropdownOpen((prev) => !prev)}
             >
-              <span>{role === "business" ? "業務中心" : role === "center" ? "健檢中心" : "請選擇部門"}</span>
-              <span className="login-select-arrow">{roleDropdownOpen ? "⌃" : "⌄"}</span>
+              <span>
+                {role === "business"
+                  ? "業務中心"
+                  : role === "center"
+                    ? "健檢中心"
+                    : "請選擇部門"}
+              </span>
+              <span className="login-select-arrow">
+                {roleDropdownOpen ? "⌃" : "⌄"}
+              </span>
             </button>
 
             {roleDropdownOpen && (
@@ -116,8 +177,14 @@ export default function LoginPage() {
             )}
           </div>
 
-          <button className="login-submit-button" type="submit">
-            進入系統
+          {errorMessage && <p className="login-error-text">{errorMessage}</p>}
+
+          <button
+            className="login-submit-button"
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? "登入中..." : "進入系統"}
           </button>
         </form>
       </section>

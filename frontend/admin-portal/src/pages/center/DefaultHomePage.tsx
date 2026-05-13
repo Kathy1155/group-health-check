@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const RESERVATION_API_ENDPOINT = "http://localhost:3000/api/reservations";
 const TIMESLOT_API_ENDPOINT = "http://localhost:3000/api/timeslots";
+const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
 
 type ReservationItem = {
   id?: number;
@@ -27,6 +28,13 @@ type TimeSlotItem = {
   status?: string;
   branchName?: string;
   packageType?: string;
+};
+
+type BranchOption = {
+  branch_id?: number;
+  branchId?: number;
+  branch_name?: string;
+  branchName?: string;
 };
 
 const featureButtons = [
@@ -93,19 +101,28 @@ function DefaultHomePage() {
 
   const [reservations, setReservations] = useState<ReservationItem[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlotItem[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [selectedBranchName, setSelectedBranchName] = useState(
+    () => localStorage.getItem("healthDashboardBranch") || "",
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const todayText = getTodayText();
+  const branchOptions = branches
+    .map((branch) => branch.branch_name ?? branch.branchName ?? "")
+    .filter(Boolean);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
 
-        const [reservationResponse, timeSlotResponse] = await Promise.all([
-          fetch(RESERVATION_API_ENDPOINT),
-          fetch(TIMESLOT_API_ENDPOINT),
-        ]);
+        const [reservationResponse, timeSlotResponse, branchResponse] =
+          await Promise.all([
+            fetch(RESERVATION_API_ENDPOINT),
+            fetch(TIMESLOT_API_ENDPOINT),
+            fetch(BRANCH_API_ENDPOINT),
+          ]);
 
         if (!reservationResponse.ok) {
           throw new Error(`預約資料載入失敗 (${reservationResponse.status})`);
@@ -115,8 +132,13 @@ function DefaultHomePage() {
           throw new Error(`時段資料載入失敗 (${timeSlotResponse.status})`);
         }
 
+        if (!branchResponse.ok) {
+          throw new Error(`院區資料載入失敗 (${branchResponse.status})`);
+        }
+
         const reservationData = await reservationResponse.json();
         const timeSlotData = await timeSlotResponse.json();
+        const branchData = await branchResponse.json();
 
         const reservationList = Array.isArray(reservationData)
           ? reservationData
@@ -125,9 +147,15 @@ function DefaultHomePage() {
         const timeSlotList = Array.isArray(timeSlotData)
           ? timeSlotData
           : timeSlotData?.data ?? [];
+        
+        const branchList = Array.isArray(branchData)
+          ? branchData
+          : branchData?.data ?? [];
 
         setReservations(reservationList);
         setTimeSlots(timeSlotList);
+        setBranches(branchList);
+
       } catch (error) {
         console.error("Dashboard 載入失敗:", error);
         alert(error instanceof Error ? error.message : "Dashboard 載入失敗");
@@ -142,16 +170,20 @@ function DefaultHomePage() {
   const todayReservations = useMemo(() => {
     return reservations.filter((item) => {
       const date = normalizeDate(item.date ?? item.reservationDate);
-      return date === todayText;
+      const branchName = item.branchName ?? "";
+
+      return date === todayText && branchName === selectedBranchName;
     });
-  }, [reservations, todayText]);
+  }, [reservations, todayText, selectedBranchName]);
 
   const todayTimeSlots = useMemo(() => {
     return timeSlots.filter((item) => {
       const date = normalizeDate(item.date ?? item.slotDate);
-      return date === todayText;
+      const branchName = item.branchName ?? "";
+
+      return date === todayText && branchName === selectedBranchName;
     });
-  }, [timeSlots, todayText]);
+  }, [timeSlots, todayText, selectedBranchName]);
 
   const summary = useMemo(() => {
     const confirmed = todayReservations.filter(
@@ -275,19 +307,48 @@ function DefaultHomePage() {
             今日日期：{todayText}
           </p>
         </div>
-
-        <button
-          type="button"
-          className="dashboard-refresh-button"
-          onClick={() => window.location.reload()}
-        >
-          重新整理
-        </button>
       </div>
+          <section className="dashboard-branch-card">
+            <div>
+              <p className="dashboard-branch-label">目前查看院區</p>
+              <h3>{selectedBranchName || "請先選擇院區"}</h3>
+            </div>
 
-      {isLoading ? (
-        <p className="form-hint">Dashboard 資料載入中...</p>
-      ) : (
+            <div className="dashboard-branch-actions">
+              <select
+                value={selectedBranchName}
+                onChange={(e) => {
+                  setSelectedBranchName(e.target.value);
+                  localStorage.setItem("healthDashboardBranch", e.target.value);
+                }}
+              >
+                <option value="">請選擇院區</option>
+                {branchOptions.map((branchName) => (
+                  <option key={branchName} value={branchName}>
+                    {branchName}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                className="dashboard-refresh-button"
+                onClick={() => window.location.reload()}
+              >
+                重新整理
+              </button>
+            </div>
+          </section>
+
+        {isLoading ? (
+          <p className="form-hint">Dashboard 資料載入中...</p>
+        ) : !selectedBranchName ? (
+          <section className="dashboard-panel">
+            <p className="dashboard-empty-text">
+              請先選擇要查看的院區，系統會顯示該院區今日預約與時段名額。
+            </p>
+          </section>
+        ) : (
         <>
           <div className="dashboard-stat-grid">
             <div className="dashboard-stat-card">
