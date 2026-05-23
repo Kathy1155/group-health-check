@@ -65,7 +65,7 @@ export class ReservationsController {
       throw new BadRequestException('slotId 為必填欄位');
     }
 
-    return this.reservationsService.holdReservation(dto);
+    return this.reservationsService.holdReservationWithLock(dto);
   }
 
   /**

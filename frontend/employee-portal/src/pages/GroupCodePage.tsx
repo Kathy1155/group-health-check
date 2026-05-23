@@ -132,6 +132,15 @@ function GroupCodePage() {
         </div>
 
         <div className="form-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => navigate("/")}
+            disabled={loading}
+          >
+            返回
+          </button>
+
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "寄送驗證碼中..." : "下一步"}
           </button>

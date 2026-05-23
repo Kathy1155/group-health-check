@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import GroupCodePage from "./pages/GroupCodePage";
 import SelectBranchPackagePage from "./pages/SelectBranchPackagePage";
@@ -9,12 +9,13 @@ import ReservationLookupPage from "./pages/ReservationLookupPage";
 import OtpVerifyPage from "./pages/OtpVerifyPage";
 import ReservationActionResultPage from "./pages/ReservationActionResultPage";
 import ScrollToTop from "./components/ScrollToTop";
+import hospitalLogo from "./assets/hospital-logo.png";
 import "./App.css";
 
 function App() {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // OTP 是團體代碼驗證流程的一部分，所以也要算在流程內
   const stepPaths = [
     "/reserve",
     "/otp",
@@ -25,24 +26,22 @@ function App() {
   ];
 
   const steps = [
-    { path: "/reserve", label: "團體代碼" },
-    { path: "/select-branch-package", label: "選院區與套餐" },
-    { path: "/select-slot", label: "選日期與時段" },
-    { path: "/fill-profile", label: "填寫資料與病史" },
+    { path: "/reserve", label: "身分驗證" },
+    { path: "/select-branch-package", label: "院區方案" },
+    { path: "/select-slot", label: "日期時段" },
+    { path: "/fill-profile", label: "資料填寫" },
   ];
 
   const inWizard = stepPaths.includes(location.pathname);
 
   let currentStepIndex = steps.findIndex(
-    (step) => step.path === location.pathname
+    (step) => step.path === location.pathname,
   );
 
-  // OTP 頁面視為第 1 步「團體代碼」的一部分
   if (location.pathname === "/otp") {
     currentStepIndex = 0;
   }
 
-  // 完成頁視為最後一步
   if (location.pathname === "/done") {
     currentStepIndex = steps.length - 1;
   }
@@ -60,7 +59,23 @@ function App() {
       <ScrollToTop />
 
       <header className="app-header">
-        <h1 className="app-title">線上預約</h1>
+        <div className="app-header-top">
+          <div className="app-brand">
+            <img src={hospitalLogo} alt="醫院 logo" className="app-brand-logo" />
+            <div>
+              <h1 className="app-title">團體健檢預約</h1>
+              <p className="app-subtitle">員工線上預約服務</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="app-home-button"
+            onClick={() => navigate("/")}
+          >
+            回首頁
+          </button>
+        </div>
 
         {inWizard && (
           <div className="progress-wrapper">
@@ -76,22 +91,19 @@ function App() {
                 const isCurrent = index === currentStepIndex;
                 const isDone = index < currentStepIndex;
 
-                const color = isCurrent
-                  ? "#2563eb"
-                  : isDone
-                    ? "#0f2742"
-                    : "#8a9aad";
-
                 return (
                   <span
                     key={step.path}
-                    style={{
-                      color,
-                      fontWeight: isCurrent ? 800 : 500,
-                      whiteSpace: "nowrap",
-                    }}
+                    className={
+                      isCurrent
+                        ? "progress-step progress-step-current"
+                        : isDone
+                          ? "progress-step progress-step-done"
+                          : "progress-step"
+                    }
                   >
-                    {index + 1}. {step.label}
+                    <strong>{index + 1}</strong>
+                    {step.label}
                   </span>
                 );
               })}

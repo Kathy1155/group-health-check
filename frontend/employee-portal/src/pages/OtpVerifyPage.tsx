@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import type { ClipboardEvent, KeyboardEvent } from "react";
 import { verifyOtp } from "../api/verificationsApi";
 import type { GroupDto } from "../api/groupsApi";
 
@@ -29,7 +30,7 @@ export default function OtpVerifyPage() {
     const updateRemainingTime = () => {
       const diff = Math.max(
         0,
-        Math.floor((state.expiresAt - Date.now()) / 1000)
+        Math.floor((state.expiresAt - Date.now()) / 1000),
       );
 
       setRemainingSeconds(diff);
@@ -51,19 +52,53 @@ export default function OtpVerifyPage() {
     return `${minutes}:${seconds}`;
   }, [remainingSeconds]);
 
+  const otpDigits = Array.from({ length: 6 }, (_, index) => otp[index] ?? "");
+
+  const updateOtpDigit = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const nextDigits = otpDigits.slice();
+    nextDigits[index] = digit;
+    setOtp(nextDigits.join("").slice(0, 6));
+
+    if (digit && index < 5) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (
+    index: number,
+    event: KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus();
+    }
+  };
+
+  const handleOtpPaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const pasted = event.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
+    setOtp(pasted);
+
+    const nextIndex = Math.min(pasted.length, 5);
+    document.getElementById(`otp-${nextIndex}`)?.focus();
+  };
+
   if (!state?.verificationId || !state.group || !state.idNumber) {
     return (
       <div className="reservation-page">
         <div className="reservation-page-header">
           <span className="page-badge">Email 驗證</span>
-          <h1>缺少驗證資訊</h1>
+          <h1>驗證資料遺失</h1>
           <p>請返回首頁，重新開始團體健檢預約流程。</p>
         </div>
 
         <div className="reservation-card">
           <div className="reservation-card-header">
             <h2>無法進行驗證</h2>
-            <p>系統沒有取得驗證資料，可能是直接進入此頁或流程已中斷。</p>
+            <p>系統沒有取得驗證資料，可能是重新整理或直接開啟此頁造成。</p>
           </div>
 
           <div className="form-footer">
@@ -98,7 +133,7 @@ export default function OtpVerifyPage() {
         },
       });
     } catch {
-      setError("驗證失敗，請確認驗證碼是否正確或已過期。");
+      setError("驗證失敗，請確認驗證碼是否正確或是否已過期。");
     } finally {
       setLoading(false);
     }
@@ -126,23 +161,29 @@ export default function OtpVerifyPage() {
 
         <div className="form-stack">
           <div className={isExpired ? "otp-countdown expired" : "otp-countdown"}>
-            {isExpired ? "驗證碼已過期" : `驗證碼剩餘時間：${formattedTime}`}
+            {isExpired
+              ? "驗證碼已過期"
+              : `驗證碼剩餘時間：${formattedTime}`}
           </div>
 
           <div className="form-row">
-            <label htmlFor="otp">驗證碼</label>
-            <input
-              id="otp"
-              value={otp}
-              onChange={(e) => {
-                const onlyNumbers = e.target.value.replace(/\D/g, "");
-                setOtp(onlyNumbers);
-              }}
-              placeholder="請輸入 6 位數驗證碼"
-              maxLength={6}
-              disabled={loading || isExpired}
-              inputMode="numeric"
-            />
+            <label>驗證碼</label>
+            <div className="otp-input-grid" aria-label="6 位數驗證碼">
+              {otpDigits.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-${index}`}
+                  value={digit}
+                  onChange={(e) => updateOtpDigit(index, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                  onPaste={handleOtpPaste}
+                  maxLength={1}
+                  disabled={loading || isExpired}
+                  inputMode="numeric"
+                  aria-label={`驗證碼第 ${index + 1} 碼`}
+                />
+              ))}
+            </div>
             {error && <p className="form-error">{error}</p>}
           </div>
 

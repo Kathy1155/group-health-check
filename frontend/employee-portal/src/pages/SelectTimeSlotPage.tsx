@@ -142,7 +142,14 @@ function SelectTimeSlotPage() {
       });
     } catch (error: any) {
       console.error(error);
-      setSlotsError(error?.message || "暫時保留名額失敗，請重新選擇時段。");
+      const message =
+        error?.message === "ACTIVE_PENDING_RESERVATION"
+          ? "你目前已有尚未完成確認的預約，請先到信箱點擊確認或取消；若未處理，名額會在 15 分鐘後自動釋放。"
+          : error?.message === "TIME_SLOT_FULL"
+            ? "此時段名額已滿，請重新選擇其他時段。"
+            : error?.message || "暫時保留名額失敗，請重新選擇時段。";
+
+      setSlotsError(message);
     } finally {
       setSubmitting(false);
     }
@@ -165,9 +172,8 @@ function SelectTimeSlotPage() {
         <span className="page-badge">Step 3</span>
         <h1>選擇健檢日期與時段</h1>
         <p>
-          請選擇欲前往健檢的日期，系統會依照院區與套餐設定，
-          <br />
-          顯示該日期可預約的時段與剩餘名額。
+          請選擇欲前往健檢的日期，系統會依照院區與套餐設定。
+          <span className="text-line">顯示該日期可預約的時段與剩餘名額。</span>
         </p>
       </div>
 
@@ -244,7 +250,7 @@ function SelectTimeSlotPage() {
             {slotsError && date && <p className="form-error">{slotsError}</p>}
 
             <div className="reservation-tip slot-tip">
-              選擇時段後系統會暫時保留名額，請於後續流程完成資料填寫。
+              選擇時段後系統會暫時保留名額，請於後續完成資料填寫。
             </div>
           </section>
         </div>

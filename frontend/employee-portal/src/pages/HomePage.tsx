@@ -9,20 +9,18 @@ function HomePage() {
       <section className="home-hero">
         <div className="home-hero-left">
           <div className="home-brand">
-            <img src={hospitalLogo} alt="醫院圖標" className="home-brand-logo" />
+            <img src={hospitalLogo} alt="醫院 logo" className="home-brand-logo" />
             <div>
-              <p className="home-brand-subtitle">Group Health Check</p>
-              <p className="home-brand-title">團體健檢線上預約系統</p>
+              <p className="home-brand-title">團體健檢預約</p>
+              <p className="home-brand-subtitle">員工線上預約服務</p>
             </div>
           </div>
 
-          <span className="page-badge">線上預約服務</span>
-
-          <h1 className="home-title">團體健檢預約入口</h1>
+          <h1 className="home-title">團體健檢預約</h1>
 
           <p className="home-description">
-            歡迎使用本院團體健檢預約系統。請依照流程完成身分驗證、
-            院區套餐選擇與健檢時段預約。
+            輸入企業提供的團體代碼，完成身分驗證後，即可選擇院區、健檢方案與可預約時段。
+            系統會即時確認名額，協助你快速完成預約資料送出。
           </p>
 
           <div className="home-actions">
@@ -37,71 +35,52 @@ function HomePage() {
               className="btn btn-secondary home-main-btn"
               onClick={() => navigate("/reservation-lookup")}
             >
-              查詢預約
+              查詢 / 取消預約
             </button>
           </div>
 
           <p className="home-note">
-            如資料有誤或無法完成預約，請洽貴公司團體聯絡人或健檢中心。
+            請先準備公司通知的團體代碼與個人身分資料，驗證成功後即可進入預約流程。
           </p>
         </div>
 
-        <aside className="home-info-panel">
-          <p className="home-info-kicker">Online Reservation</p>
-          <h2>預約前請先確認</h2>
+        <aside className="home-info-panel" aria-label="預約流程">
+          <h2>預約流程</h2>
 
           <div className="home-info-list">
             <div className="home-info-item">
               <span>01</span>
-              <p>請準備團體代碼與身分證字號。</p>
+              <div>
+                <h3>輸入團體代碼</h3>
+                <p>確認所屬企業與預約資格，完成 Email OTP 驗證。</p>
+              </div>
             </div>
 
             <div className="home-info-item">
               <span>02</span>
-              <p>系統會依團體設定顯示可預約院區與套餐。</p>
+              <div>
+                <h3>選擇院區與方案</h3>
+                <p>依企業開放內容選擇健檢院區與適合的檢查方案。</p>
+              </div>
             </div>
 
             <div className="home-info-item">
               <span>03</span>
-              <p>完成預約後，請至信箱確認預約通知。</p>
+              <div>
+                <h3>選擇日期時段</h3>
+                <p>查看可預約時段與剩餘名額，選擇適合的健檢時間。</p>
+              </div>
+            </div>
+
+            <div className="home-info-item">
+              <span>04</span>
+              <div>
+                <h3>填寫資料並預約成立</h3>
+                <p>填寫個人健康資料，送出後取得預約編號。</p>
+              </div>
             </div>
           </div>
         </aside>
-      </section>
-
-      <section className="home-process-card">
-        <div className="section-title-row">
-          <div>
-            <span className="section-kicker">Reservation Process</span>
-            <h2>健檢流程說明</h2>
-          </div>
-        </div>
-
-        <div className="process-grid">
-          <div className="process-item">
-            <span className="process-number">01</span>
-            <h3>驗證身分</h3>
-            <p>輸入團體代碼與身分證字號，確認團體與名冊身分。</p>
-          </div>
-
-          <div className="process-item">
-            <span className="process-number">02</span>
-            <h3>選擇項目</h3>
-            <p>選擇欲前往的院區，以及團體可預約的健檢套餐。</p>
-          </div>
-
-          <div className="process-item">
-            <span className="process-number">03</span>
-            <h3>挑選時段</h3>
-            <p>依照剩餘名額選擇健檢日期與可預約時段。</p>
-          </div>
-
-          <div className="process-item">
-            <span className="process-number">04</span>
-            <h3>完成預約</h3>
-            <p>確認基本資料與個人病史後送出，並至信箱完成確認。</p>
-          </div>
-        </div>
       </section>
     </div>
   );

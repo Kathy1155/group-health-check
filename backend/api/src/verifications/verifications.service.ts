@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+﻿import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
@@ -45,12 +45,12 @@ private async sendOtpEmail(to: string, otp: string) {
     to,
     subject: '團體健檢預約 OTP 驗證碼',
     html: `
-      <div style="margin:0;padding:0;background:#f4f8fc;font-family:Arial,'Noto Sans TC','Microsoft JhengHei',sans-serif;color:#102a43;">
+      <div style="margin:0;padding:0;background:#f4f9f9;font-family:Arial,'Noto Sans TC','Microsoft JhengHei',sans-serif;color:#102a43;">
         <div style="max-width:620px;margin:0 auto;padding:32px 16px;">
-          <div style="background:#ffffff;border:1px solid #dbe7f6;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,0.08);">
+          <div style="background:#ffffff;border:1px solid #dbe8ea;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,0.08);">
             
-            <div style="padding:28px 32px;background:linear-gradient(135deg,#f7fbff 0%,#eef6ff 100%);border-bottom:1px solid #dbe7f6;">
-              <div style="display:inline-block;padding:8px 14px;margin-bottom:16px;border-radius:999px;background:#e8f2ff;color:#0b63ce;font-size:13px;font-weight:700;letter-spacing:0.04em;">
+            <div style="padding:28px 32px;background:linear-gradient(135deg,#f4f9f9 0%,#e6f5f5 100%);border-bottom:1px solid #dbe8ea;">
+              <div style="display:inline-block;padding:8px 14px;margin-bottom:16px;border-radius:999px;background:#e6f5f5;color:#007a82;font-size:13px;font-weight:700;letter-spacing:0.04em;">
                 線上預約服務
               </div>
 
@@ -68,24 +68,24 @@ private async sendOtpEmail(to: string, otp: string) {
                 您好，系統已收到您的驗證要求。請於有效時間內輸入下方 6 位數驗證碼。
               </p>
 
-              <div style="margin:24px 0;padding:26px 20px;border-radius:20px;background:#eff6ff;border:1px solid #bfdbfe;text-align:center;">
+              <div style="margin:24px 0;padding:26px 20px;border-radius:20px;background:#e6f5f5;border:1px solid #b7d8db;text-align:center;">
                 <p style="margin:0 0 10px;color:#506984;font-size:14px;font-weight:700;">
                   您的驗證碼
                 </p>
 
-                <div style="color:#1d4ed8;font-size:40px;line-height:1.2;font-weight:800;letter-spacing:10px;">
+                <div style="color:#007a82;font-size:40px;line-height:1.2;font-weight:800;letter-spacing:10px;">
                   ${otp}
                 </div>
               </div>
 
-              <div style="margin-top:22px;padding:16px 18px;border-radius:16px;background:#f8fbff;border:1px solid #dbeafe;">
+              <div style="margin-top:22px;padding:16px 18px;border-radius:16px;background:#f8fbfb;border:1px solid #dbe8ea;">
                 <p style="margin:0;color:#506984;font-size:14px;line-height:1.8;">
-                  此驗證碼將於 <strong style="color:#1d4ed8;">5 分鐘後失效</strong>。若您沒有進行團體健檢預約，請忽略此信件。
+                  此驗證碼將於 <strong style="color:#007a82;">5 分鐘後失效</strong>。若您沒有進行團體健檢預約，請忽略此信件。
                 </p>
               </div>
             </div>
 
-            <div style="padding:18px 32px;background:#f8fbff;border-top:1px solid #e2edf8;">
+            <div style="padding:18px 32px;background:#f8fbfb;border-top:1px solid #dbe8ea;">
               <p style="margin:0;color:#7a8ca3;font-size:13px;line-height:1.7;">
                 本信件由團體健檢預約系統自動寄出，請勿直接回覆。
               </p>

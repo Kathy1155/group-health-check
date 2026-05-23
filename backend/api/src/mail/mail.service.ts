@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
@@ -33,11 +33,11 @@ export class MailService {
     const lookupLink = `${frontendBaseUrl}/reservation-lookup`;
 
     const html = `
-      <div style="margin: 0; padding: 24px; background-color: #f6f8fb; font-family: Arial, 'Microsoft JhengHei', sans-serif; color: #1f2937; line-height: 1.8;">
-        <div style="max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;">
+      <div style="margin: 0; padding: 24px; background-color: #f4f9f9; font-family: Arial, 'Microsoft JhengHei', sans-serif; color: #1f2937; line-height: 1.8;">
+        <div style="max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #dbe8ea; border-radius: 16px; overflow: hidden;">
           
-          <div style="padding: 28px 32px; background: #e8f3ff; border-bottom: 1px solid #dbeafe;">
-            <h2 style="margin: 0; font-size: 28px; color: #1d4ed8;">團體健檢預約通知</h2>
+          <div style="padding: 28px 32px; background: #e6f5f5; border-bottom: 1px solid #dbe8ea;">
+            <h2 style="margin: 0; font-size: 28px; color: #007a82;">團體健檢預約通知</h2>
             <p style="margin: 10px 0 0; font-size: 16px; color: #374151;">
               ${payload.name} 您好，您的健檢預約已建立，請確認以下資訊。
             </p>
@@ -70,7 +70,7 @@ export class MailService {
               </table>
             </div>
 
-            <div style="margin-bottom: 24px; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;">
+            <div style="margin-bottom: 24px; padding: 20px; background: #f8fbfb; border: 1px solid #dbe8ea; border-radius: 12px;">
               <p style="margin: 0 0 8px; font-size: 15px; color: #6b7280;">預約查詢驗證碼</p>
               <p style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 3px; color: #111827;">
                 ${payload.lookupCode ?? '尚未產生'}
@@ -79,7 +79,7 @@ export class MailService {
                 日後若需查詢預約，請使用「身分證字號 + 查詢驗證碼」進行查詢。
               </p>
               <p style="margin: 12px 0 0;">
-                <a href="${lookupLink}" target="_blank" style="color: #2563eb; font-size: 15px; text-decoration: none; font-weight: 600;">
+                <a href="${lookupLink}" target="_blank" style="color: #007a82; font-size: 15px; text-decoration: none; font-weight: 600;">
                   前往查詢預約
                 </a>
               </p>
@@ -98,7 +98,7 @@ export class MailService {
               <h3 style="margin: 0 0 14px; font-size: 20px; color: #111827;">請點擊下方連結進行操作</h3>
 
               <div style="margin-bottom: 14px;">
-                <a href="${confirmLink}" target="_blank" style="display: inline-block; padding: 12px 20px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 16px; font-weight: 600;">
+                <a href="${confirmLink}" target="_blank" style="display: inline-block; padding: 12px 20px; background: #007a82; color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 16px; font-weight: 600;">
                   確認預約
                 </a>
               </div>
@@ -110,7 +110,7 @@ export class MailService {
               </div>
             </div>
 
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 28px 0;" />
+            <hr style="border: none; border-top: 1px solid #dbe8ea; margin: 28px 0;" />
 
             <div>
               <h3 style="margin: 0 0 10px; font-size: 18px; color: #111827;">健檢前注意事項</h3>
