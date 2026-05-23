@@ -42,6 +42,7 @@ export type AdminReservation = {
   date: string;
   timeSlot: string;
   packageType: string;
+  branchName: string;
   status: '已預約' | '已報到' | '已取消';
 };
 
@@ -103,60 +104,6 @@ private async createUniqueLookupCode(
   }
 }
 
-
-  // 健檢中心後台清單暫時 mock
-  private adminReservations: AdminReservation[] = [
-    {
-      id: 1,
-      name: '林小安',
-      idNumber: 'A123456789',
-      phone: '0912-345-678',
-      date: '2025-12-08',
-      timeSlot: '8:00-10:00',
-      packageType: 'A',
-      status: '已預約',
-    },
-    {
-      id: 2,
-      name: '張育庭',
-      idNumber: 'B987654321',
-      phone: '0922-333-222',
-      date: '2025-12-08',
-      timeSlot: '10:00-12:00',
-      packageType: 'B',
-      status: '已報到',
-    },
-    {
-      id: 3,
-      name: '陳小華',
-      idNumber: 'C100000000',
-      phone: '0933-111-000',
-      date: '2025-12-09',
-      timeSlot: '8:00-10:00',
-      packageType: 'A',
-      status: '已取消',
-    },
-    {
-      id: 4,
-      name: '王大明',
-      idNumber: 'D111222333',
-      phone: '0944-555-666',
-      date: '2025-12-09',
-      timeSlot: '13:00-15:00',
-      packageType: 'C',
-      status: '已預約',
-    },
-    {
-      id: 5,
-      name: '李美美',
-      idNumber: 'E999888777',
-      phone: '0955-999-888',
-      date: '2025-12-10',
-      timeSlot: '8:00-10:00',
-      packageType: 'D',
-      status: '已預約',
-    },
-  ];
 
   async holdReservationWithLock(dto: HoldReservationDto) {
     return this.dataSource.transaction(async (manager) => {
@@ -728,26 +675,180 @@ async lookupByIdAndLookupCode(
   };
 }
 
-  findAllAdmin(): AdminReservation[] {
-    return this.adminReservations;
+  private formatTime(value: string | Date): string {
+    return String(value).slice(0, 5);
   }
 
-  updateStatus(
+  private toAdminStatus(
+    reservationStatus: string,
+  ): '已預約' | '已報到' | '已取消' {
+    if (reservationStatus === 'cancelled') {
+      return '已取消';
+    }
+
+    if (reservationStatus === 'checked_in') {
+      return '已報到';
+    }
+
+    return '已預約';
+  }
+
+  private toDbStatus(status: '已預約' | '已報到' | '已取消'): {
+    reservationStatus: string;
+    quotaStatus: 'pending' | 'confirmed' | 'cancelled';
+  } {
+    switch (status) {
+      case '已預約':
+        return {
+          reservationStatus: 'confirmed',
+          quotaStatus: 'confirmed',
+        };
+      case '已報到':
+        return {
+          reservationStatus: 'checked_in',
+          quotaStatus: 'confirmed',
+        };
+      case '已取消':
+        return {
+          reservationStatus: 'cancelled',
+          quotaStatus: 'cancelled',
+        };
+      default:
+        throw new BadRequestException('狀態錯誤');
+    }
+  }
+
+  private async buildAdminReservation(
+    reservation: ReservationEntity,
+  ): Promise<AdminReservation> {
+    const participant = await this.participantRepo.findOne({
+      where: { groupParticipantId: Number(reservation.participantId) },
+    });
+
+    const slot = await this.timeSlotRepo.findOne({
+      where: { slotId: Number(reservation.slotId) },
+    });
+
+    const packageInfo = await this.packageRepo.findOne({
+      where: { packageId: Number(reservation.packageId) },
+    });
+
+    const branchPackage = slot
+    ? await this.branchPackageRepo.findOne({
+        where: { branchPackageId: Number(slot.branchPackageId) },
+      })
+    : null;
+
+    const branch = branchPackage
+      ? await this.branchRepo.findOne({
+          where: { branchId: Number(branchPackage.branchId) },
+        })
+      : null;
+
+    if (!participant || !slot || !packageInfo || !branchPackage || !branch) {
+      throw new NotFoundException('預約關聯資料不完整');
+    }
+
+    return {
+      id: Number(reservation.reservationId),
+      name: participant.name,
+      idNumber: participant.idNumber,
+      phone: participant.phone ?? '',
+      date: String(slot.slotDate),
+      timeSlot: `${this.formatTime(String(slot.slotStartTime))}-${this.formatTime(
+        String(slot.slotEndTime),
+      )}`,
+      packageType: packageInfo.packageName,
+      branchName: branch.branchName,
+      status: this.toAdminStatus(reservation.reservationStatus),
+    };
+  }
+
+  private async releaseSlotQuota(slotId: number) {
+    const slot = await this.timeSlotRepo.findOne({
+      where: { slotId },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('找不到對應時段資料');
+    }
+
+    if (slot.slotReservedCount > 0) {
+      slot.slotReservedCount -= 1;
+    }
+
+    if (slot.slotStatus === 'full') {
+      slot.slotStatus = 'open';
+    }
+
+    await this.timeSlotRepo.save(slot);
+  }
+
+  private async restoreSlotQuota(slotId: number) {
+    const slot = await this.timeSlotRepo.findOne({
+      where: { slotId },
+    });
+
+    if (!slot) {
+      throw new NotFoundException('找不到對應時段資料');
+    }
+
+    if (slot.slotReservedCount >= slot.slotCapacity) {
+      throw new BadRequestException('此時段已滿額，無法恢復預約');
+    }
+
+    slot.slotReservedCount += 1;
+
+    if (slot.slotReservedCount >= slot.slotCapacity) {
+      slot.slotStatus = 'full';
+    }
+
+    await this.timeSlotRepo.save(slot);
+  }
+
+  async findAllAdmin(): Promise<AdminReservation[]> {
+    const reservations = await this.reservationRepo.find({
+      order: { reservationId: 'DESC' },
+    });
+
+    return Promise.all(
+      reservations.map((reservation) => this.buildAdminReservation(reservation)),
+    );
+  }
+
+  async updateStatus(
     id: number,
     status: '已預約' | '已報到' | '已取消',
-  ): AdminReservation {
-    const index = this.adminReservations.findIndex((r) => r.id === id);
+  ): Promise<AdminReservation> {
+    const reservation = await this.reservationRepo.findOne({
+      where: { reservationId: id },
+    });
 
-    if (index === -1) {
+    if (!reservation) {
       throw new NotFoundException(`找不到 ID ${id} 的預約紀錄`);
     }
 
-    this.adminReservations[index] = {
-      ...this.adminReservations[index],
-      status,
-    };
+    const oldStatus = reservation.reservationStatus;
+    const nextStatus = this.toDbStatus(status);
 
-    return this.adminReservations[index];
+    if (oldStatus !== 'cancelled' && nextStatus.reservationStatus === 'cancelled') {
+      await this.releaseSlotQuota(Number(reservation.slotId));
+    }
+
+    if (oldStatus === 'cancelled' && nextStatus.reservationStatus !== 'cancelled') {
+      await this.restoreSlotQuota(Number(reservation.slotId));
+    }
+
+    reservation.reservationStatus = nextStatus.reservationStatus;
+    reservation.quotaStatus = nextStatus.quotaStatus;
+
+    const savedReservation = await this.reservationRepo.save(reservation);
+
+    return this.buildAdminReservation(savedReservation);
+  }
+
+  async cancelReservationByAdmin(id: number): Promise<AdminReservation> {
+    return this.updateStatus(id, '已取消');
   }
 
 async handleAction(token: string, action: 'confirm' | 'cancel') {

@@ -117,4 +117,29 @@ export class RosterService {
       birthday: person.birthDate,
     };
   }
+  async findAllByGroupCode(groupCode: string) {
+  const group = await this.groupRepo.findOne({
+    where: { groupCode: groupCode.toUpperCase() },
+  });
+
+  if (!group) {
+    throw new NotFoundException('查無此團體代碼');
+  }
+
+  const participants = await this.participantRepo.find({
+    where: { groupId: group.groupId },
+    order: { groupParticipantId: 'ASC' },
+  });
+
+  return participants.map((person) => ({
+    id: person.groupParticipantId,
+    name: person.name,
+    idNumber: person.idNumber,
+    gender: person.gender,
+    birthDate: person.birthDate,
+    phone: person.phone,
+    email: person.email,
+    address: person.address,
+  }));
+}
 }

@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -68,5 +70,66 @@ export class TimeslotsController {
         quota: Number(quota),
       }),
     };
+  }
+
+  /**
+   * PATCH /api/timeslots/:id
+   * 健檢中心後台：修改既有時段名額
+   */
+  @Patch(':id')
+  async updateQuota(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      quota: number;
+    },
+  ) {
+    const slotId = Number(id);
+    const quota = Number(body.quota);
+
+    if (Number.isNaN(slotId)) {
+      throw new BadRequestException('slotId 格式錯誤');
+    }
+
+    if (Number.isNaN(quota) || quota < 0) {
+      throw new BadRequestException('quota 必須是大於等於 0 的數字');
+    }
+
+    const data = await this.timeslotsService.updateQuota(slotId, quota);
+
+    return {
+      message: '時段名額更新成功',
+      data,
+    };
+  }
+
+  /**
+ * PATCH /api/timeslots/:id/status
+ * 健檢中心後台：手動關閉 / 重新開放時段
+ */
+@Patch(':id/status')
+async updateStatus(
+  @Param('id') id: string,
+  @Body()
+  body: {
+    status: 'open' | 'closed';
+  },
+) {
+  const slotId = Number(id);
+
+  if (Number.isNaN(slotId)) {
+    throw new BadRequestException('slotId 格式錯誤');
+  }
+
+  if (body.status !== 'open' && body.status !== 'closed') {
+    throw new BadRequestException('status 只能是 open 或 closed');
+  }
+
+  const data = await this.timeslotsService.updateStatus(slotId, body.status);
+
+  return {
+    message: '時段狀態更新成功',
+    data,
+  };
   }
 }

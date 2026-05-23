@@ -11,6 +11,12 @@ interface Reservation {
   timeSlot: string;
   packageType: string;
   status: ReservationStatus;
+  branchName?: string;
+}
+
+interface BranchItem {
+  branchId: number;
+  branchName: string;
 }
 
 interface PackageItem {
@@ -21,26 +27,42 @@ interface PackageItem {
 }
 
 const TIME_SLOT_OPTIONS = [
-  { value: "8:00-10:00", label: "8:00 - 10:00" },
+  { value: "08:00-10:00", label: "8:00 - 10:00" },
   { value: "10:00-12:00", label: "10:00 - 12:00" },
   { value: "13:00-15:00", label: "13:00 - 15:00" },
+  { value: "15:00-17:00", label: "15:00 - 17:00" },
 ];
 
 const STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到", "已取消"];
-const ALL_STATUSES: ReservationStatus[] = ["已預約", "已報到", "已取消"];
-const EXPORT_STATUS_OPTIONS = ALL_STATUSES;
 
 const RESERVATION_API_ENDPOINT = "http://localhost:3000/api/reservations";
 const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
+const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
+const BRANCH_PACKAGE_API_ENDPOINT = "http://localhost:3000/api/branches";
+
+const toggleAll = <T,>(current: T[], allOptions: T[]) => {
+  return current.length === allOptions.length ? [] : allOptions;
+};
+
+const toggleSingle = <T,>(current: T[], value: T, checked: boolean) => {
+  if (checked) {
+    return current.includes(value) ? current : [...current, value];
+  }
+
+  return current.filter((item) => item !== value);
+};
+
+const escapeCsvField = (field: string) => `"${String(field ?? "").replace(/"/g, '""')}"`;
 
 const convertToCsv = (data: Reservation[]): string => {
   if (data.length === 0) return "";
 
-  const headers = ["姓名", "身分證", "電話", "日期", "時段", "套餐", "狀態"];
-  const headerRow = headers.join(",");
+  const headers = ["院區", "姓名", "身分證", "電話", "日期", "時段", "套餐", "狀態"];
+  const headerRow = headers.map(escapeCsvField).join(",");
 
   const dataRows = data.map((item) =>
     [
+      item.branchName ?? "未指定院區",
       item.name,
       item.idNumber,
       item.phone,
@@ -49,7 +71,7 @@ const convertToCsv = (data: Reservation[]): string => {
       item.packageType,
       item.status,
     ]
-      .map((field) => `"${field}"`)
+      .map(escapeCsvField)
       .join(","),
   );
 
@@ -123,22 +145,27 @@ const ModifyModal: React.FC<ModifyModalProps> = ({
 };
 
 function ReservationListPage() {
-  const [date, setDate] = useState("");
-  const [timeSlot, setTimeSlot] = useState("");
-  const [customTime, setCustomTime] = useState("");
+  const [branchName, setBranchName] = useState("all");
   const [packageType, setPackageType] = useState("all");
-  const [reservationStatus, setReservationStatus] = useState("all");
+  const [date, setDate] = useState("");
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>(
+    TIME_SLOT_OPTIONS.map((item) => item.value),
+  );
+  const [selectedStatuses, setSelectedStatuses] =
+    useState<ReservationStatus[]>(STATUS_OPTIONS);
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [branches, setBranches] = useState<BranchItem[]>([]);
   const [packages, setPackages] = useState<PackageItem[]>([]);
-
+  const [availablePackageIds, setAvailablePackageIds] = useState<number[]>([]);
+  const [isLoadingBranchPackages, setIsLoadingBranchPackages] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState<"loading" | "success" | "error">(
     "loading",
   );
 
   const [searchResults, setSearchResults] = useState<Reservation[] | null>(null);
   const [exportFilter, setExportFilter] =
-    useState<ReservationStatus[]>(ALL_STATUSES);
+    useState<ReservationStatus[]>(STATUS_OPTIONS);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(
@@ -146,25 +173,46 @@ function ReservationListPage() {
   );
   const [tempStatus, setTempStatus] = useState<ReservationStatus>("已預約");
 
-  const handleExportFilterChange = (
-    status: ReservationStatus,
-    isChecked: boolean,
-  ) => {
-    setExportFilter((prev) => {
-      if (isChecked) {
-        return [...prev, status];
-      }
-      return prev.filter((s) => s !== status);
-    });
-  };
+  const isAllTimeSlotsChecked = selectedTimeSlots.length === TIME_SLOT_OPTIONS.length;
+  const isAllStatusesChecked = selectedStatuses.length === STATUS_OPTIONS.length;
+  const isAllExportStatusesChecked = exportFilter.length === STATUS_OPTIONS.length;
 
   const fetchReservations = async () => {
     const response = await fetch(RESERVATION_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`無法載入預約資料 (HTTP ${response.status})`);
     }
-    const data: Reservation[] = await response.json();
-    return data;
+    const data = await response.json();
+
+    const normalizedReservations: Reservation[] = (data ?? []).map((item: any) => ({
+      id: Number(item.id),
+      name: String(item.name ?? ""),
+      idNumber: String(item.idNumber ?? ""),
+      phone: String(item.phone ?? ""),
+      date: String(item.date ?? ""),
+      timeSlot: String(item.timeSlot ?? ""),
+      packageType: String(item.packageType ?? ""),
+      status: item.status as ReservationStatus,
+      branchName: item.branchName ? String(item.branchName) : "未指定院區",
+    }));
+
+    return normalizedReservations;
+  };
+
+  const fetchBranches = async () => {
+    const response = await fetch(BRANCH_API_ENDPOINT);
+    if (!response.ok) {
+      throw new Error(`無法載入院區資料 (HTTP ${response.status})`);
+    }
+
+    const data = await response.json();
+
+    const normalizedBranches: BranchItem[] = (data ?? []).map((item: any) => ({
+      branchId: Number(item.branchId),
+      branchName: String(item.branchName ?? ""),
+    }));
+
+    return normalizedBranches.filter((item) => item.branchName);
   };
 
   const fetchPackages = async () => {
@@ -189,12 +237,14 @@ function ReservationListPage() {
     try {
       setLoadingStatus("loading");
 
-      const [reservationData, packageData] = await Promise.all([
+      const [reservationData, branchData, packageData] = await Promise.all([
         fetchReservations(),
+        fetchBranches(),
         fetchPackages(),
       ]);
 
       setReservations(reservationData);
+      setBranches(branchData);
       setPackages(packageData);
       setLoadingStatus("success");
     } catch (error) {
@@ -207,10 +257,66 @@ function ReservationListPage() {
     loadPageData();
   }, []);
 
-  const refetchData = () => {
-    loadPageData();
-    setSearchResults(null);
-  };
+  useEffect(() => {
+    if (branchName === "all") {
+      setAvailablePackageIds([]);
+      setPackageType("all");
+      return;
+    }
+
+    const selectedBranch = branches.find(
+      (branch) => branch.branchName === branchName,
+    );
+
+    if (!selectedBranch) {
+      setAvailablePackageIds([]);
+      setPackageType("all");
+      return;
+    }
+
+    const loadAvailablePackages = async () => {
+      try {
+        setIsLoadingBranchPackages(true);
+        setPackageType("all");
+        setAvailablePackageIds([]);
+
+        const response = await fetch(
+          `${BRANCH_PACKAGE_API_ENDPOINT}/${selectedBranch.branchId}/packages`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`院區可查詢套餐載入失敗 (HTTP ${response.status})`);
+        }
+
+        const data = await response.json();
+
+        const ids = (Array.isArray(data) ? data : data?.data ?? [])
+          .filter((item: any) => {
+            const status =
+              item.branchPackageStatus ??
+              item.status ??
+              item.branch_package_status ??
+              "open";
+
+            return status === "open";
+          })
+          .map((item: any) => Number(item.packageId ?? item.package_id))
+          .filter((id: number) => Number.isInteger(id) && id > 0);
+
+        setAvailablePackageIds(ids);
+      } catch (error) {
+        console.error("院區可查詢套餐載入失敗:", error);
+        alert(error instanceof Error ? error.message : "院區可查詢套餐載入失敗");
+        setAvailablePackageIds([]);
+        setPackageType("all");
+      } finally {
+        setIsLoadingBranchPackages(false);
+      }
+    };
+
+    loadAvailablePackages();
+  }, [branchName, branches]);
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,29 +326,57 @@ function ReservationListPage() {
       return;
     }
 
-    const effectiveTimeSlot = timeSlot === "other" ? customTime : timeSlot;
-    const effectivePackage = packageType;
-    const effectiveStatus = reservationStatus;
+    if (branchName !== "all" && packageType !== "all") {
+      const selectedPackage = packages.find(
+        (pkg) => pkg.packageName === packageType,
+      );
+
+      if (
+        selectedPackage &&
+        !availablePackageIds.includes(Number(selectedPackage.packageId))
+      ) {
+        alert("此院區不可查詢此套餐，請重新選擇套餐");
+        return;
+      }
+    }
+
+    if (selectedTimeSlots.length === 0) {
+      alert("請至少選擇一個時段");
+      return;
+    }
+
+    if (selectedStatuses.length === 0) {
+      alert("請至少選擇一個預約狀態");
+      return;
+    }
 
     const results = reservations.filter((res) => {
+      if (branchName !== "all" && res.branchName !== branchName) return false;
+      if (packageType !== "all" && res.packageType !== packageType) return false;
       if (res.date !== date) return false;
-
-      if (timeSlot && timeSlot !== "all" && res.timeSlot !== effectiveTimeSlot) {
-        return false;
-      }
-
-      if (effectivePackage !== "all" && res.packageType !== effectivePackage) {
-        return false;
-      }
-
-      if (effectiveStatus !== "all" && res.status !== effectiveStatus) {
-        return false;
-      }
+      if (!selectedTimeSlots.includes(res.timeSlot)) return false;
+      if (!selectedStatuses.includes(res.status)) return false;
 
       return true;
     });
 
-    setSearchResults(results);
+    const sortedResults = [...results].sort((a, b) => {
+      const branchCompare = (a.branchName ?? "未指定院區").localeCompare(
+        b.branchName ?? "未指定院區",
+        "zh-Hant",
+      );
+      if (branchCompare !== 0) return branchCompare;
+
+      const timeCompare = a.timeSlot.localeCompare(b.timeSlot, "zh-Hant");
+      if (timeCompare !== 0) return timeCompare;
+
+      const packageCompare = a.packageType.localeCompare(b.packageType, "zh-Hant");
+      if (packageCompare !== 0) return packageCompare;
+
+      return a.name.localeCompare(b.name, "zh-Hant");
+    });
+
+    setSearchResults(sortedResults);
   };
 
   const handleExport = () => {
@@ -251,14 +385,14 @@ function ReservationListPage() {
       return;
     }
 
-    const dataToExport = searchResults.filter((res) =>
-      exportFilter.includes(res.status),
-    );
-
     if (exportFilter.length === 0) {
       alert("請選擇至少一個預約狀態進行匯出。");
       return;
     }
+
+    const dataToExport = searchResults.filter((res) =>
+      exportFilter.includes(res.status),
+    );
 
     if (dataToExport.length === 0) {
       alert("當前查詢結果中，找不到符合您選擇的狀態的資料可以匯出。");
@@ -298,11 +432,13 @@ function ReservationListPage() {
   };
 
   const handleReset = () => {
-    setDate("");
-    setTimeSlot("");
-    setCustomTime("");
+    setBranchName("all");
     setPackageType("all");
-    setReservationStatus("all");
+    setAvailablePackageIds([]);
+    setDate("");
+    setSelectedTimeSlots(TIME_SLOT_OPTIONS.map((item) => item.value));
+    setSelectedStatuses(STATUS_OPTIONS);
+    setExportFilter(STATUS_OPTIONS);
     setSearchResults(null);
   };
 
@@ -317,12 +453,26 @@ function ReservationListPage() {
     setEditingReservation(null);
   };
 
+  const updateLocalReservationStatus = (id: number, newStatus: ReservationStatus) => {
+    setReservations((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item)),
+    );
+
+    setSearchResults((prev) =>
+      prev
+        ? prev.map((item) =>
+            item.id === id ? { ...item, status: newStatus } : item,
+          )
+        : prev,
+    );
+  };
+
   const handleSaveModification = async (
     id: number,
     newStatus: ReservationStatus,
   ) => {
     try {
-      const response = await fetch(`${RESERVATION_API_ENDPOINT}/${id}`, {
+      const response = await fetch(`${RESERVATION_API_ENDPOINT}/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -333,7 +483,7 @@ function ReservationListPage() {
         throw new Error(errorData.message || `狀態更新失敗 (HTTP ${response.status})`);
       }
 
-      refetchData();
+      updateLocalReservationStatus(id, newStatus);
       alert(`預約 #${id} 狀態已成功修改為：${newStatus}`);
       closeModal();
     } catch (err) {
@@ -343,7 +493,7 @@ function ReservationListPage() {
 
   const handleCancel = async (reservation: Reservation) => {
     const isConfirmed = window.confirm(
-      `⚠️您確定要取消 ${reservation.name} 於 ${reservation.date} ${reservation.timeSlot} 的預約嗎？`,
+      `您確定要取消 ${reservation.name} 於 ${reservation.date} ${reservation.timeSlot} 的預約嗎？`,
     );
 
     if (isConfirmed) {
@@ -366,10 +516,78 @@ function ReservationListPage() {
   return (
     <div className="page-container healthcenter-scope healthcenter-form-page">
       <div className="page-card">
-        <h2 className="page-title">預約狀況查詢及修改</h2>
+        <h2 className="page-title">預約名單管理</h2>
 
         <form className="page-form" onSubmit={handleSearch}>
           <div className="form-row">
+            <div className="form-field form-field-narrow">
+              <label className="form-label" htmlFor="branchName">
+                院區：
+              </label>
+              <select
+                id="branchName"
+                value={branchName}
+                onChange={(e) => {
+                  setBranchName(e.target.value);
+                  setPackageType("all");
+                  setSearchResults(null);
+                }}
+                className="form-select"
+                disabled={loadingStatus !== "success"}
+              >
+                <option value="all">所有院區</option>
+                {branches.map((branch) => (
+                  <option key={branch.branchId} value={branch.branchName}>
+                    {branch.branchName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-field form-field-narrow">
+              <label className="form-label" htmlFor="packageType">
+                套餐類型：
+              </label>
+              <select
+                id="packageType"
+                value={packageType}
+                onChange={(e) => {
+                  setPackageType(e.target.value);
+                  setSearchResults(null);
+                }}
+                className="form-select"
+                disabled={
+                  loadingStatus !== "success" ||
+                  branchName === "all" ||
+                  isLoadingBranchPackages
+                }
+              >
+                <option value="all">
+                  {branchName === "all"
+                    ? "所有套餐"
+                    : isLoadingBranchPackages
+                      ? "套餐載入中..."
+                      : "所有套餐"}
+                </option>
+
+                {packages.map((pkg) => {
+                  const canSelect =
+                    branchName === "all" || availablePackageIds.includes(Number(pkg.packageId));
+
+                  return (
+                    <option
+                      key={pkg.packageId}
+                      value={pkg.packageName}
+                      disabled={!canSelect}
+                    >
+                      {pkg.packageName}
+                      {!canSelect ? "（此院區不可查詢）" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
             <div className="form-field form-field-narrow">
               <label className="form-label" htmlFor="date">
                 預約日期：
@@ -384,98 +602,80 @@ function ReservationListPage() {
                 disabled={loadingStatus !== "success"}
               />
             </div>
-
-            <div className="form-field form-field-narrow">
-              <label className="form-label" htmlFor="timeSlot">
-                時段選擇：
-              </label>
-              <select
-                id="timeSlot"
-                value={timeSlot}
-                onChange={(e) => setTimeSlot(e.target.value)}
-                className="form-select"
-                required
-                disabled={loadingStatus !== "success"}
-              >
-                <option value="all">所有時段</option>
-                {TIME_SLOT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-                <option value="other">其他（手動輸入）</option>
-              </select>
-            </div>
-
-            {timeSlot === "other" && (
-              <div className="form-field form-field-narrow">
-                <label className="form-label" htmlFor="customTime">
-                  手動輸入時段：
-                </label>
-                <input
-                  id="customTime"
-                  type="text"
-                  value={customTime}
-                  onChange={(e) => setCustomTime(e.target.value)}
-                  className="form-input"
-                  placeholder="例如：15:00-17:00"
-                  required
-                />
-              </div>
-            )}
           </div>
 
           <div className="form-row">
             <div className="form-field">
-              <label className="form-label">套餐類型：</label>
-              <div className="radio-group radio-group-column">
-                <label>
+              <label className="form-label">時段選擇：</label>
+              <div className="export-checkbox-group">
+                <label className="export-checkbox-item">
                   <input
-                    type="radio"
-                    name="pkg"
-                    value="all"
-                    onChange={() => setPackageType("all")}
-                    checked={packageType === "all"}
+                    type="checkbox"
+                    checked={isAllTimeSlotsChecked}
+                    onChange={() =>
+                      setSelectedTimeSlots((prev) =>
+                        toggleAll(
+                          prev,
+                          TIME_SLOT_OPTIONS.map((item) => item.value),
+                        ),
+                      )
+                    }
                     disabled={loadingStatus !== "success"}
                   />
-                  所有套餐
+                  全選
                 </label>
 
-                {packages.map((pkg) => (
-                  <label key={pkg.packageId}>
+                {TIME_SLOT_OPTIONS.map((opt) => (
+                  <label key={opt.value} className="export-checkbox-item">
                     <input
-                      type="radio"
-                      name="pkg"
-                      value={pkg.packageName}
-                      onChange={(e) => setPackageType(e.target.value)}
-                      checked={packageType === pkg.packageName}
+                      type="checkbox"
+                      value={opt.value}
+                      checked={selectedTimeSlots.includes(opt.value)}
+                      onChange={(e) =>
+                        setSelectedTimeSlots((prev) =>
+                          toggleSingle(prev, opt.value, e.target.checked),
+                        )
+                      }
                       disabled={loadingStatus !== "success"}
                     />
-                    {pkg.packageName}
+                    {opt.label}
                   </label>
                 ))}
               </div>
             </div>
 
-            <div className="form-field form-field-narrow">
-              <label className="form-label" htmlFor="status">
-                預約狀態：
-              </label>
-              <select
-                id="status"
-                value={reservationStatus}
-                onChange={(e) => setReservationStatus(e.target.value)}
-                className="form-select"
-                required
-                disabled={loadingStatus !== "success"}
-              >
-                <option value="all">所有狀態</option>
+            <div className="form-field">
+              <label className="form-label">預約狀態：</label>
+              <div className="export-checkbox-group">
+                <label className="export-checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={isAllStatusesChecked}
+                    onChange={() =>
+                      setSelectedStatuses((prev) => toggleAll(prev, STATUS_OPTIONS))
+                    }
+                    disabled={loadingStatus !== "success"}
+                  />
+                  全選
+                </label>
+
                 {STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
+                  <label key={status} className="export-checkbox-item">
+                    <input
+                      type="checkbox"
+                      value={status}
+                      checked={selectedStatuses.includes(status)}
+                      onChange={(e) =>
+                        setSelectedStatuses((prev) =>
+                          toggleSingle(prev, status, e.target.checked),
+                        )
+                      }
+                      disabled={loadingStatus !== "success"}
+                    />
                     {status}
-                  </option>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
           </div>
 
@@ -515,14 +715,27 @@ function ReservationListPage() {
                 <span className="form-label">匯出狀態：</span>
 
                 <div className="export-checkbox-group">
-                  {EXPORT_STATUS_OPTIONS.map((status) => (
+                  <label className="export-checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={isAllExportStatusesChecked}
+                      onChange={() =>
+                        setExportFilter((prev) => toggleAll(prev, STATUS_OPTIONS))
+                      }
+                    />
+                    全選
+                  </label>
+
+                  {STATUS_OPTIONS.map((status) => (
                     <label key={status} className="export-checkbox-item">
                       <input
                         type="checkbox"
                         value={status}
                         checked={exportFilter.includes(status)}
                         onChange={(e) =>
-                          handleExportFilterChange(status, e.target.checked)
+                          setExportFilter((prev) =>
+                            toggleSingle(prev, status, e.target.checked),
+                          )
                         }
                       />
                       {status}
@@ -546,9 +759,11 @@ function ReservationListPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>院區</th>
                       <th>姓名</th>
                       <th>身分證 / 電話</th>
-                      <th>時段（套餐）</th>
+                      <th>日期 / 時段</th>
+                      <th>套餐</th>
                       <th>狀態</th>
                       <th>操作</th>
                     </tr>
@@ -556,6 +771,7 @@ function ReservationListPage() {
                   <tbody>
                     {searchResults.map((res) => (
                       <tr key={res.id}>
+                        <td>{res.branchName ?? "未指定院區"}</td>
                         <td>{res.name}</td>
                         <td>
                           {res.idNumber}
@@ -563,8 +779,11 @@ function ReservationListPage() {
                           {res.phone}
                         </td>
                         <td>
-                          {res.timeSlot}（{res.packageType}）
+                          {res.date}
+                          <br />
+                          {res.timeSlot}
                         </td>
+                        <td>{res.packageType}</td>
                         <td className={getStatusClassName(res.status)}>{res.status}</td>
                         <td>
                           <div className="result-action-stack">
