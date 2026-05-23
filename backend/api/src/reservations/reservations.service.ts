@@ -2,9 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 
 import { CreateReservationDto } from './dto/update-reservation.dto';
@@ -72,6 +73,8 @@ export class ReservationsService {
     private readonly packageRepo: Repository<HealthExaminationPackageEntity>,
 
     private readonly mailService: MailService,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   private generateLookupCode(length = 8): string {
@@ -85,10 +88,12 @@ export class ReservationsService {
   return result;
 }
 
-private async createUniqueLookupCode(): Promise<string> {
+private async createUniqueLookupCode(
+  repo: Repository<ReservationEntity> = this.reservationRepo,
+): Promise<string> {
   while (true) {
     const code = this.generateLookupCode(8);
-    const existed = await this.reservationRepo.findOne({
+    const existed = await repo.findOne({
       where: { lookupCode: code },
     });
 
@@ -152,6 +157,145 @@ private async createUniqueLookupCode(): Promise<string> {
       status: '已預約',
     },
   ];
+
+  async holdReservationWithLock(dto: HoldReservationDto) {
+    return this.dataSource.transaction(async (manager) => {
+      const groupRepo = manager.getRepository(GroupEntity);
+      const participantRepo = manager.getRepository(GroupParticipantEntity);
+      const reservationRepo = manager.getRepository(ReservationEntity);
+      const timeSlotRepo = manager.getRepository(TimeSlotEntity);
+      const branchPackageRepo = manager.getRepository(BranchPackageEntity);
+
+      const group = await groupRepo.findOne({
+        where: { groupCode: dto.groupCode },
+      });
+
+      if (!group) {
+        throw new NotFoundException('GROUP_NOT_FOUND');
+      }
+
+      const participant = await participantRepo.findOne({
+        where: {
+          groupId: group.groupId,
+          idNumber: dto.idNumber,
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!participant) {
+        throw new NotFoundException('PARTICIPANT_NOT_FOUND');
+      }
+
+      const existingPending = await reservationRepo.findOne({
+        where: {
+          participantId: participant.groupParticipantId,
+          reservationStatus: 'pending',
+        },
+        order: { reservationId: 'DESC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (
+        existingPending &&
+        existingPending.confirmTokenExpiresAt &&
+        new Date(existingPending.confirmTokenExpiresAt) > new Date()
+      ) {
+        throw new ConflictException('ACTIVE_PENDING_RESERVATION');
+      }
+
+      if (
+        existingPending &&
+        existingPending.confirmTokenExpiresAt &&
+        new Date(existingPending.confirmTokenExpiresAt) <= new Date()
+      ) {
+        const expiredSlot = await timeSlotRepo.findOne({
+          where: { slotId: Number(existingPending.slotId) },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (expiredSlot) {
+          if (expiredSlot.slotReservedCount > 0) {
+            expiredSlot.slotReservedCount -= 1;
+          }
+
+          if (expiredSlot.slotStatus === 'full') {
+            expiredSlot.slotStatus = 'open';
+          }
+
+          await timeSlotRepo.save(expiredSlot);
+        }
+
+        existingPending.quotaStatus = 'cancelled';
+        existingPending.reservationStatus = 'cancelled';
+        await reservationRepo.save(existingPending);
+      }
+
+      const slot = await timeSlotRepo.findOne({
+        where: { slotId: dto.slotId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!slot) {
+        throw new NotFoundException('TIME_SLOT_NOT_FOUND');
+      }
+
+      if (slot.slotStatus === 'closed') {
+        throw new BadRequestException('TIME_SLOT_CLOSED');
+      }
+
+      if (
+        slot.slotStatus === 'full' ||
+        slot.slotReservedCount >= slot.slotCapacity
+      ) {
+        throw new BadRequestException('TIME_SLOT_FULL');
+      }
+
+      const branchPackage = await branchPackageRepo.findOne({
+        where: { branchPackageId: slot.branchPackageId },
+      });
+
+      if (!branchPackage) {
+        throw new NotFoundException('BRANCH_PACKAGE_NOT_FOUND');
+      }
+
+      const holdExpireMinutes = 15;
+      const expiresAt = new Date(Date.now() + holdExpireMinutes * 60 * 1000);
+      const lookupCode = await this.createUniqueLookupCode(reservationRepo);
+
+      const reservation = reservationRepo.create({
+        participantId: participant.groupParticipantId,
+        packageId: branchPackage.packageId,
+        slotId: dto.slotId,
+        medicalProfileId: null,
+        quotaStatus: 'pending',
+        confirmToken: null,
+        confirmTokenExpiresAt: expiresAt,
+        cancelToken: null,
+        cancelTokenExpiresAt: expiresAt,
+        lookupCode,
+        reservationStatus: 'pending',
+      });
+
+      await reservationRepo.save(reservation);
+
+      slot.slotReservedCount += 1;
+      slot.slotStatus =
+        slot.slotReservedCount >= slot.slotCapacity ? 'full' : 'open';
+
+      await timeSlotRepo.save(slot);
+
+      return {
+        message: 'TIME_SLOT_HELD',
+        reservationId: reservation.reservationId,
+        participantId: participant.groupParticipantId,
+        packageId: branchPackage.packageId,
+        slotId: reservation.slotId,
+        quotaStatus: reservation.quotaStatus,
+        reservationStatus: reservation.reservationStatus,
+        expiresAt,
+      };
+    });
+  }
 
   async holdReservation(dto: HoldReservationDto) {
   const group = await this.groupRepo.findOne({
