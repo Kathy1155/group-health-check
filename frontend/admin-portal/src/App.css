@@ -45,45 +45,23 @@
 }
 
 .layout-logo-mark {
-  width: 42px;
-  height: 42px;
-  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(15, 39, 66, 0.08);
+  overflow: hidden;
   flex-shrink: 0;
 }
 
-.layout-logo-h {
-  position: absolute;
-  left: 10px;
-  top: 1px;
-  font-size: 34px;
-  line-height: 1;
-  color: #005826;
-  font-weight: 900;
-  font-family: Georgia, serif;
-}
-
-.layout-logo-line {
-  position: absolute;
-  left: 1px;
-  width: 40px;
-  height: 3px;
-  border-radius: 999px;
-  transform: rotate(-13deg);
-}
-
-.layout-logo-line.red {
-  top: 8px;
-  background: #d11013;
-}
-
-.layout-logo-line.blue {
-  top: 29px;
-  background: #003a8c;
-}
-
-.layout-logo-line.yellow {
-  top: 37px;
-  background: #ffcf00;
+.layout-logo-img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
 }
 
 .sidebar-brand-title {
@@ -623,19 +601,16 @@
     gap: 12px;
   }
 
-  .layout-logo-mark {
-    width: 36px;
-    height: 36px;
-  }
+.layout-logo-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+}
 
-  .layout-logo-h {
-    font-size: 29px;
-    left: 9px;
-  }
-
-  .layout-logo-line {
-    width: 35px;
-  }
+.layout-logo-img {
+  width: 36px;
+  height: 36px;
+}
 
   .sidebar-brand-title {
     font-size: 15px;
@@ -895,42 +870,21 @@
 .login-logo-mark {
   width: 58px;
   height: 58px;
-  position: relative;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(15, 39, 66, 0.08);
+  overflow: visible;
+  flex-shrink: 0;
 }
 
-.login-logo-h {
-  position: absolute;
-  left: 15px;
-  top: 2px;
-  font-size: 48px;
-  line-height: 1;
-  color: #005826;
-  font-weight: 900;
-  font-family: Georgia, serif;
-}
-
-.login-logo-line {
-  position: absolute;
-  left: 2px;
-  width: 54px;
-  height: 5px;
-  border-radius: 999px;
-  transform: rotate(-13deg);
-}
-
-.login-logo-line.red {
-  top: 10px;
-  background: #d11013;
-}
-
-.login-logo-line.blue {
-  top: 39px;
-  background: #003a8c;
-}
-
-.login-logo-line.yellow {
-  top: 49px;
-  background: #ffcf00;
+.login-logo-img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
 }
 
 .login-brand-text h1 {

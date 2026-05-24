@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import tpechLogo from "../assets/tpech-logo-mark.png";
 
 type Role = "business" | "center" | "admin";
 
@@ -69,10 +70,11 @@ function getPageTitle(pathname: string, role: Role) {
 function HospitalLogo() {
   return (
     <div className="layout-logo-mark">
-      <span className="layout-logo-h">H</span>
-      <span className="layout-logo-line red" />
-      <span className="layout-logo-line blue" />
-      <span className="layout-logo-line yellow" />
+      <img
+        src={tpechLogo}
+        alt="台北市立聯合醫院 Logo"
+        className="layout-logo-img"
+      />
     </div>
   );
 }
