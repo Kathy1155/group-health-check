@@ -172,7 +172,8 @@ function SelectTimeSlotPage() {
         <span className="page-badge">Step 3</span>
         <h1>選擇健檢日期與時段</h1>
         <p>
-          請選擇欲前往健檢的日期，系統會依照院區與套餐設定。
+          請選擇欲前往健檢的日期，
+          <span className="text-line">系統會依照院區與套餐設定。</span>
           <span className="text-line">顯示該日期可預約的時段與剩餘名額。</span>
         </p>
       </div>

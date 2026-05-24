@@ -227,7 +227,9 @@ function FillProfilePage() {
     <div className="reservation-page">
       <div className="reservation-page-header">
         <span className="page-badge">Step 4</span>
-        <h1>確認基本資料與填寫病史</h1>
+        <h1>
+          確認基本資料與<span className="mobile-title-line">填寫病史</span>
+        </h1>
         <p>
           請確認個人基本資料與預約資訊，
           <br />
