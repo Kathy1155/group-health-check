@@ -80,7 +80,9 @@ function GroupCodePage() {
     <div className="reservation-page">
       <div className="reservation-page-header">
         <span className="page-badge">Step 1</span>
-        <h1>輸入團體代碼與身分證字號</h1>
+        <h1>
+          輸入團體代碼與<span className="mobile-title-line">身分證字號</span>
+        </h1>
         <p>
           請輸入公司提供的團體代碼與個人身分證字號，系統將確認您的團體資格，
           並寄送查詢驗證碼至名冊中的信箱。

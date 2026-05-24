@@ -35,7 +35,7 @@ function HomePage() {
               className="btn btn-secondary home-main-btn"
               onClick={() => navigate("/reservation-lookup")}
             >
-              查詢 / 取消預約
+              查詢預約
             </button>
           </div>
 

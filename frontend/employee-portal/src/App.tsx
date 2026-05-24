@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import GroupCodePage from "./pages/GroupCodePage";
@@ -17,6 +17,7 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const stepPaths = [
     "/reserve",
@@ -35,6 +36,52 @@ function App() {
   ];
 
   const inWizard = stepPaths.includes(location.pathname);
+  const routeState = location.state as
+    | { expiresAt?: string; emailConfirmExpiresAt?: string }
+    | null;
+
+  const countdown = useMemo(() => {
+    const isHoldCountdown = location.pathname === "/fill-profile";
+    const isEmailCountdown = location.pathname === "/done";
+    const expiresAt = isHoldCountdown
+      ? routeState?.expiresAt
+      : isEmailCountdown
+        ? routeState?.emailConfirmExpiresAt
+        : undefined;
+
+    if (!expiresAt) return null;
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+
+    if (Number.isNaN(expiresAtMs)) return null;
+
+    const totalSeconds = Math.max(0, Math.floor((expiresAtMs - now) / 1000));
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+    const seconds = String(totalSeconds % 60).padStart(2, "0");
+
+    return {
+      label: isHoldCountdown ? "名額保留" : "Email 確認",
+      text: totalSeconds > 0 ? `${minutes}:${seconds}` : "已逾時",
+      urgent: totalSeconds <= 120,
+      expired: totalSeconds === 0,
+    };
+  }, [location.pathname, now, routeState?.emailConfirmExpiresAt, routeState?.expiresAt]);
+
+  useEffect(() => {
+    const hasCountdown =
+      (location.pathname === "/fill-profile" && !!routeState?.expiresAt) ||
+      (location.pathname === "/done" && !!routeState?.emailConfirmExpiresAt);
+
+    if (!hasCountdown) return;
+
+    setNow(Date.now());
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [location.pathname, routeState?.emailConfirmExpiresAt, routeState?.expiresAt]);
 
   let currentStepIndex = steps.findIndex(
     (step) => step.path === location.pathname,
@@ -62,7 +109,14 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div
+      className={[
+        "app-container",
+        inWizard ? "app-container-fixed-header" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <ScrollToTop />
 
       <header className="app-header">
@@ -74,6 +128,21 @@ function App() {
               <p className="app-subtitle">員工線上預約服務</p>
             </div>
           </div>
+
+          {countdown && (
+            <div
+              className={[
+                "app-countdown",
+                countdown.urgent ? "app-countdown-urgent" : "",
+                countdown.expired ? "app-countdown-expired" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <span>{countdown.label}</span>
+              <strong>{countdown.text}</strong>
+            </div>
+          )}
 
           <nav className="app-nav" aria-label="主要導覽">
             <button

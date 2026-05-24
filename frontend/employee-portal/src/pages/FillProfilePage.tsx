@@ -191,7 +191,10 @@ function FillProfilePage() {
         packageId,
         slotId,
         medicalProfile: {
-          bloodType: medicalHistory.bloodType,
+          bloodType:
+            medicalHistory.bloodType === "unknown"
+              ? ""
+              : medicalHistory.bloodType,
           allergies: medicalHistory.allergy,
           familyHistory: medicalHistory.familyHistory,
           chronicDiseases: medicalHistory.chronicDisease,
@@ -204,6 +207,8 @@ function FillProfilePage() {
         state: {
           reservationId: result.reservationId,
           reservationNo: result.reservationNo ?? `R${result.reservationId}`,
+          emailSent: result.emailSent,
+          emailConfirmExpiresAt: result.emailConfirmExpiresAt,
           groupName: group.name,
           branchId,
           packageId,
@@ -240,7 +245,7 @@ function FillProfilePage() {
       <form onSubmit={handleSubmit} className="reservation-card profile-card">
         <div className="reservation-card-header">
           <h2>預約送出前確認</h2>
-          <p>基本資料由團體名冊帶入，若資料有誤請聯絡團體窗口或現場櫃檯。</p>
+          <p>名額已暫時保留 10 分鐘，請於導覽列倒數結束前完成資料填寫並送出預約。</p>
         </div>
 
         <div className="profile-content">

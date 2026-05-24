@@ -5,6 +5,8 @@ import { resendReservationConfirmationEmail } from "../api/notificationsApi";
 type DonePageState = {
   reservationId: number;
   reservationNo: string;
+  emailSent?: boolean;
+  emailConfirmExpiresAt?: string;
   groupName: string;
   branchId: number;
   packageId: number;
@@ -123,7 +125,7 @@ const ReservationDonePage: React.FC = () => {
     setSendError(null);
 
     try {
-      await resendReservationConfirmationEmail({
+      const result = await resendReservationConfirmationEmail({
         reservationId: state.reservationId,
         reservationNo,
         groupName,
@@ -135,6 +137,15 @@ const ReservationDonePage: React.FC = () => {
       });
 
       setSent(true);
+      if (result.emailConfirmExpiresAt) {
+        navigate("/done", {
+          replace: true,
+          state: {
+            ...state,
+            emailConfirmExpiresAt: result.emailConfirmExpiresAt,
+          },
+        });
+      }
       setResendCooldownUntil(Date.now() + 5 * 60 * 1000);
       setResendRemainingSeconds(5 * 60);
     } catch (e) {
@@ -159,9 +170,10 @@ const ReservationDonePage: React.FC = () => {
   return (
     <div className="reservation-page">
       <div className="done-hero">
-        <span className="done-check">✓</span>
-        <span className="page-badge">預約已建立</span>
-        <h1>預約成立</h1>
+        <h1 className="done-title">
+          <span className="done-check">✓</span>
+          預約成立
+        </h1>
         <p>
           您的預約資料已建立完成。
           <br />
@@ -226,8 +238,9 @@ const ReservationDonePage: React.FC = () => {
           <section className="done-email-notice">
             <h3>Email 確認提醒</h3>
             <p>
-              預約資料已建立，但仍需透過確認信完成最後確認。若未收到信件，
-              可使用下方按鈕重新寄送。
+              {state.emailSent === false
+                ? "預約資料已建立，但確認信剛剛寄送失敗。請使用下方按鈕重新寄送。"
+                : "預約資料已建立，但仍需於 10 分鐘內透過確認信完成最後確認。若未收到信件，可使用下方按鈕重新寄送。"}
             </p>
 
             <button

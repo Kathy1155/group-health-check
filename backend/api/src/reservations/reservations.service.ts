@@ -25,6 +25,7 @@ import { HealthExaminationPackageEntity } from '../packages/entities/health-exam
 import { Cron } from '@nestjs/schedule';
 
 export type ReservationLookupResult = {
+  reservationId: number;
   name: string;
   groupName: string;
   branchName: string;
@@ -106,7 +107,8 @@ private async createUniqueLookupCode(
 
 
   async holdReservationWithLock(dto: HoldReservationDto) {
-    return this.dataSource.transaction(async (manager) => {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
       const groupRepo = manager.getRepository(GroupEntity);
       const participantRepo = manager.getRepository(GroupParticipantEntity);
       const reservationRepo = manager.getRepository(ReservationEntity);
@@ -147,7 +149,30 @@ private async createUniqueLookupCode(
         existingPending.confirmTokenExpiresAt &&
         new Date(existingPending.confirmTokenExpiresAt) > new Date()
       ) {
-        throw new ConflictException('ACTIVE_PENDING_RESERVATION');
+        if (existingPending.confirmToken) {
+          throw new ConflictException('ACTIVE_PENDING_RESERVATION');
+        }
+
+        const pendingSlot = await timeSlotRepo.findOne({
+          where: { slotId: Number(existingPending.slotId) },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (pendingSlot) {
+          if (pendingSlot.slotReservedCount > 0) {
+            pendingSlot.slotReservedCount -= 1;
+          }
+
+          if (pendingSlot.slotStatus === 'full') {
+            pendingSlot.slotStatus = 'open';
+          }
+
+          await timeSlotRepo.save(pendingSlot);
+        }
+
+        existingPending.quotaStatus = 'cancelled';
+        existingPending.reservationStatus = 'cancelled';
+        await reservationRepo.save(existingPending);
       }
 
       if (
@@ -205,7 +230,7 @@ private async createUniqueLookupCode(
         throw new NotFoundException('BRANCH_PACKAGE_NOT_FOUND');
       }
 
-      const holdExpireMinutes = 15;
+      const holdExpireMinutes = 10;
       const expiresAt = new Date(Date.now() + holdExpireMinutes * 60 * 1000);
       const lookupCode = await this.createUniqueLookupCode(reservationRepo);
 
@@ -241,7 +266,31 @@ private async createUniqueLookupCode(
         reservationStatus: reservation.reservationStatus,
         expiresAt,
       };
-    });
+      });
+    } catch (error: any) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      const code = error?.code ?? error?.driverError?.code;
+      const errno = error?.errno ?? error?.driverError?.errno;
+
+      if (
+        code === 'ER_LOCK_DEADLOCK' ||
+        code === 'ER_LOCK_WAIT_TIMEOUT' ||
+        errno === 1213 ||
+        errno === 1205
+      ) {
+        throw new BadRequestException('TIME_SLOT_FULL');
+      }
+
+      console.error('[Reservations] holdReservationWithLock failed', error);
+      throw error;
+    }
   }
 
   async holdReservation(dto: HoldReservationDto) {
@@ -314,7 +363,7 @@ private async createUniqueLookupCode(
     throw new NotFoundException('找不到院區套餐資料');
   }
 
-  const holdExpireMinutes = 15;
+  const holdExpireMinutes = 10;
   const expiresAt = new Date(Date.now() + holdExpireMinutes * 60 * 1000);
   const lookupCode = await this.createUniqueLookupCode();
 
@@ -467,15 +516,13 @@ const medicalProfile = await this.medicalProfileRepo.save({
   const confirmToken = randomUUID();
   const cancelToken = randomUUID();
 
-  const tokenExpireMinutes = 15;
+  const tokenExpireMinutes = 10;
 
   const confirmTokenExpiresAt = new Date(
     Date.now() + tokenExpireMinutes * 60 * 1000,
   );
 
-  const cancelTokenExpiresAt = new Date(`${slot.slotDate}T00:00:00`);
-  cancelTokenExpiresAt.setDate(cancelTokenExpiresAt.getDate() - 1);
-  cancelTokenExpiresAt.setHours(17, 0, 0, 0);
+  const cancelTokenExpiresAt = this.buildCancelDeadline(slot.slotDate);
 
   await this.reservationRepo.update(
     { reservationId: Number(dto.reservationId) },
@@ -513,20 +560,27 @@ const medicalProfile = await this.medicalProfileRepo.save({
 
   const reservationNo = `R${String(updatedReservation.reservationId).padStart(8, '0')}`;
 
-  await this.mailService.sendReservationActionEmail({
-    to: participant.email,
-    name: participant.name,
-    reservationNo,
-    branchName: branch.branchName,
-    packageName: packageInfo.packageName,
-    date: String(slot.slotDate),
-    timeSlot: `${formatTime(String(slot.slotStartTime))}-${formatTime(
-      String(slot.slotEndTime),
-    )}`,
-    confirmToken,
-    cancelToken,
-    lookupCode: updatedReservation.lookupCode,
-  });
+  let emailSent = true;
+
+  try {
+    await this.mailService.sendReservationActionEmail({
+      to: participant.email,
+      name: participant.name,
+      reservationNo,
+      branchName: branch.branchName,
+      packageName: packageInfo.packageName,
+      date: String(slot.slotDate),
+      timeSlot: `${formatTime(String(slot.slotStartTime))}-${formatTime(
+        String(slot.slotEndTime),
+      )}`,
+      confirmToken,
+      cancelToken,
+      lookupCode: updatedReservation.lookupCode,
+    });
+  } catch (error) {
+    emailSent = false;
+    console.error('[Reservations] 預約已建立，但確認信寄送失敗', error);
+  }
 
   return {
     reservationId: updatedReservation.reservationId,
@@ -537,6 +591,8 @@ const medicalProfile = await this.medicalProfileRepo.save({
     slotId: Number(dto.slotId),
     quotaStatus: updatedReservation.quotaStatus,
     reservationStatus: updatedReservation.reservationStatus,
+    emailConfirmExpiresAt: confirmTokenExpiresAt,
+    emailSent,
   };
 }
 
@@ -663,6 +719,7 @@ async lookupByIdAndLookupCode(
   }
 
   return {
+    reservationId: reservation.reservationId,
     name: participant.name,
     groupName: group.groupName,
     branchName: branch.branchName,
@@ -677,6 +734,19 @@ async lookupByIdAndLookupCode(
 
   private formatTime(value: string | Date): string {
     return String(value).slice(0, 5);
+  }
+
+  private buildCancelDeadline(slotDate: string | Date): Date {
+    const [year, month, day] = String(slotDate)
+      .slice(0, 10)
+      .split('-')
+      .map(Number);
+
+    const deadline = new Date(year, month - 1, day);
+    deadline.setDate(deadline.getDate() - 1);
+    deadline.setHours(17, 0, 0, 0);
+
+    return deadline;
   }
 
   private toAdminStatus(
@@ -852,14 +922,19 @@ async lookupByIdAndLookupCode(
   }
 
 async handleAction(token: string, action: 'confirm' | 'cancel') {
+  const normalizedToken = token?.trim();
+
   const reservation = await this.reservationRepo.findOne({
     where:
       action === 'confirm'
-        ? { confirmToken: token }
-        : { cancelToken: token },
+        ? { confirmToken: normalizedToken }
+        : { cancelToken: normalizedToken },
   });
 
   if (!reservation) {
+    console.warn(`[Reservations] 找不到 ${action} token 對應預約`, {
+      token: normalizedToken,
+    });
     throw new NotFoundException('找不到對應的驗證連結');
   }
 
@@ -912,7 +987,11 @@ if (new Date() > new Date(expiresAt)) {
   }
 
   if (reservation.reservationStatus === 'confirmed' && action === 'confirm') {
-    throw new BadRequestException('此預約已確認');
+    return {
+      message: '此預約已確認',
+      reservationId: reservation.reservationId,
+      reservationStatus: reservation.reservationStatus,
+    };
   }
 
   // 線上取消期限：健檢日前一天 17:00 前
@@ -925,11 +1004,7 @@ if (new Date() > new Date(expiresAt)) {
       throw new NotFoundException('找不到對應時段資料');
     }
 
-    const slotDate = new Date(`${slot.slotDate}T00:00:00`);
-    const cancelDeadline = new Date(slotDate);
-
-    cancelDeadline.setDate(cancelDeadline.getDate() - 1);
-    cancelDeadline.setHours(17, 0, 0, 0);
+    const cancelDeadline = this.buildCancelDeadline(slot.slotDate);
 
     if (new Date() > cancelDeadline) {
       throw new BadRequestException('已超過線上取消期限，請聯絡健檢中心');

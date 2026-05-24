@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { FaRegCalendarAlt } from "react-icons/fa";
 import { fetchTimeslots, type TimeslotDto } from "../api/timeslotsApi";
 import { holdReservation } from "../api/reservationsApi";
 
@@ -25,8 +26,28 @@ function formatSlotTime(time: string) {
     .join("-");
 }
 
+function formatDateValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel(dateValue: string) {
+  if (!dateValue) return "年/月/日";
+
+  const [year, month, day] = dateValue.split("-");
+
+  return `${Number(year)}年${Number(month)}月${Number(day)}日`;
+}
+
+const todayValue = formatDateValue(new Date());
+
 function SelectTimeSlotPage() {
   const [date, setDate] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [slot, setSlot] = useState("");
 
@@ -142,14 +163,27 @@ function SelectTimeSlotPage() {
       });
     } catch (error: any) {
       console.error(error);
+      const errorMessage = String(error?.message || "");
+      const isSlotFull =
+        errorMessage === "TIME_SLOT_FULL" ||
+        errorMessage === "Internal server error" ||
+        errorMessage === "HOLD_RESERVATION_FAILED";
+
       const message =
-        error?.message === "ACTIVE_PENDING_RESERVATION"
-          ? "你目前已有尚未完成確認的預約，請先到信箱點擊確認或取消；若未處理，名額會在 15 分鐘後自動釋放。"
-          : error?.message === "TIME_SLOT_FULL"
-            ? "此時段名額已滿，請重新選擇其他時段。"
-            : error?.message || "暫時保留名額失敗，請重新選擇時段。";
+        errorMessage === "ACTIVE_PENDING_RESERVATION"
+          ? "你目前已有尚未完成確認的預約，請先到信箱點擊確認或取消；若未處理，名額會在 10 分鐘後自動釋放。"
+          : isSlotFull
+            ? "這個時段剛剛已被其他人預約，請重新選擇其他時段。"
+            : errorMessage || "暫時保留名額失敗，請重新選擇時段。";
 
       setSlotsError(message);
+      if (isSlotFull) {
+        setSelectedSlotId(null);
+        setSlot("");
+        fetchTimeslots(branchId, packageId, date)
+          .then(setSlots)
+          .catch((err) => console.error(err));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -157,6 +191,40 @@ function SelectTimeSlotPage() {
 
   const handlePrev = () => {
     navigate(-1);
+  };
+
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    return [
+      ...Array.from({ length: firstDay }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, index) => {
+        const day = index + 1;
+        const value = formatDateValue(new Date(year, month, day));
+
+        return { day, value };
+      }),
+    ];
+  }, [calendarMonth]);
+
+  const calendarMonthLabel = `${calendarMonth.getFullYear()}年${
+    calendarMonth.getMonth() + 1
+  }月`;
+
+  const changeCalendarMonth = (offset: number) => {
+    setCalendarMonth(
+      (current) => new Date(current.getFullYear(), current.getMonth() + offset, 1),
+    );
+  };
+
+  const handleDateSelect = (nextDate: string) => {
+    setDate(nextDate);
+    setSelectedSlotId(null);
+    setSlot("");
+    setCalendarOpen(false);
   };
 
   const renderSlotPlaceholder = () => {
@@ -209,17 +277,70 @@ function SelectTimeSlotPage() {
           <section className="slot-select-panel">
             <div className="form-row">
               <label htmlFor="date">健檢日期</label>
-              <input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => {
-                  setDate(e.target.value);
-                  setSelectedSlotId(null);
-                  setSlot("");
-                }}
-                required
-              />
+              <div className="date-input-wrap">
+                <button
+                  id="date"
+                  type="button"
+                  className={date ? "date-input-button" : "date-input-button placeholder"}
+                  onClick={() => setCalendarOpen((open) => !open)}
+                  aria-expanded={calendarOpen}
+                >
+                  <span>{formatDateLabel(date)}</span>
+                  <FaRegCalendarAlt className="date-input-icon" aria-hidden />
+                </button>
+
+                {calendarOpen && (
+                  <div className="date-calendar-panel">
+                    <div className="date-calendar-header">
+                      <button
+                        type="button"
+                        aria-label="上一個月"
+                        onClick={() => changeCalendarMonth(-1)}
+                      >
+                        ‹
+                      </button>
+                      <strong>{calendarMonthLabel}</strong>
+                      <button
+                        type="button"
+                        aria-label="下一個月"
+                        onClick={() => changeCalendarMonth(1)}
+                      >
+                        ›
+                      </button>
+                    </div>
+
+                    <div className="date-calendar-weekdays">
+                      {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+                        <span key={day}>{day}</span>
+                      ))}
+                    </div>
+
+                    <div className="date-calendar-grid">
+                      {calendarDays.map((item, index) =>
+                        item ? (
+                          <button
+                            type="button"
+                            key={item.value}
+                            className={[
+                              "date-calendar-day",
+                              item.value === date ? "selected" : "",
+                              item.value === todayValue ? "today" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            onClick={() => handleDateSelect(item.value)}
+                          >
+                            <span>{item.day}</span>
+                            {item.value === todayValue && <small>今天</small>}
+                          </button>
+                        ) : (
+                          <span key={`empty-${index}`} />
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="form-row">
@@ -251,7 +372,7 @@ function SelectTimeSlotPage() {
             {slotsError && date && <p className="form-error">{slotsError}</p>}
 
             <div className="reservation-tip slot-tip">
-              選擇時段後系統會暫時保留名額，請於後續完成資料填寫。
+              按下下一步後，系統會為您保留此時段 10 分鐘，請於時間內完成資料填寫並送出預約。
             </div>
           </section>
         </div>

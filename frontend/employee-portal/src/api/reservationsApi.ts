@@ -3,6 +3,7 @@
 import { API_BASE_URL } from "./config";
 
 export type ReservationLookupDto = {
+  reservationId: number;
   name: string;
   groupName: string;
   branchName: string;
@@ -118,6 +119,8 @@ export type CreateReservationRes = {
   slotId: number;
   quotaStatus: string;
   reservationStatus?: string;
+  emailConfirmExpiresAt?: string;
+  emailSent?: boolean;
 };
 
 /**
