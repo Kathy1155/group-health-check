@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import GroupCodePage from "./pages/GroupCodePage";
@@ -15,6 +16,7 @@ import "./App.css";
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const stepPaths = [
     "/reserve",
@@ -54,6 +56,11 @@ function App() {
       ? 100
       : (currentStepIndex / (totalSteps - 1)) * 100;
 
+  const goTo = (path: string) => {
+    setMobileMenuOpen(false);
+    navigate(path);
+  };
+
   return (
     <div className="app-container">
       <ScrollToTop />
@@ -68,14 +75,46 @@ function App() {
             </div>
           </div>
 
+          <nav className="app-nav" aria-label="主要導覽">
+            <button
+              type="button"
+              className="app-nav-link"
+              onClick={() => goTo("/")}
+            >
+              回首頁
+            </button>
+            <button
+              type="button"
+              className="app-nav-link"
+              onClick={() => goTo("/reservation-lookup")}
+            >
+              查詢
+            </button>
+          </nav>
+
           <button
             type="button"
-            className="app-home-button"
-            onClick={() => navigate("/")}
+            className="app-menu-button"
+            aria-label={mobileMenuOpen ? "關閉選單" : "開啟選單"}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((open) => !open)}
           >
-            回首頁
+            <span />
+            <span />
+            <span />
           </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="app-mobile-menu">
+            <button type="button" onClick={() => goTo("/")}>
+              回首頁
+            </button>
+            <button type="button" onClick={() => goTo("/reservation-lookup")}>
+              查詢
+            </button>
+          </div>
+        )}
 
         {inWizard && (
           <div className="progress-wrapper">

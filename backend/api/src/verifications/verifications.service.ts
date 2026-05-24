@@ -43,7 +43,7 @@ private async sendOtpEmail(to: string, otp: string) {
   await transporter.sendMail({
     from: `"健檢預約系統" <${this.configService.get<string>('MAIL_FROM')}>`,
     to,
-    subject: '團體健檢預約 OTP 驗證碼',
+    subject: '團體健檢預約驗證碼',
     html: `
       <div style="margin:0;padding:0;background:#f4f9f9;font-family:Arial,'Noto Sans TC','Microsoft JhengHei',sans-serif;color:#102a43;">
         <div style="max-width:620px;margin:0 auto;padding:32px 16px;">
@@ -55,7 +55,7 @@ private async sendOtpEmail(to: string, otp: string) {
               </div>
 
               <h1 style="margin:0;color:#0f2742;font-size:28px;line-height:1.35;font-weight:800;">
-                團體健檢預約 OTP 驗證碼
+                團體健檢預約驗證碼
               </h1>
 
               <p style="margin:12px 0 0;color:#506984;font-size:15px;line-height:1.8;">

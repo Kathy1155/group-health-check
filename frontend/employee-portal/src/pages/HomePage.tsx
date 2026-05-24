@@ -52,7 +52,7 @@ function HomePage() {
               <span>01</span>
               <div>
                 <h3>輸入團體代碼</h3>
-                <p>確認所屬企業與預約資格，完成 Email OTP 驗證。</p>
+                <p>確認所屬企業與預約資格，完成信箱驗證碼驗證。</p>
               </div>
             </div>
 

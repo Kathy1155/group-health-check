@@ -34,6 +34,11 @@ body {
   color: var(--text-main);
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 #root {
   width: 100%;
 }
@@ -109,7 +114,13 @@ button {
   font-weight: 800;
 }
 
-.app-home-button {
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.app-nav-link {
   min-height: 40px;
   padding: 0 1rem;
   border-radius: 999px;
@@ -121,9 +132,34 @@ button {
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
-.app-home-button:hover {
+.app-nav-link:hover {
   border-color: var(--primary);
   background: var(--primary-soft);
+}
+
+.app-menu-button {
+  width: 42px;
+  height: 42px;
+  display: none;
+  place-items: center;
+  gap: 4px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.app-menu-button span {
+  width: 18px;
+  height: 2px;
+  display: block;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.app-mobile-menu {
+  display: none;
 }
 
 .progress-wrapper {
@@ -444,6 +480,10 @@ button {
 
 .text-line {
   display: block;
+}
+
+.mobile-title-line {
+  display: inline;
 }
 
 .reservation-card {
@@ -855,13 +895,15 @@ button {
 
 .done-success-text {
   display: block;
-  margin: 0.9rem 0 0;
+  margin: 1.75rem 0 0;
   color: var(--success);
   font-weight: 900;
+  text-align: center;
 }
 
 .done-email-notice .btn {
   margin-top: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .done-notice-card ul {
@@ -870,6 +912,11 @@ button {
   color: var(--text-soft);
   line-height: 1.85;
   font-weight: 650;
+}
+
+.done-notice-card .notice-danger {
+  color: #EA0000;
+  font-weight: 950;
 }
 
 .action-result-page {
@@ -912,21 +959,126 @@ button {
   margin-top: 1rem;
 }
 
-@media (max-width: 900px) {
+.lookup-card {
+  max-width: 860px;
+}
+
+.lookup-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lookup-form .form-hint,
+.lookup-error,
+.lookup-actions {
+  grid-column: 1 / -1;
+}
+
+.lookup-actions {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+}
+
+.lookup-result {
+  margin: 1.5rem 2.1rem 2rem;
+  padding: 1.3rem;
+  border-radius: 22px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.lookup-result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lookup-result-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.18rem;
+  font-weight: 950;
+}
+
+.lookup-result-header p {
+  margin: 0.35rem 0 0;
+  color: var(--text-soft);
+  line-height: 1.65;
+  font-weight: 650;
+}
+
+.lookup-status {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: #edf7f7;
+  border: 1px solid var(--border-strong);
+  color: var(--primary);
+  font-size: 0.86rem;
+  font-weight: 950;
+}
+
+.lookup-status-active {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.lookup-status-cancelled {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: var(--danger);
+}
+
+@media (max-width: 1023px) {
+  .app-container {
+    width: min(100% - 32px, 920px);
+  }
+
   .home-hero {
     min-height: auto;
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 2.2rem;
     padding: 2rem 0 3rem;
+  }
+
+  .home-title,
+  .home-description,
+  .home-note {
+    max-width: 720px;
+  }
+
+  .home-info-panel {
+    max-width: 720px;
   }
 
   .branch-package-content,
   .slot-content {
     grid-template-columns: 1fr;
   }
+
+  .branch-card,
+  .slot-card,
+  .profile-card,
+  .done-card {
+    max-width: 860px;
+  }
+
+  .reservation-page-header {
+    max-width: 720px;
+  }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  html {
+    font-size: 15px;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
   .app-container {
     width: min(100% - 24px, 1120px);
     padding-top: 0.5rem;
@@ -934,6 +1086,11 @@ button {
 
   .app-header {
     margin-bottom: 1.2rem;
+    padding-bottom: 0.85rem;
+  }
+
+  .app-header-top {
+    align-items: center;
   }
 
   .app-brand-logo {
@@ -949,42 +1106,83 @@ button {
     display: none;
   }
 
-  .app-home-button {
-    min-height: 36px;
-    padding: 0 0.8rem;
-    font-size: 0.82rem;
+  .app-nav {
+    display: none;
+  }
+
+  .app-menu-button {
+    display: inline-grid;
+  }
+
+  .app-mobile-menu {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--border);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+  }
+
+  .app-mobile-menu button {
+    min-height: 48px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    color: var(--text-main);
+    font-weight: 950;
+  }
+
+  .app-mobile-menu button:hover {
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .progress-wrapper {
     margin-top: 0.8rem;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
   }
 
   .progress-bar-bg {
-    min-width: 420px;
+    height: 7px;
   }
 
   .progress-steps {
-    min-width: 420px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
   }
 
   .progress-step {
-    font-size: 0.78rem;
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .progress-step strong {
+    width: 22px;
+    height: 22px;
+    font-size: 0.72rem;
   }
 
   .otp-input-grid {
-    gap: 0.45rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.4rem;
   }
 
   .otp-input-grid input {
-    height: 48px;
+    min-height: 44px;
+    height: 46px;
     border-radius: 12px;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
   }
 
   .home-hero {
     padding-top: 1.25rem;
+    gap: 1.6rem;
   }
 
   .home-brand-logo {
@@ -993,11 +1191,13 @@ button {
   }
 
   .home-title {
-    font-size: 2.35rem;
+    font-size: clamp(2.2rem, 15vw, 3rem);
+    line-height: 1.08;
   }
 
   .home-description {
     font-size: 0.98rem;
+    line-height: 1.8;
   }
 
   .home-actions,
@@ -1005,6 +1205,10 @@ button {
   .reservation-card .form-footer,
   .done-actions {
     flex-direction: column;
+  }
+
+  .reservation-card .form-footer .btn-primary {
+    order: -1;
   }
 
   .btn,
@@ -1028,6 +1232,7 @@ button {
 
   .reservation-page-header {
     text-align: left;
+    margin-bottom: 1.2rem;
   }
 
   .reservation-page-header .page-badge {
@@ -1037,13 +1242,19 @@ button {
   .reservation-page-header h1,
   .done-hero h1,
   .action-result-hero h1 {
-    font-size: 1.8rem;
+    font-size: clamp(1.72rem, 9vw, 2.2rem);
+    line-height: 1.22;
+  }
+
+  .mobile-title-line {
+    display: block;
   }
 
   .reservation-page-header p,
   .done-hero p,
   .action-result-hero p {
     font-size: 0.95rem;
+    line-height: 1.75;
   }
 
   .reservation-card-header,
@@ -1058,8 +1269,26 @@ button {
     padding-right: 1.2rem;
   }
 
+  .reservation-card-header {
+    padding-top: 1.4rem;
+    padding-bottom: 1.1rem;
+  }
+
+  .branch-select-panel,
+  .slot-summary-panel,
+  .slot-select-panel,
+  .package-panel,
+  .profile-panel,
+  .done-email-notice,
+  .done-notice-card,
+  .lookup-result {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
   .reservation-tip,
-  .profile-submit-error {
+  .profile-submit-error,
+  .lookup-result {
     margin-left: 1.2rem;
     margin-right: 1.2rem;
   }
@@ -1074,5 +1303,18 @@ button {
   .profile-form-stack .form-row:last-child,
   .done-info-highlight {
     grid-column: auto;
+  }
+
+  .lookup-form {
+    grid-template-columns: 1fr;
+  }
+
+  .lookup-result-header {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .lookup-status {
+    width: fit-content;
   }
 }

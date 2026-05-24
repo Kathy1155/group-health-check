@@ -248,6 +248,9 @@ const ReservationDonePage: React.FC = () => {
             <h3>健檢前注意事項</h3>
 
             <ul>
+              <li className="notice-danger">
+                健檢前一天下午 5 點後恕無法取消預約，如需異動請提前處理。
+              </li>
               <li>健檢前一天晚上 12 點後請勿進食，可少量喝水。</li>
               <li>檢查當天早上請勿吃早餐、喝含糖飲料或咖啡。</li>
               <li>如有慢性病用藥，請依醫師指示是否照常服用。</li>
