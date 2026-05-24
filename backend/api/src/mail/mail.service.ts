@@ -88,7 +88,7 @@ export class MailService {
             <div style="margin-bottom: 24px; padding: 20px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px;">
               <h3 style="margin: 0 0 10px; font-size: 18px; color: #9a3412;">重要提醒</h3>
               <ul style="margin: 0; padding-left: 20px; font-size: 15px; color: #7c2d12;">
-                <li>請於 15 分鐘內完成預約確認，逾時系統將自動釋放名額。</li>
+                <li>請於 10 分鐘內完成 Email 預約確認，逾時系統將自動釋放名額。</li>
                 <li>如需取消預約，請於健檢日前一天 17:00 前完成線上取消。</li>
                 <li>超過期限後，請聯絡健檢中心或團體窗口協助處理。</li>
               </ul>

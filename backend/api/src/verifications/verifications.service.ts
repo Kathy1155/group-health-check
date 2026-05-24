@@ -41,9 +41,9 @@ private async sendOtpEmail(to: string, otp: string) {
   });
 
   await transporter.sendMail({
-    from: `"健檢預約系統" <${this.configService.get<string>('MAIL_FROM')}>`,
+    from: `"團體健檢預約系統" <${this.configService.get<string>('MAIL_FROM')}>`,
     to,
-    subject: '團體健檢預約驗證碼',
+    subject: '【團體健檢預約系統】員工身分驗證碼通知',
     html: `
       <div style="margin:0;padding:0;background:#f4f9f9;font-family:Arial,'Noto Sans TC','Microsoft JhengHei',sans-serif;color:#102a43;">
         <div style="max-width:620px;margin:0 auto;padding:32px 16px;">
@@ -89,6 +89,16 @@ private async sendOtpEmail(to: string, otp: string) {
               <p style="margin:0;color:#7a8ca3;font-size:13px;line-height:1.7;">
                 本信件由團體健檢預約系統自動寄出，請勿直接回覆。
               </p>
+              <div style="margin-top:14px;padding:14px 16px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;">
+                <p style="margin:0 0 8px;color:#9a3412;font-size:13px;font-weight:700;">
+                  管理信箱退信處理提醒
+                </p>
+                <p style="margin:0;color:#7c2d12;font-size:13px;line-height:1.8;">
+                  若管理 Gmail 收到「找不到地址」或無法投遞通知，表示名冊中的員工 Email 可能有誤。
+                  請管理信箱人員聯絡業務中心，由業務中心協助聯絡企業聯絡人，請企業與員工確認 Gmail 是否正確，
+                  並於名冊修正後再請員工重新進行驗證。
+                </p>
+              </div>
             </div>
 
           </div>

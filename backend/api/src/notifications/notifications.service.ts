@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 
 import { ReservationEntity } from '../reservations/entities/reservation.entity';
 import { GroupParticipantEntity } from '../roster/group-participant.entity';
@@ -101,9 +102,16 @@ export class NotificationsService {
       reservation.reservationId,
     ).padStart(8, '0')}`;
 
-    if (!reservation.confirmToken || !reservation.cancelToken) {
+    if (!reservation.cancelToken) {
        throw new NotFoundException('找不到預約確認或取消 token');
     }
+
+    const confirmToken = randomUUID();
+    const emailConfirmExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    reservation.confirmToken = confirmToken;
+    reservation.confirmTokenExpiresAt = emailConfirmExpiresAt;
+    await this.reservationRepo.save(reservation);
 
     await this.mailService.sendReservationActionEmail({
       to: participant.email,
@@ -115,11 +123,11 @@ export class NotificationsService {
       timeSlot: `${formatTime(
         String(slot.slotStartTime),
       )}-${formatTime(String(slot.slotEndTime))}`,
-      confirmToken: reservation.confirmToken,
+      confirmToken,
       cancelToken: reservation.cancelToken,
       lookupCode: reservation.lookupCode,
     });
 
-    return { ok: true };
+    return { ok: true, emailConfirmExpiresAt };
   }
 }

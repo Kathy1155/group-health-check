@@ -22,12 +22,16 @@
 
 html {
   font-size: 16px;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  width: 100%;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top right, rgba(0, 122, 130, 0.1), transparent 34%),
     var(--page-bg);
@@ -41,6 +45,7 @@ img {
 
 #root {
   width: 100%;
+  overflow-x: hidden;
 }
 
 button,
@@ -57,16 +62,27 @@ button {
 .app-container {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 1rem 0 3rem;
+  padding: 6.2rem 0 3rem;
+}
+
+.app-container-fixed-header {
+  padding-top: 9.7rem;
 }
 
 .app-header {
-  position: relative;
-  z-index: 1;
-  margin: 0 0 1.75rem;
-  padding: 0.9rem 0 1rem;
-  background: transparent;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  width: 100%;
+  margin: 0;
+  padding: 0.9rem max(16px, calc((100vw - 1120px) / 2)) 1rem;
+  background: rgba(244, 249, 249, 0.98);
   border-bottom: 1px solid rgba(0, 122, 130, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
 }
 
 .app-header-top {
@@ -137,12 +153,54 @@ button {
   background: var(--primary-soft);
 }
 
+.app-countdown {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: var(--danger);
+  font-size: 0.86rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.app-countdown strong {
+  color: var(--danger);
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-countdown-urgent {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.app-countdown-urgent strong {
+  color: #b91c1c;
+}
+
+.app-countdown-expired {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: var(--danger);
+}
+
+.app-countdown-expired strong {
+  color: var(--danger);
+}
+
 .app-menu-button {
   width: 42px;
   height: 42px;
   display: none;
-  place-items: center;
-  gap: 4px;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
   padding: 0;
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -151,7 +209,7 @@ button {
 }
 
 .app-menu-button span {
-  width: 18px;
+  width: 17px;
   height: 2px;
   display: block;
   border-radius: 999px;
@@ -503,6 +561,10 @@ button {
   max-width: 980px;
 }
 
+.slot-card {
+  overflow: visible;
+}
+
 .reservation-card-header {
   padding: 1.8rem 2.1rem 1.3rem;
   border-bottom: 1px solid #edf4f5;
@@ -535,6 +597,7 @@ button {
 
 .form-row {
   margin: 0;
+  min-width: 0;
 }
 
 .form-row label,
@@ -704,6 +767,7 @@ button {
 .profile-panel,
 .done-email-notice,
 .done-notice-card {
+  min-width: 0;
   padding: 1.3rem;
   border-radius: 22px;
   background: var(--surface-soft);
@@ -867,6 +931,13 @@ button {
   text-align: center;
 }
 
+.done-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .done-check,
 .action-result-icon {
   width: 72px;
@@ -880,6 +951,15 @@ button {
   font-size: 2rem;
   font-weight: 950;
   box-shadow: 0 18px 34px rgba(0, 122, 130, 0.22);
+}
+
+.done-title .done-check {
+  width: 58px;
+  height: 58px;
+  margin: 0;
+  border-radius: 18px;
+  font-size: 1.65rem;
+  flex: 0 0 auto;
 }
 
 .done-info-highlight {
@@ -1021,8 +1101,9 @@ button {
 }
 
 .lookup-status-active {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: rgba(255, 204, 0, 0.18);
+  border-color: #ffcc00;
+  color: #7a5a00;
 }
 
 .lookup-status-cancelled {
@@ -1031,7 +1112,162 @@ button {
   color: var(--danger);
 }
 
+.lookup-resend-panel {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: var(--primary-soft);
+  border: 1px solid rgba(0, 122, 130, 0.14);
+}
+
+.lookup-resend-panel p {
+  margin: 0;
+  color: var(--primary-dark);
+  line-height: 1.7;
+  font-weight: 750;
+}
+
+.lookup-resend-panel .btn {
+  width: fit-content;
+}
+
+.date-input-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.date-input-button {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.date-input-button.placeholder {
+  color: #9aaeb4;
+}
+
+.date-input-button:focus {
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 130, 0.12);
+}
+
+.date-input-icon {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.date-calendar-panel {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  width: min(100%, 360px);
+  padding: 1rem;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.date-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.date-calendar-header strong {
+  color: var(--text-main);
+  font-weight: 950;
+}
+
+.date-calendar-header button {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-main);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.date-calendar-weekdays,
+.date-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.date-calendar-weekdays {
+  margin-bottom: 0.45rem;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.date-calendar-day {
+  aspect-ratio: 1;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-main);
+  font-weight: 850;
+}
+
+.date-calendar-day span,
+.date-calendar-day small {
+  display: block;
+}
+
+.date-calendar-day small {
+  margin-top: -0.1rem;
+  color: inherit;
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.date-calendar-day:hover,
+.date-calendar-day.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.date-calendar-day.today {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.date-calendar-day.today:not(.selected) {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 130, 0.18);
+}
+
 @media (max-width: 1023px) {
+  .app-header {
+    padding: 0.9rem 16px 1rem;
+  }
+
   .app-container {
     width: min(100% - 32px, 920px);
   }
@@ -1072,7 +1308,7 @@ button {
 
 @media (max-width: 767px) {
   html {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   body {
@@ -1080,13 +1316,21 @@ button {
   }
 
   .app-container {
-    width: min(100% - 24px, 1120px);
-    padding-top: 0.5rem;
+    width: calc(100vw - 24px);
+    max-width: 100%;
+    padding-top: 5.8rem;
   }
 
   .app-header {
     margin-bottom: 1.2rem;
+    padding-top: 0.9rem;
+    padding-left: 12px;
+    padding-right: 12px;
     padding-bottom: 0.85rem;
+  }
+
+  .app-container-fixed-header {
+    padding-top: 9.3rem;
   }
 
   .app-header-top {
@@ -1110,8 +1354,20 @@ button {
     display: none;
   }
 
+  .app-countdown {
+    margin-left: auto;
+    min-height: 38px;
+    padding: 0 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .app-countdown strong {
+    font-size: 0.9rem;
+  }
+
   .app-menu-button {
     display: inline-grid;
+    flex: 0 0 auto;
   }
 
   .app-mobile-menu {
@@ -1132,6 +1388,22 @@ button {
     background: var(--surface-soft);
     color: var(--text-main);
     font-weight: 950;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  .reservation-card input,
+  .reservation-card select,
+  .reservation-card textarea,
+  .page-form input,
+  .page-form select,
+  .page-form textarea {
+    font-size: 16px;
   }
 
   .app-mobile-menu button:hover {
@@ -1178,6 +1450,14 @@ button {
     height: 46px;
     border-radius: 12px;
     font-size: 1.15rem;
+  }
+
+  .slot-select-panel select {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   .home-hero {
@@ -1244,6 +1524,17 @@ button {
   .action-result-hero h1 {
     font-size: clamp(1.72rem, 9vw, 2.2rem);
     line-height: 1.22;
+  }
+
+  .done-title {
+    gap: 0.75rem;
+  }
+
+  .done-title .done-check {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    font-size: 1.45rem;
   }
 
   .mobile-title-line {
@@ -1316,5 +1607,9 @@ button {
 
   .lookup-status {
     width: fit-content;
+  }
+
+  .lookup-resend-panel .btn {
+    width: 100%;
   }
 }
