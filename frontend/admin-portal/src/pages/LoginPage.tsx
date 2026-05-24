@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import tpechLogo from "../assets/tpech-logo-mark.png";
 
 type Role = "business" | "center";
 
@@ -9,10 +10,11 @@ const API_BASE_URL =
 function HospitalLogo() {
   return (
     <div className="login-logo-mark">
-      <span className="login-logo-h">H</span>
-      <span className="login-logo-line red" />
-      <span className="login-logo-line blue" />
-      <span className="login-logo-line yellow" />
+      <img
+        src={tpechLogo}
+        alt="台北市立聯合醫院 Logo"
+        className="login-logo-img"
+      />
     </div>
   );
 }
