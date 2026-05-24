@@ -1,34 +1,52 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   lookupReservation,
   type ReservationLookupDto,
 } from "../api/reservationsApi";
+import { resendReservationConfirmationEmail } from "../api/notificationsApi";
 
 type LookupResult = ReservationLookupDto;
 
 function getStatusClassName(status: string) {
-  if (status.includes("取消")) return "lookup-status lookup-status-cancelled";
-  if (status.includes("確認") || status.includes("預約")) {
+  if (status === "已確認") {
     return "lookup-status lookup-status-active";
+  }
+  if (status === "已取消") {
+    return "lookup-status lookup-status-cancelled";
   }
   return "lookup-status";
 }
 
 function ReservationLookupPage() {
   const navigate = useNavigate();
+  const resultRef = useRef<HTMLElement | null>(null);
 
   const [idNumber, setIdNumber] = useState("");
   const [lookupCode, setLookupCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<LookupResult | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!result) return;
+
+    resultRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [result]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setError(null);
     setResult(null);
+    setResendMessage(null);
+    setResendError(null);
 
     if (idNumber.trim().length !== 10) {
       setError("請輸入 10 碼身分證字號。");
@@ -59,11 +77,34 @@ function ReservationLookupPage() {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    if (!result) return;
+
+    setResending(true);
+    setResendMessage(null);
+    setResendError(null);
+
+    try {
+      await resendReservationConfirmationEmail({
+        reservationId: result.reservationId,
+      });
+
+      setResendMessage("已重新寄送確認信，請至信箱查看。");
+    } catch (err) {
+      console.error(err);
+      setResendError("重新寄送確認信失敗，請稍後再試。");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const canResendConfirmation = result?.status === "待確認";
+
   return (
     <div className="reservation-page lookup-page">
       <div className="reservation-page-header">
         <span className="page-badge">預約查詢</span>
-        <h1>查詢 / 取消預約</h1>
+        <h1>查詢預約</h1>
         <p>
           請輸入身分證字號與確認信中的查詢驗證碼，系統會顯示目前預約狀態與健檢資訊。
         </p>
@@ -119,7 +160,7 @@ function ReservationLookupPage() {
         </form>
 
         {result && (
-          <section className="lookup-result">
+          <section className="lookup-result" ref={resultRef}>
             <div className="lookup-result-header">
               <div>
                 <h3>預約資訊</h3>
@@ -145,6 +186,29 @@ function ReservationLookupPage() {
                 </div>
               ))}
             </div>
+
+            {canResendConfirmation && (
+              <div className="lookup-resend-panel">
+                <p>
+                  此預約尚未完成 Email 確認。若沒有收到確認信，可以重新寄送。
+                </p>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleResendConfirmation}
+                  disabled={resending}
+                >
+                  {resending ? "寄送中..." : "重新寄送確認信"}
+                </button>
+
+                {resendMessage && (
+                  <p className="done-success-text">{resendMessage}</p>
+                )}
+
+                {resendError && <p className="form-error">{resendError}</p>}
+              </div>
+            )}
           </section>
         )}
       </div>

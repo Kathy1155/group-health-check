@@ -4,13 +4,13 @@ import { API_BASE_URL } from "./config";
 
 export type ReservationConfirmationPayload = {
   reservationId: number;
-  reservationNo: string;
-  groupName: string;
-  name: string;
-  idNumber: string;
-  phone: string;
-  date: string;
-  slot: string;
+  reservationNo?: string;
+  groupName?: string;
+  name?: string;
+  idNumber?: string;
+  phone?: string;
+  date?: string;
+  slot?: string;
 };
 
 /**
@@ -19,7 +19,7 @@ export type ReservationConfirmationPayload = {
  */
 export async function resendReservationConfirmationEmail(
   payload: ReservationConfirmationPayload
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; emailConfirmExpiresAt?: string }> {
   const res = await fetch(
     `${API_BASE_URL}/employee/notifications/reservation-confirmation`,
     {
@@ -33,5 +33,5 @@ export async function resendReservationConfirmationEmail(
     throw new Error("RESEND_EMAIL_FAILED");
   }
 
-  return (await res.json()) as { ok: boolean };
+  return (await res.json()) as { ok: boolean; emailConfirmExpiresAt?: string };
 }

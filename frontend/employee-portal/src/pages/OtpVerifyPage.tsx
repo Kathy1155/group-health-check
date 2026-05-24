@@ -55,7 +55,16 @@ export default function OtpVerifyPage() {
   const otpDigits = Array.from({ length: 6 }, (_, index) => otp[index] ?? "");
 
   const updateOtpDigit = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const digits = value.replace(/\D/g, "");
+
+    if (digits.length > 1) {
+      const nextOtp = digits.slice(0, 6);
+      setOtp(nextOtp);
+      document.getElementById(`otp-${Math.min(nextOtp.length, 5)}`)?.focus();
+      return;
+    }
+
+    const digit = digits.slice(-1);
     const nextDigits = otpDigits.slice();
     nextDigits[index] = digit;
     setOtp(nextDigits.join("").slice(0, 6));
