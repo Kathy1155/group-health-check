@@ -2704,3 +2704,169 @@
   cursor: not-allowed;
   background: #f8fafc;
 }
+
+/* ===== iPad / tablet healthcenter layout fix ===== */
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  /* 健檢中心表單在 iPad 不要維持桌機兩欄，避免左右被擠爆 */
+  .healthcenter-scope .page-form {
+    max-width: none;
+  }
+
+  .healthcenter-scope .form-row {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    max-width: 620px;
+  }
+
+  .healthcenter-scope .form-row.single {
+    max-width: 620px;
+  }
+
+  .healthcenter-scope .form-field {
+    min-width: 0;
+  }
+
+  /* 預約清單的時段/狀態篩選：iPad 也用收合式，不要展開後擠成一團 */
+  .healthcenter-scope .filter-frame {
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .healthcenter-scope .time-slot-grid,
+  .healthcenter-scope .status-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .healthcenter-scope .time-slot-grid .export-checkbox-item,
+  .healthcenter-scope .status-grid .export-checkbox-item {
+    width: 100%;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+
+  
+
+  /* 預約清單表格在 iPad 仍維持水平表格，但讓外層可以橫向滑 */
+  .healthcenter-scope .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ===== iPad TimeSlotView use table layout ===== */
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .healthcenter-scope .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .healthcenter-scope .time-slot-view-table {
+    width: 100%;
+    min-width: 1180px;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .healthcenter-scope .time-slot-view-table thead {
+    display: table-header-group;
+  }
+
+  .healthcenter-scope .time-slot-view-table tbody {
+    display: table-row-group;
+  }
+
+  .healthcenter-scope .time-slot-view-table tr {
+    display: table-row;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .healthcenter-scope .time-slot-view-table th,
+  .healthcenter-scope .time-slot-view-table td {
+    display: table-cell;
+    width: auto !important;
+    padding: 22px 18px;
+    border-bottom: 1px solid #dbe3ec;
+    white-space: nowrap;
+    vertical-align: middle;
+    text-align: left;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f2742;
+  }
+
+  .healthcenter-scope .time-slot-view-table td::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(1),
+  .healthcenter-scope .time-slot-view-table td:nth-child(1) {
+    width: 120px !important;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(2),
+  .healthcenter-scope .time-slot-view-table td:nth-child(2) {
+    width: 260px !important;
+    white-space: normal;
+    line-height: 1.5;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(3),
+  .healthcenter-scope .time-slot-view-table td:nth-child(3) {
+    width: 150px !important;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(4),
+  .healthcenter-scope .time-slot-view-table td:nth-child(4) {
+    width: 90px !important;
+    text-align: center;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(5),
+  .healthcenter-scope .time-slot-view-table td:nth-child(5),
+  .healthcenter-scope .time-slot-view-table th:nth-child(6),
+  .healthcenter-scope .time-slot-view-table td:nth-child(6),
+  .healthcenter-scope .time-slot-view-table th:nth-child(7),
+  .healthcenter-scope .time-slot-view-table td:nth-child(7) {
+    width: 80px !important;
+    text-align: center;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(8),
+  .healthcenter-scope .time-slot-view-table td:nth-child(8) {
+    width: 100px !important;
+    text-align: center;
+  }
+
+  .healthcenter-scope .time-slot-view-table th:nth-child(9),
+  .healthcenter-scope .time-slot-view-table td:nth-child(9) {
+    width: 150px !important;
+    text-align: center;
+  }
+
+  .healthcenter-scope .time-slot-view-table .result-action-stack {
+    width: 120px;
+    min-width: 120px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .healthcenter-scope .time-slot-view-table .result-action-stack .secondary-button {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
