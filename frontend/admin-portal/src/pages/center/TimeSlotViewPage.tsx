@@ -103,6 +103,9 @@ function TimeSlotViewPage() {
   const [packageId, setPackageId] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [searchTimeSlot, setSearchTimeSlot] = useState("all");
+  const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
+  const [isPackageMenuOpen, setIsPackageMenuOpen] = useState(false);
+  const [isTimeMenuOpen, setIsTimeMenuOpen] = useState(false);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [packages, setPackages] = useState<PackageOption[]>([]);
@@ -160,6 +163,24 @@ function TimeSlotViewPage() {
   useEffect(() => {
     loadInitData();
   }, []);
+
+  const selectedBranchName =
+    branches.find((branch) => String(branch.branchId) === branchId)?.branchName ||
+    "請選擇院區";
+
+  const selectedPackageName =
+    packageId === "all"
+      ? "所有套餐"
+      : packages.find((pkg) => String(pkg.packageId) === packageId)?.packageName ||
+        (!branchId
+          ? "請先選擇院區"
+          : isLoadingBranchPackages
+            ? "套餐載入中..."
+            : "請選擇套餐");
+
+  const selectedTimeSlotLabel =
+    TIME_SLOT_OPTIONS.find((item) => item.value === searchTimeSlot)?.label ||
+    "所有時段";
 
   useEffect(() => {
     if (!branchId) {
@@ -301,6 +322,9 @@ function TimeSlotViewPage() {
     setSearchTimeSlot("all");
     setSearchResults(null);
     setAvailablePackageIds([]);
+    setIsBranchMenuOpen(false);
+    setIsPackageMenuOpen(false);
+    setIsTimeMenuOpen(false);
   };
 
   const filteredPreviewData = useMemo(() => {
@@ -536,71 +560,99 @@ function TimeSlotViewPage() {
               <label className="form-label" htmlFor="branchId">
                 院區：
               </label>
-              <select
-                id="branchId"
-                value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
-                  setPackageId("");
-                }}
-                className="form-select"
-                required
-                disabled={loadingStatus === "loading"}
-              >
-                <option value="">請選擇院區</option>
-                {branches.map((branch) => (
-                  <option key={branch.branchId} value={branch.branchId}>
-                    {branch.branchName}
-                  </option>
-                ))}
-              </select>
+              <div className="login-role-field">
+                <button
+                  type="button"
+                  className={`login-custom-select ${isBranchMenuOpen ? "open" : ""}`}
+                  onClick={() => {
+                    if (loadingStatus === "loading") return;
+                    setIsBranchMenuOpen((prev) => !prev);
+                    setIsPackageMenuOpen(false);
+                    setIsTimeMenuOpen(false);
+                  }}
+                  disabled={loadingStatus === "loading"}
+                >
+                  <span>{selectedBranchName}</span>
+                  <span className="login-select-arrow">⌄</span>
+                </button>
+
+                {isBranchMenuOpen && (
+                  <div className="login-custom-menu">
+                    {branches.map((branch) => (
+                      <button
+                        key={branch.branchId}
+                        type="button"
+                        className={String(branch.branchId) === branchId ? "active" : ""}
+                        onClick={() => {
+                          setBranchId(String(branch.branchId));
+                          setPackageId("");
+                          setIsBranchMenuOpen(false);
+                        }}
+                      >
+                        {branch.branchName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="form-field form-field-narrow">
               <label className="form-label" htmlFor="packageId">
                 套餐：
               </label>
-              <select
-                id="packageId"
-                value={packageId}
-                onChange={(e) => {
-                  setPackageId(e.target.value);
-                }}
-                className="form-select"
-                required
-                disabled={
-                  loadingStatus === "loading" ||
-                  !branchId ||
-                  isLoadingBranchPackages
-                }
-              >
-                <option value="">
-                  {!branchId
-                    ? "請先選擇院區"
-                    : isLoadingBranchPackages
-                      ? "套餐載入中..."
-                      : "請選擇套餐"}
-                </option>
+              <div className="login-role-field">
+                <button
+                  type="button"
+                  className={`login-custom-select ${isPackageMenuOpen ? "open" : ""}`}
+                  onClick={() => {
+                    if (loadingStatus === "loading" || !branchId || isLoadingBranchPackages) return;
+                    setIsPackageMenuOpen((prev) => !prev);
+                    setIsBranchMenuOpen(false);
+                    setIsTimeMenuOpen(false);
+                  }}
+                  disabled={loadingStatus === "loading" || !branchId || isLoadingBranchPackages}
+                >
+                  <span>{selectedPackageName}</span>
+                  <span className="login-select-arrow">⌄</span>
+                </button>
 
-                {branchId && !isLoadingBranchPackages && (
-                  <option value="all">所有套餐</option>
-                )}
-
-                {packages.map((pkg) => {
-                  const canSelect = availablePackageIds.includes(Number(pkg.packageId));
-
-                  return (
-                    <option
-                      key={pkg.packageId}
-                      value={pkg.packageId}
-                      disabled={!canSelect}
+                {isPackageMenuOpen && branchId && !isLoadingBranchPackages && (
+                  <div className="login-custom-menu">
+                    <button
+                      type="button"
+                      className={packageId === "all" ? "active" : ""}
+                      onClick={() => {
+                        setPackageId("all");
+                        setIsPackageMenuOpen(false);
+                      }}
                     >
-                      {pkg.packageName}
-                      {!canSelect ? "（此院區不可查詢）" : ""}
-                    </option>
-                  );
-                })}
-              </select>
+                      所有套餐
+                    </button>
+
+                    {packages.map((pkg) => {
+                      const canSelect = availablePackageIds.includes(Number(pkg.packageId));
+
+                      return (
+                        <button
+                          key={pkg.packageId}
+                          type="button"
+                          className={String(pkg.packageId) === packageId ? "active" : ""}
+                          disabled={!canSelect}
+                          onClick={() => {
+                            if (!canSelect) return;
+                            setPackageId(String(pkg.packageId));
+                            setIsPackageMenuOpen(false);
+                          }}
+                        >
+                          {pkg.packageName}
+                          {!canSelect ? "（此院區不可查詢）" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -624,19 +676,40 @@ function TimeSlotViewPage() {
               <label className="form-label" htmlFor="searchTime">
                 時段選擇：
               </label>
-              <select
-                id="searchTime"
-                value={searchTimeSlot}
-                onChange={(e) => setSearchTimeSlot(e.target.value)}
-                className="form-select"
-                disabled={loadingStatus === "loading"}
-              >
-                {TIME_SLOT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="login-role-field">
+                <button
+                  type="button"
+                  className={`login-custom-select ${isTimeMenuOpen ? "open" : ""}`}
+                  onClick={() => {
+                    if (loadingStatus === "loading") return;
+                    setIsTimeMenuOpen((prev) => !prev);
+                    setIsBranchMenuOpen(false);
+                    setIsPackageMenuOpen(false);
+                  }}
+                  disabled={loadingStatus === "loading"}
+                >
+                  <span>{selectedTimeSlotLabel}</span>
+                  <span className="login-select-arrow">⌄</span>
+                </button>
+
+                {isTimeMenuOpen && (
+                  <div className="login-custom-menu">
+                    {TIME_SLOT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={searchTimeSlot === opt.value ? "active" : ""}
+                        onClick={() => {
+                          setSearchTimeSlot(opt.value);
+                          setIsTimeMenuOpen(false);
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="form-field form-field-narrow">
