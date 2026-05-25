@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
+import { UploadCloud } from "lucide-react";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "/api";
@@ -210,7 +211,9 @@ const RosterUploadPage: React.FC = () => {
 
   <div className="roster-upload-card">
     <label htmlFor="rosterFile" className="roster-upload-dropzone">
-      <div className="roster-upload-icon">⇧</div>
+      <div className="roster-upload-icon">
+        <UploadCloud size={44} strokeWidth={1.8} />
+      </div>
       <p className="roster-upload-title">
         拖曳 CSV 檔案至此或點擊選取
       </p>
