@@ -105,12 +105,15 @@ function DefaultHomePage() {
   const [selectedBranchName, setSelectedBranchName] = useState(
     () => localStorage.getItem("healthDashboardBranch") || "",
   );
+  const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const todayText = getTodayText();
   const branchOptions = branches
     .map((branch) => branch.branch_name ?? branch.branchName ?? "")
     .filter(Boolean);
+
+  const selectedBranchLabel = selectedBranchName || "所有院區";
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -315,20 +318,47 @@ function DefaultHomePage() {
             </div>
 
             <div className="dashboard-branch-actions">
-              <select
-                value={selectedBranchName}
-                onChange={(e) => {
-                  setSelectedBranchName(e.target.value);
-                  localStorage.setItem("healthDashboardBranch", e.target.value);
-                }}
+              <div className="login-role-field">
+              <button
+                type="button"
+                className={`login-custom-select ${isBranchMenuOpen ? "open" : ""}`}
+                onClick={() => setIsBranchMenuOpen((prev) => !prev)}
               >
-                <option value="">請選擇院區</option>
-                {branchOptions.map((branchName) => (
-                  <option key={branchName} value={branchName}>
-                    {branchName}
-                  </option>
-                ))}
-              </select>
+                <span>{selectedBranchLabel}</span>
+                <span className="login-select-arrow">⌄</span>
+              </button>
+
+              {isBranchMenuOpen && (
+                <div className="login-custom-menu">
+                  <button
+                    type="button"
+                    className={selectedBranchName === "" ? "active" : ""}
+                    onClick={() => {
+                      setSelectedBranchName("");
+                      localStorage.removeItem("healthDashboardBranch");
+                      setIsBranchMenuOpen(false);
+                    }}
+                  >
+                    所有院區
+                  </button>
+
+                  {branchOptions.map((branchName) => (
+                    <button
+                      key={branchName}
+                      type="button"
+                      className={branchName === selectedBranchName ? "active" : ""}
+                      onClick={() => {
+                        setSelectedBranchName(branchName);
+                        localStorage.setItem("healthDashboardBranch", branchName);
+                        setIsBranchMenuOpen(false);
+                      }}
+                    >
+                      {branchName}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
               <button
                 type="button"

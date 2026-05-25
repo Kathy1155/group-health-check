@@ -89,15 +89,17 @@ interface ModifyModalProps {
   onClose: () => void;
 }
 
-const ModifyModal: React.FC<ModifyModalProps> = ({
-  isOpen,
-  reservation,
-  currentStatus,
-  onStatusChange,
-  onSave,
-  onClose,
-}) => {
-  if (!isOpen || !reservation) return null;
+  const ModifyModal: React.FC<ModifyModalProps> = ({
+    isOpen,
+    reservation,
+    currentStatus,
+    onStatusChange,
+    onSave,
+    onClose,
+  }) => {
+    const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+
+    if (!isOpen || !reservation) return null;
 
   const handleSave = () => {
     onSave(reservation.id, currentStatus);
@@ -119,18 +121,34 @@ const ModifyModal: React.FC<ModifyModalProps> = ({
           <label className="form-label" htmlFor="statusSelect">
             選擇新狀態：
           </label>
-          <select
-            id="statusSelect"
-            value={currentStatus}
-            onChange={(e) => onStatusChange(e.target.value as ReservationStatus)}
-            className="form-select"
-          >
-            {STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+          <div className="login-role-field">
+            <button
+              type="button"
+              className={`login-custom-select ${isStatusMenuOpen ? "open" : ""}`}
+              onClick={() => setIsStatusMenuOpen((prev) => !prev)}
+            >
+              <span>{currentStatus}</span>
+              <span className="login-select-arrow">⌄</span>
+            </button>
+
+            {isStatusMenuOpen && (
+              <div className="login-custom-menu">
+                {STATUS_OPTIONS.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={currentStatus === status ? "active" : ""}
+                    onClick={() => {
+                      onStatusChange(status);
+                      setIsStatusMenuOpen(false);
+                    }}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="form-actions-center gap">
@@ -177,9 +195,24 @@ function ReservationListPage() {
   );
   const [tempStatus, setTempStatus] = useState<ReservationStatus>("已預約");
 
+  const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
+  const [isPackageMenuOpen, setIsPackageMenuOpen] = useState(false);
+
   const isAllTimeSlotsChecked = selectedTimeSlots.length === TIME_SLOT_OPTIONS.length;
   const isAllStatusesChecked = selectedStatuses.length === STATUS_OPTIONS.length;
   const isAllExportStatusesChecked = exportFilter.length === STATUS_OPTIONS.length;
+
+  const selectedBranchName =
+    branchName === "all" ? "所有院區" : branchName;
+
+  const selectedPackageName =
+    packageType === "all"
+      ? branchName === "all"
+        ? "所有套餐"
+        : isLoadingBranchPackages
+          ? "套餐載入中..."
+          : "所有套餐"
+      : packageType;
 
   const timeFilterSummary = isAllTimeSlotsChecked
     ? "全部時段"
@@ -452,15 +485,17 @@ function ReservationListPage() {
   };
 
   const handleReset = () => {
-  setBranchName("all");
-  setPackageType("all");
-  setAvailablePackageIds([]);
-  setDate("");
-  setSelectedTimeSlots(TIME_SLOT_OPTIONS.map((item) => item.value));
-  setSelectedStatuses(DEFAULT_VISIBLE_STATUS_OPTIONS);
-  setExportFilter(DEFAULT_VISIBLE_STATUS_OPTIONS);
-  setSearchResults(null);
-};
+    setBranchName("all");
+    setPackageType("all");
+    setAvailablePackageIds([]);
+    setDate("");
+    setSelectedTimeSlots(TIME_SLOT_OPTIONS.map((item) => item.value));
+    setSelectedStatuses(STATUS_OPTIONS);
+    setExportFilter(STATUS_OPTIONS);
+    setSearchResults(null);
+    setIsBranchMenuOpen(false);
+    setIsPackageMenuOpen(false);
+  };
 
   const openModifyModal = (reservation: Reservation) => {
     setEditingReservation(reservation);
@@ -584,68 +619,124 @@ function ReservationListPage() {
               <label className="form-label" htmlFor="branchName">
                 院區：
               </label>
-              <select
-                id="branchName"
-                value={branchName}
-                onChange={(e) => {
-                  setBranchName(e.target.value);
-                  setPackageType("all");
-                  setSearchResults(null);
-                }}
-                className="form-select"
-                disabled={loadingStatus !== "success"}
-              >
-                <option value="all">所有院區</option>
-                {branches.map((branch) => (
-                  <option key={branch.branchId} value={branch.branchName}>
-                    {branch.branchName}
-                  </option>
-                ))}
-              </select>
+              <div className="login-role-field">
+                <button
+                  type="button"
+                  className={`login-custom-select ${isBranchMenuOpen ? "open" : ""}`}
+                  onClick={() => {
+                    if (loadingStatus !== "success") return;
+                    setIsBranchMenuOpen((prev) => !prev);
+                    setIsPackageMenuOpen(false);
+                  }}
+                  disabled={loadingStatus !== "success"}
+                >
+                  <span>{selectedBranchName}</span>
+                  <span className="login-select-arrow">⌄</span>
+                </button>
+
+                {isBranchMenuOpen && (
+                  <div className="login-custom-menu">
+                    <button
+                      type="button"
+                      className={branchName === "all" ? "active" : ""}
+                      onClick={() => {
+                        setBranchName("all");
+                        setPackageType("all");
+                        setSearchResults(null);
+                        setIsBranchMenuOpen(false);
+                      }}
+                    >
+                      所有院區
+                    </button>
+
+                    {branches.map((branch) => (
+                      <button
+                        key={branch.branchId}
+                        type="button"
+                        className={branch.branchName === branchName ? "active" : ""}
+                        onClick={() => {
+                          setBranchName(branch.branchName);
+                          setPackageType("all");
+                          setSearchResults(null);
+                          setIsBranchMenuOpen(false);
+                        }}
+                      >
+                        {branch.branchName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="form-field form-field-narrow">
               <label className="form-label" htmlFor="packageType">
                 套餐類型：
               </label>
-              <select
-                id="packageType"
-                value={packageType}
-                onChange={(e) => {
-                  setPackageType(e.target.value);
-                  setSearchResults(null);
-                }}
-                className="form-select"
-                disabled={
-                  loadingStatus !== "success" ||
-                  branchName === "all" ||
-                  isLoadingBranchPackages
-                }
-              >
-                <option value="all">
-                  {branchName === "all"
-                    ? "所有套餐"
-                    : isLoadingBranchPackages
-                      ? "套餐載入中..."
-                      : "所有套餐"}
-                </option>
+              <div className="login-role-field">
+                <button
+                  type="button"
+                  className={`login-custom-select ${isPackageMenuOpen ? "open" : ""}`}
+                  onClick={() => {
+                    if (
+                      loadingStatus !== "success" ||
+                      branchName === "all" ||
+                      isLoadingBranchPackages
+                    ) {
+                      return;
+                    }
 
-                {packages.map((pkg) => {
-                  const canSelect =
-                    branchName === "all" || availablePackageIds.includes(Number(pkg.packageId));
+                    setIsPackageMenuOpen((prev) => !prev);
+                    setIsBranchMenuOpen(false);
+                  }}
+                  disabled={
+                    loadingStatus !== "success" ||
+                    branchName === "all" ||
+                    isLoadingBranchPackages
+                  }
+                >
+                  <span>{selectedPackageName}</span>
+                  <span className="login-select-arrow">⌄</span>
+                </button>
 
-                  return (
-                    <option
-                      key={pkg.packageId}
-                      value={pkg.packageName}
-                      disabled={!canSelect}
+                {isPackageMenuOpen && branchName !== "all" && !isLoadingBranchPackages && (
+                  <div className="login-custom-menu">
+                    <button
+                      type="button"
+                      className={packageType === "all" ? "active" : ""}
+                      onClick={() => {
+                        setPackageType("all");
+                        setSearchResults(null);
+                        setIsPackageMenuOpen(false);
+                      }}
                     >
-                      {pkg.packageName}
-                      {!canSelect ? "（此院區不可查詢）" : ""}
-                    </option>
-                  );
-                })}
-              </select>
+                      所有套餐
+                    </button>
+
+                    {packages.map((pkg) => {
+                      const canSelect = availablePackageIds.includes(Number(pkg.packageId));
+
+                      return (
+                        <button
+                          key={pkg.packageId}
+                          type="button"
+                          className={pkg.packageName === packageType ? "active" : ""}
+                          disabled={!canSelect}
+                          onClick={() => {
+                            if (!canSelect) return;
+                            setPackageType(pkg.packageName);
+                            setSearchResults(null);
+                            setIsPackageMenuOpen(false);
+                          }}
+                        >
+                          {pkg.packageName}
+                          {!canSelect ? "（此院區不可查詢）" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="form-field form-field-narrow">

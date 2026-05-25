@@ -23,6 +23,8 @@ function TimeSlotSettingPage() {
   const [quota, setQuota] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitLoading, setIsInitLoading] = useState(true);
+  const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
+  const [isPackageMenuOpen, setIsPackageMenuOpen] = useState(false);
 
 
   useEffect(() => {
@@ -117,6 +119,18 @@ function TimeSlotSettingPage() {
 
   const todayText = new Date().toISOString().slice(0, 10);
 
+  const selectedBranchName =
+  branches.find((branch) => String(branch.branchId) === branchId)?.branchName ||
+  "請選擇院區";
+
+  const selectedPackageName =
+    packages.find((pkg) => String(pkg.packageId) === packageId)?.packageName ||
+    (!branchId
+      ? "請先選擇院區"
+      : isLoadingBranchPackages
+        ? "套餐載入中..."
+        : "請選擇套餐");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -190,60 +204,80 @@ function TimeSlotSettingPage() {
                 <label className="form-label" htmlFor="branchId">
                   院區：
                 </label>
-                <select
-                  id="branchId"
-                  value={branchId}
-                  onChange={(e) => {
-                    setBranchId(e.target.value);
-                    setPackageId("");
-                  }}
-                  className="form-select"
-                  required
-                >
-                  <option value="">請選擇院區</option>
-                  {branches.map((branch) => (
-                    <option key={branch.branchId} value={branch.branchId}>
-                      {branch.branchName}
-                    </option>
-                  ))}
-                </select>
+                <div className="login-role-field">
+                  <button
+                    type="button"
+                    className={`login-custom-select ${isBranchMenuOpen ? "open" : ""}`}
+                    onClick={() => setIsBranchMenuOpen((prev) => !prev)}
+                  >
+                    <span>{selectedBranchName}</span>
+                    <span className="login-select-arrow">⌄</span>
+                  </button>
+
+                  {isBranchMenuOpen && (
+                    <div className="login-custom-menu">
+                      {branches.map((branch) => (
+                        <button
+                          key={branch.branchId}
+                          type="button"
+                          className={String(branch.branchId) === branchId ? "active" : ""}
+                          onClick={() => {
+                            setBranchId(String(branch.branchId));
+                            setPackageId("");
+                            setIsBranchMenuOpen(false);
+                          }}
+                        >
+                          {branch.branchName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="form-field">
                 <label className="form-label" htmlFor="packageId">
                   套餐：
                 </label>
-                <select
-                  id="packageId"
-                  value={packageId}
-                  onChange={(e) => setPackageId(e.target.value)}
-                  className="form-select"
-                  required
-                  disabled={!branchId || isLoadingBranchPackages}
-                >
-                  <option value="">
-                    {!branchId
-                      ? "請先選擇院區"
-                      : isLoadingBranchPackages
-                        ? "套餐載入中..."
-                        : "請選擇套餐"}
-                  </option>
+                <div className="login-role-field">
+                  <button
+                    type="button"
+                    className={`login-custom-select ${isPackageMenuOpen ? "open" : ""}`}
+                    onClick={() => {
+                      if (!branchId || isLoadingBranchPackages) return;
+                      setIsPackageMenuOpen((prev) => !prev);
+                    }}
+                    disabled={!branchId || isLoadingBranchPackages}
+                  >
+                    <span>{selectedPackageName}</span>
+                    <span className="login-select-arrow">⌄</span>
+                  </button>
 
-                  {packages.map((pkg) => {
-                    const canSelect = availablePackageIds.includes(Number(pkg.packageId));
+                  {isPackageMenuOpen && branchId && !isLoadingBranchPackages && (
+                    <div className="login-custom-menu">
+                      {packages.map((pkg) => {
+                        const canSelect = availablePackageIds.includes(Number(pkg.packageId));
 
-                    return (
-                      <option
-                        key={pkg.packageId}
-                        value={pkg.packageId}
-                        disabled={!canSelect}
-                      >
-                        {pkg.packageName}
-                        {!canSelect ? "（此院區不可設定）" : ""}
-                      </option>
-                    );
-                  })}
-                </select>
+                        return (
+                          <button
+                            key={pkg.packageId}
+                            type="button"
+                            className={String(pkg.packageId) === packageId ? "active" : ""}
+                            disabled={!canSelect}
+                            onClick={() => {
+                              if (!canSelect) return;
+                              setPackageId(String(pkg.packageId));
+                              setIsPackageMenuOpen(false);
+                            }}
+                          >
+                            {pkg.packageName}
+                            {!canSelect ? "（此院區未開放）" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
