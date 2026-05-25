@@ -111,7 +111,10 @@ function SelectTimeSlotPage() {
     setLoadingSlots(true);
     setSlotsError(null);
 
-    fetchTimeslots(branchId, packageId, date)
+    fetchTimeslots(branchId, packageId, date, {
+      groupCode: group.code,
+      idNumber,
+    })
       .then((data) => {
         setSlots(data);
 
@@ -180,7 +183,10 @@ function SelectTimeSlotPage() {
       if (isSlotFull) {
         setSelectedSlotId(null);
         setSlot("");
-        fetchTimeslots(branchId, packageId, date)
+        fetchTimeslots(branchId, packageId, date, {
+          groupCode: group.code,
+          idNumber,
+        })
           .then(setSlots)
           .catch((err) => console.error(err));
       }
@@ -363,7 +369,9 @@ function SelectTimeSlotPage() {
                 <option value="">{renderSlotPlaceholder()}</option>
                 {slots.map((s) => (
                   <option key={s.slotId} value={s.slotId}>
-                    {formatSlotTime(s.time)}（剩餘 {s.remaining} 位）
+                    {s.heldByCurrentUser
+                      ? `${formatSlotTime(s.time)}（已為你保留）`
+                      : `${formatSlotTime(s.time)}（剩餘 ${s.remaining} 位）`}
                   </option>
                 ))}
               </select>

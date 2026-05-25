@@ -144,42 +144,18 @@ private async createUniqueLookupCode(
         lock: { mode: 'pessimistic_write' },
       });
 
-      if (
-        existingPending &&
-        existingPending.confirmTokenExpiresAt &&
-        new Date(existingPending.confirmTokenExpiresAt) > new Date()
-      ) {
-        if (existingPending.confirmToken) {
-          throw new ConflictException('ACTIVE_PENDING_RESERVATION');
-        }
+      const now = new Date();
+      const existingPendingExpiresAt = existingPending?.confirmTokenExpiresAt
+        ? new Date(existingPending.confirmTokenExpiresAt)
+        : null;
+      const existingPendingIsActive =
+        existingPendingExpiresAt && existingPendingExpiresAt > now;
 
-        const pendingSlot = await timeSlotRepo.findOne({
-          where: { slotId: Number(existingPending.slotId) },
-          lock: { mode: 'pessimistic_write' },
-        });
-
-        if (pendingSlot) {
-          if (pendingSlot.slotReservedCount > 0) {
-            pendingSlot.slotReservedCount -= 1;
-          }
-
-          if (pendingSlot.slotStatus === 'full') {
-            pendingSlot.slotStatus = 'open';
-          }
-
-          await timeSlotRepo.save(pendingSlot);
-        }
-
-        existingPending.quotaStatus = 'cancelled';
-        existingPending.reservationStatus = 'cancelled';
-        await reservationRepo.save(existingPending);
+      if (existingPending && existingPendingIsActive && existingPending.confirmToken) {
+        throw new ConflictException('ACTIVE_PENDING_RESERVATION');
       }
 
-      if (
-        existingPending &&
-        existingPending.confirmTokenExpiresAt &&
-        new Date(existingPending.confirmTokenExpiresAt) <= new Date()
-      ) {
+      if (existingPending && existingPendingExpiresAt && existingPendingExpiresAt <= now) {
         const expiredSlot = await timeSlotRepo.findOne({
           where: { slotId: Number(existingPending.slotId) },
           lock: { mode: 'pessimistic_write' },
@@ -215,13 +191,6 @@ private async createUniqueLookupCode(
         throw new BadRequestException('TIME_SLOT_CLOSED');
       }
 
-      if (
-        slot.slotStatus === 'full' ||
-        slot.slotReservedCount >= slot.slotCapacity
-      ) {
-        throw new BadRequestException('TIME_SLOT_FULL');
-      }
-
       const branchPackage = await branchPackageRepo.findOne({
         where: { branchPackageId: slot.branchPackageId },
       });
@@ -232,6 +201,86 @@ private async createUniqueLookupCode(
 
       const holdExpireMinutes = 10;
       const expiresAt = new Date(Date.now() + holdExpireMinutes * 60 * 1000);
+
+      if (
+        existingPending &&
+        existingPendingIsActive &&
+        !existingPending.confirmToken
+      ) {
+        const currentSlotId = Number(existingPending.slotId);
+        const nextSlotId = Number(dto.slotId);
+
+        if (currentSlotId === nextSlotId) {
+          return {
+            message: 'TIME_SLOT_ALREADY_HELD',
+            reservationId: existingPending.reservationId,
+            participantId: participant.groupParticipantId,
+            packageId: branchPackage.packageId,
+            slotId: existingPending.slotId,
+            quotaStatus: existingPending.quotaStatus,
+            reservationStatus: existingPending.reservationStatus,
+            expiresAt: existingPending.confirmTokenExpiresAt,
+          };
+        }
+
+        if (
+          slot.slotStatus === 'full' ||
+          slot.slotReservedCount >= slot.slotCapacity
+        ) {
+          throw new BadRequestException('TIME_SLOT_FULL');
+        }
+
+        const pendingSlot = await timeSlotRepo.findOne({
+          where: { slotId: currentSlotId },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (pendingSlot) {
+          if (pendingSlot.slotReservedCount > 0) {
+            pendingSlot.slotReservedCount -= 1;
+          }
+
+          if (pendingSlot.slotStatus === 'full') {
+            pendingSlot.slotStatus = 'open';
+          }
+
+          await timeSlotRepo.save(pendingSlot);
+        }
+
+        slot.slotReservedCount += 1;
+        slot.slotStatus =
+          slot.slotReservedCount >= slot.slotCapacity ? 'full' : 'open';
+
+        await timeSlotRepo.save(slot);
+
+        existingPending.packageId = branchPackage.packageId;
+        existingPending.slotId = dto.slotId;
+        existingPending.confirmTokenExpiresAt = expiresAt;
+        existingPending.cancelTokenExpiresAt = expiresAt;
+        existingPending.quotaStatus = 'pending';
+        existingPending.reservationStatus = 'pending';
+
+        const updatedReservation = await reservationRepo.save(existingPending);
+
+        return {
+          message: 'TIME_SLOT_HELD',
+          reservationId: updatedReservation.reservationId,
+          participantId: participant.groupParticipantId,
+          packageId: branchPackage.packageId,
+          slotId: updatedReservation.slotId,
+          quotaStatus: updatedReservation.quotaStatus,
+          reservationStatus: updatedReservation.reservationStatus,
+          expiresAt,
+        };
+      }
+
+      if (
+        slot.slotStatus === 'full' ||
+        slot.slotReservedCount >= slot.slotCapacity
+      ) {
+        throw new BadRequestException('TIME_SLOT_FULL');
+      }
+
       const lookupCode = await this.createUniqueLookupCode(reservationRepo);
 
       const reservation = reservationRepo.create({
@@ -876,6 +925,44 @@ async lookupByIdAndLookupCode(
     await this.timeSlotRepo.save(slot);
   }
 
+  private async ensureNoActiveDuplicateWhenRestore(
+    reservation: ReservationEntity,
+  ) {
+    const participant = await this.participantRepo.findOne({
+      where: {
+        groupParticipantId: Number(reservation.participantId),
+      },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('找不到預約人資料');
+    }
+
+    const activeDuplicate = await this.reservationRepo
+      .createQueryBuilder('reservation')
+      .innerJoin(
+        GroupParticipantEntity,
+        'participant',
+        'participant.group_participant_id = reservation.participant_id',
+      )
+      .where('reservation.reservation_id != :reservationId', {
+        reservationId: Number(reservation.reservationId),
+      })
+      .andWhere('participant.id_number = :idNumber', {
+        idNumber: participant.idNumber,
+      })
+      .andWhere('reservation.reservation_status IN (:...activeStatuses)', {
+        activeStatuses: ['confirmed', 'checked_in'],
+      })
+      .getOne();
+
+    if (activeDuplicate) {
+      throw new BadRequestException(
+        '此預約人已有有效預約，不能將已取消紀錄改回已預約或已報到',
+      );
+    }
+  }
+
   async findAllAdmin(): Promise<AdminReservation[]> {
     const reservations = await this.reservationRepo.find({
       order: { reservationId: 'DESC' },
@@ -906,6 +993,7 @@ async lookupByIdAndLookupCode(
     }
 
     if (oldStatus === 'cancelled' && nextStatus.reservationStatus !== 'cancelled') {
+      await this.ensureNoActiveDuplicateWhenRestore(reservation);
       await this.restoreSlotQuota(Number(reservation.slotId));
     }
 

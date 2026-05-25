@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
 import { UploadCloud } from "lucide-react";
 

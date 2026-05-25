@@ -92,16 +92,14 @@ button {
   gap: 1rem;
 }
 
-.app-brand,
-.home-brand {
+.app-brand {
   display: flex;
   align-items: center;
   gap: 0.8rem;
   min-width: 0;
 }
 
-.app-brand-logo,
-.home-brand-logo {
+.app-brand-logo {
   width: 44px;
   height: 44px;
   object-fit: contain;
@@ -113,8 +111,7 @@ button {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
-.app-title,
-.home-brand-title {
+.app-title {
   margin: 0;
   color: var(--primary);
   font-size: 1.12rem;
@@ -122,8 +119,7 @@ button {
   letter-spacing: 0;
 }
 
-.app-subtitle,
-.home-brand-subtitle {
+.app-subtitle {
   margin: 0.1rem 0 0;
   color: var(--text-soft);
   font-size: 0.78rem;
@@ -338,24 +334,15 @@ button {
 .home-hero {
   min-height: calc(100vh - 124px);
   display: grid;
-  grid-template-columns: minmax(0, 1.04fr) minmax(360px, 0.96fr);
-  gap: 3rem;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.94fr);
+  gap: 3.5rem;
   align-items: center;
-  padding: 3rem 0 4rem;
+  padding: 3.4rem 0 4rem;
 }
 
 .home-hero-left {
   min-width: 0;
-}
-
-.home-brand {
-  margin-bottom: 1.6rem;
-}
-
-.home-brand-logo {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
+  padding-top: 0.3rem;
 }
 
 .home-title {
@@ -1275,8 +1262,8 @@ button {
   .home-hero {
     min-height: auto;
     grid-template-columns: 1fr;
-    gap: 2.2rem;
-    padding: 2rem 0 3rem;
+    gap: 2rem;
+    padding: 1.6rem 0 3rem;
   }
 
   .home-title,
@@ -1461,13 +1448,8 @@ button {
   }
 
   .home-hero {
-    padding-top: 1.25rem;
+    padding-top: 0.6rem;
     gap: 1.6rem;
-  }
-
-  .home-brand-logo {
-    width: 46px;
-    height: 46px;
   }
 
   .home-title {
