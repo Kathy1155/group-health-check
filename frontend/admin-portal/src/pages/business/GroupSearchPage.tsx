@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchGroups, type GroupDetailDto } from "../../api/groupsApi";
+import { Pencil } from "lucide-react";
 
 type ReservationStatusView = {
   text: string;
@@ -187,8 +188,8 @@ const GroupSearchPage: React.FC = () => {
                                 })
                               }
                             >
-                              <span>╱</span>
-                              編輯
+                              <Pencil size={18} strokeWidth={2.2} />
+                              <span>編輯</span>
                             </button>
                           </td>
 

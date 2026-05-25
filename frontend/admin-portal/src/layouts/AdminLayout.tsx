@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import tpechLogo from "../assets/tpech-logo-mark.png";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Clock3,
+  FolderOpen,
+  Hospital,
+  Home,
+  LogOut,
+  Menu,
+  Users,
+} from "lucide-react";
 
 type Role = "business" | "center" | "admin";
 
@@ -105,8 +118,16 @@ export default function AdminLayout() {
       return {
         sectionTitle: "業務中心功能列表",
         links: [
-          { to: "/admin/business/roster/upload", label: "上傳團體名冊", icon: "↥" },
-          { to: "/admin/business/package-branches", label: "設定套餐施作院區", icon: "⚙" },
+          {
+            to: "/admin/business/roster/upload",
+            label: "上傳團體名冊",
+            icon: Users,
+          },
+          {
+            to: "/admin/business/package-branches",
+            label: "設定套餐施作院區",
+            icon: Hospital,
+          },
         ],
       };
     }
@@ -115,9 +136,9 @@ export default function AdminLayout() {
       return {
         sectionTitle: "健檢中心功能列表",
         links: [
-          { to: "/admin/center/timeslots", label: "設定每日時段名額", icon: "□" },
-          { to: "/admin/center/timeslots/view", label: "時段名額查詢", icon: "⌕" },
-          { to: "/admin/center/reservations", label: "預約清單", icon: "▤" },
+          { to: "/admin/center/timeslots", label: "設定每日時段名額", icon: CalendarDays },
+          { to: "/admin/center/timeslots/view", label: "時段名額查詢", icon: Clock3 },
+          { to: "/admin/center/reservations", label: "預約清單", icon: ClipboardList },
         ],
       };
     }
@@ -125,8 +146,8 @@ export default function AdminLayout() {
     return {
       sectionTitle: "後台功能列表",
       links: [
-        { to: "/admin/business", label: "業務中心", icon: "B" },
-        { to: "/admin/center", label: "健檢中心", icon: "H" },
+        { to: "/admin/business", label: "業務中心", icon: Home },
+        { to: "/admin/center", label: "健檢中心", icon: Home },
       ],
     };
   }, [role]);
@@ -179,9 +200,17 @@ export default function AdminLayout() {
                 className="sidebar-group-button"
                 onClick={() => setGroupMenuOpen((prev) => !prev)}
               >
-                <span className="sidebar-icon">♙</span>
+                <span className="sidebar-icon">
+                  <FolderOpen size={20} strokeWidth={2.2} />
+                </span>
                 <span>團體資料</span>
-                <span className="sidebar-chevron">{groupMenuOpen ? "⌄" : "›"}</span>
+                <span className="sidebar-chevron">
+                  {groupMenuOpen ? (
+                    <ChevronDown size={18} strokeWidth={2.4} />
+                  ) : (
+                    <ChevronRight size={18} strokeWidth={2.4} />
+                  )}
+                </span>
               </button>
 
               {groupMenuOpen && (
@@ -221,7 +250,9 @@ export default function AdminLayout() {
                 "sidebar-main-link" + (isActive ? " active" : "")
               }
             >
-              <span className="sidebar-icon">{link.icon}</span>
+              <span className="sidebar-icon">
+                <link.icon size={20} strokeWidth={2.2} />
+              </span>
               <span>{link.label}</span>
             </NavLink>
           ))}
@@ -229,7 +260,9 @@ export default function AdminLayout() {
 
         <div className="sidebar-footer">
           <div className="system-time-box">
-            <div className="system-time-icon">○</div>
+            <div className="system-time-icon">
+              <Clock3 size={22} strokeWidth={2.3} />
+            </div>
 
             <div>
               <div className="system-time-label">系統時間</div>
@@ -238,7 +271,8 @@ export default function AdminLayout() {
           </div>
 
           <button type="button" className="logout-button" onClick={handleLogout}>
-            ↪ 登出系統
+            <LogOut size={18} strokeWidth={2.2} />
+            <span>登出系統</span>
           </button>
         </div>
       </aside>
@@ -252,12 +286,14 @@ export default function AdminLayout() {
               onClick={() => setMobileMenuOpen(true)}
               aria-label="開啟選單"
             >
-              ☰
+              <Menu size={24} strokeWidth={2.4} />
             </button>
 
             <div className="breadcrumb">
-              <span className="breadcrumb-home">▦ 台北市立聯合醫院</span>
-              <span className="breadcrumb-divider">›</span>
+              <span className="breadcrumb-home">台北市立聯合醫院</span>
+              <span className="breadcrumb-divider">
+                <ChevronRight size={18} strokeWidth={2.4} />
+              </span>
               <span className="breadcrumb-current">{pageTitle}</span>
             </div>
           </div>
