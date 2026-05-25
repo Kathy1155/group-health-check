@@ -185,7 +185,7 @@ export default function AdminLayout() {
           <HospitalLogo />
 
           <div>
-            <div className="sidebar-brand-title">團體健檢管理</div>
+            <div className="sidebar-brand-title">團體健檢管理系統</div>
             <div className="sidebar-brand-subtitle">GROUP-HEALTH-CHECK</div>
           </div>
         </button>
