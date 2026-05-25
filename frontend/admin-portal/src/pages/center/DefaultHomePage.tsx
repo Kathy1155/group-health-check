@@ -179,6 +179,13 @@ function DefaultHomePage() {
     });
   }, [reservations, todayText, selectedBranchName]);
 
+  const todayActiveReservations = useMemo(() => {
+    return todayReservations.filter((item) => {
+      const status = normalizeStatus(item.status);
+      return status === "confirmed" || status === "checkedIn";
+    });
+  }, [todayReservations]);
+
   const todayTimeSlots = useMemo(() => {
     return timeSlots.filter((item) => {
       const date = normalizeDate(item.date ?? item.slotDate);
@@ -206,7 +213,7 @@ function DefaultHomePage() {
     ).length;
 
     return {
-      total: todayReservations.length,
+      total: confirmed + checkedIn,
       confirmed,
       pending,
       checkedIn,
@@ -255,7 +262,7 @@ function DefaultHomePage() {
   const branchSummary = useMemo(() => {
     const map = new Map<string, number>();
 
-    todayReservations.forEach((reservation) => {
+    todayActiveReservations.forEach((reservation) => {
       const branchName = reservation.branchName ?? "未標示院區";
       map.set(branchName, (map.get(branchName) ?? 0) + 1);
     });
@@ -263,7 +270,7 @@ function DefaultHomePage() {
     return Array.from(map.entries())
       .map(([branchName, count]) => ({ branchName, count }))
       .sort((a, b) => b.count - a.count);
-  }, [todayReservations]);
+  }, [todayActiveReservations]);
 
   const warningItems = useMemo(() => {
     const fullSlotCount = todayTimeSlots.filter((slot) => {
@@ -325,7 +332,7 @@ function DefaultHomePage() {
                 onClick={() => setIsBranchMenuOpen((prev) => !prev)}
               >
                 <span>{selectedBranchLabel}</span>
-                <span className="login-select-arrow">⌄</span>
+                <span className="login-select-arrow">▾</span>
               </button>
 
               {isBranchMenuOpen && (
