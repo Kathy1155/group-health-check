@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import tpechLogo from "../assets/tpech-logo-mark.png";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Role = "business" | "center";
 
@@ -140,15 +141,17 @@ export default function LoginPage() {
               }`}
               onClick={() => setRoleDropdownOpen((prev) => !prev)}
             >
-              <span>
                 {role === "business"
                   ? "業務中心"
                   : role === "center"
                     ? "健檢中心"
                     : "請選擇部門"}
-              </span>
               <span className="login-select-arrow">
-                {roleDropdownOpen ? "⌃" : "⌄"}
+                {roleDropdownOpen ? (
+                  <ChevronUp size={20} strokeWidth={2.4} />
+                ) : (
+                  <ChevronDown size={20} strokeWidth={2.4} />
+                )}
               </span>
             </button>
 
