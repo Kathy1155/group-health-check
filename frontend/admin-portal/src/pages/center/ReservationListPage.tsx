@@ -34,6 +34,8 @@ const TIME_SLOT_OPTIONS = [
 ];
 
 const STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到", "已取消"];
+const ACTIVE_RESERVATION_STATUSES: ReservationStatus[] = ["已預約", "已報到"];
+const DEFAULT_VISIBLE_STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到"];
 
 const RESERVATION_API_ENDPOINT = "http://localhost:3000/api/reservations";
 const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
@@ -152,7 +154,9 @@ function ReservationListPage() {
     TIME_SLOT_OPTIONS.map((item) => item.value),
   );
   const [selectedStatuses, setSelectedStatuses] =
-    useState<ReservationStatus[]>(STATUS_OPTIONS);
+  useState<ReservationStatus[]>(DEFAULT_VISIBLE_STATUS_OPTIONS);
+  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
@@ -165,7 +169,7 @@ function ReservationListPage() {
 
   const [searchResults, setSearchResults] = useState<Reservation[] | null>(null);
   const [exportFilter, setExportFilter] =
-    useState<ReservationStatus[]>(STATUS_OPTIONS);
+  useState<ReservationStatus[]>(DEFAULT_VISIBLE_STATUS_OPTIONS);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(
@@ -176,6 +180,22 @@ function ReservationListPage() {
   const isAllTimeSlotsChecked = selectedTimeSlots.length === TIME_SLOT_OPTIONS.length;
   const isAllStatusesChecked = selectedStatuses.length === STATUS_OPTIONS.length;
   const isAllExportStatusesChecked = exportFilter.length === STATUS_OPTIONS.length;
+
+  const timeFilterSummary = isAllTimeSlotsChecked
+    ? "全部時段"
+    : selectedTimeSlots.length === 0
+      ? "未選擇時段"
+      : TIME_SLOT_OPTIONS.filter((item) =>
+          selectedTimeSlots.includes(item.value),
+        )
+          .map((item) => item.label)
+          .join("、");
+
+  const statusFilterSummary = isAllStatusesChecked
+    ? "全部狀態"
+    : selectedStatuses.length === 0
+      ? "未選擇狀態"
+      : selectedStatuses.join("、");
 
   const fetchReservations = async () => {
     const response = await fetch(RESERVATION_API_ENDPOINT);
@@ -432,15 +452,15 @@ function ReservationListPage() {
   };
 
   const handleReset = () => {
-    setBranchName("all");
-    setPackageType("all");
-    setAvailablePackageIds([]);
-    setDate("");
-    setSelectedTimeSlots(TIME_SLOT_OPTIONS.map((item) => item.value));
-    setSelectedStatuses(STATUS_OPTIONS);
-    setExportFilter(STATUS_OPTIONS);
-    setSearchResults(null);
-  };
+  setBranchName("all");
+  setPackageType("all");
+  setAvailablePackageIds([]);
+  setDate("");
+  setSelectedTimeSlots(TIME_SLOT_OPTIONS.map((item) => item.value));
+  setSelectedStatuses(DEFAULT_VISIBLE_STATUS_OPTIONS);
+  setExportFilter(DEFAULT_VISIBLE_STATUS_OPTIONS);
+  setSearchResults(null);
+};
 
   const openModifyModal = (reservation: Reservation) => {
     setEditingReservation(reservation);
@@ -451,6 +471,17 @@ function ReservationListPage() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingReservation(null);
+  };
+
+  const findActiveDuplicateReservation = (
+    currentReservation: Reservation,
+  ): Reservation | undefined => {
+    return reservations.find(
+      (item) =>
+        item.id !== currentReservation.id &&
+        item.idNumber === currentReservation.idNumber &&
+        ACTIVE_RESERVATION_STATUSES.includes(item.status),
+    );
   };
 
   const updateLocalReservationStatus = (id: number, newStatus: ReservationStatus) => {
@@ -471,6 +502,35 @@ function ReservationListPage() {
     id: number,
     newStatus: ReservationStatus,
   ) => {
+    const currentReservation =
+      editingReservation ?? reservations.find((item) => item.id === id);
+
+    if (!currentReservation) {
+      alert("找不到要修改的預約資料，請重新整理後再試一次");
+      return;
+    }
+
+    const isChangingCancelledToActive =
+      currentReservation.status === "已取消" &&
+      ACTIVE_RESERVATION_STATUSES.includes(newStatus);
+
+    if (isChangingCancelledToActive) {
+      const duplicateReservation = findActiveDuplicateReservation(currentReservation);
+
+      if (duplicateReservation) {
+        alert(
+          [
+            "此預約人已經有一筆有效預約，不能將已取消紀錄改回有效預約。",
+            "",
+            `目前有效預約：${duplicateReservation.date} ${duplicateReservation.timeSlot}`,
+            `套餐：${duplicateReservation.packageType}`,
+            `狀態：${duplicateReservation.status}`,
+          ].join("\n"),
+        );
+        return;
+      }
+    }
+
     try {
       const response = await fetch(`${RESERVATION_API_ENDPOINT}/${id}/status`, {
         method: "PATCH",
@@ -607,74 +667,104 @@ function ReservationListPage() {
           <div className="form-row">
             <div className="form-field">
               <label className="form-label">時段選擇：</label>
-              <div className="export-checkbox-group">
-                <label className="export-checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={isAllTimeSlotsChecked}
-                    onChange={() =>
-                      setSelectedTimeSlots((prev) =>
-                        toggleAll(
-                          prev,
-                          TIME_SLOT_OPTIONS.map((item) => item.value),
-                        ),
-                      )
-                    }
-                    disabled={loadingStatus !== "success"}
-                  />
-                  全選
-                </label>
 
-                {TIME_SLOT_OPTIONS.map((opt) => (
-                  <label key={opt.value} className="export-checkbox-item">
-                    <input
-                      type="checkbox"
-                      value={opt.value}
-                      checked={selectedTimeSlots.includes(opt.value)}
-                      onChange={(e) =>
-                        setSelectedTimeSlots((prev) =>
-                          toggleSingle(prev, opt.value, e.target.checked),
-                        )
-                      }
-                      disabled={loadingStatus !== "success"}
-                    />
-                    {opt.label}
-                  </label>
-                ))}
+              <div className={`filter-frame ${isTimeFilterOpen ? "open" : ""}`}>
+                <button
+                  type="button"
+                  className="filter-frame-summary"
+                  onClick={() => setIsTimeFilterOpen((prev) => !prev)}
+                  disabled={loadingStatus !== "success"}
+                >
+                  <span>{timeFilterSummary}</span>
+                  <span className="filter-frame-arrow">{isTimeFilterOpen ? "收合" : "展開"}</span>
+                </button>
+
+                <div className="filter-frame-body">
+                  <div className="export-checkbox-group time-slot-grid">
+                    <label className="export-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={isAllTimeSlotsChecked}
+                        onChange={() =>
+                          setSelectedTimeSlots((prev) =>
+                            toggleAll(
+                              prev,
+                              TIME_SLOT_OPTIONS.map((item) => item.value),
+                            ),
+                          )
+                        }
+                        disabled={loadingStatus !== "success"}
+                      />
+                      全選
+                    </label>
+
+                    {TIME_SLOT_OPTIONS.map((opt) => (
+                      <label key={opt.value} className="export-checkbox-item">
+                        <input
+                          type="checkbox"
+                          value={opt.value}
+                          checked={selectedTimeSlots.includes(opt.value)}
+                          onChange={(e) =>
+                            setSelectedTimeSlots((prev) =>
+                              toggleSingle(prev, opt.value, e.target.checked),
+                            )
+                          }
+                          disabled={loadingStatus !== "success"}
+                        />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="form-field">
               <label className="form-label">預約狀態：</label>
-              <div className="export-checkbox-group">
-                <label className="export-checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={isAllStatusesChecked}
-                    onChange={() =>
-                      setSelectedStatuses((prev) => toggleAll(prev, STATUS_OPTIONS))
-                    }
-                    disabled={loadingStatus !== "success"}
-                  />
-                  全選
-                </label>
 
-                {STATUS_OPTIONS.map((status) => (
-                  <label key={status} className="export-checkbox-item">
-                    <input
-                      type="checkbox"
-                      value={status}
-                      checked={selectedStatuses.includes(status)}
-                      onChange={(e) =>
-                        setSelectedStatuses((prev) =>
-                          toggleSingle(prev, status, e.target.checked),
-                        )
-                      }
-                      disabled={loadingStatus !== "success"}
-                    />
-                    {status}
-                  </label>
-                ))}
+              <div className={`filter-frame ${isStatusFilterOpen ? "open" : ""}`}>
+                <button
+                  type="button"
+                  className="filter-frame-summary"
+                  onClick={() => setIsStatusFilterOpen((prev) => !prev)}
+                  disabled={loadingStatus !== "success"}
+                >
+                  <span>{statusFilterSummary}</span>
+                  <span className="filter-frame-arrow">{isStatusFilterOpen ? "收合" : "展開"}</span>
+                </button>
+
+                <div className="filter-frame-body">
+                  <div className="export-checkbox-group status-grid">
+                    <label className="export-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={isAllStatusesChecked}
+                        onChange={() =>
+                          setSelectedStatuses((prev) => toggleAll(prev, STATUS_OPTIONS))
+                        }
+                        disabled={loadingStatus !== "success"}
+                      />
+                      全選
+                    </label>
+
+                    {STATUS_OPTIONS.map((status) => (
+                      <label key={status} className="export-checkbox-item">
+                        <input
+                          type="checkbox"
+                          value={status}
+                          checked={selectedStatuses.includes(status)}
+                          onChange={(e) =>
+                            setSelectedStatuses((prev) =>
+                              toggleSingle(prev, status, e.target.checked),
+                            )
+                          }
+                          disabled={loadingStatus !== "success"}
+                        />
+                        {status}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -756,7 +846,7 @@ function ReservationListPage() {
 
             {searchResults.length > 0 ? (
               <div className="table-wrapper">
-                <table className="data-table">
+                <table className="data-table reservation-list-table">
                   <thead>
                     <tr>
                       <th>院區</th>
