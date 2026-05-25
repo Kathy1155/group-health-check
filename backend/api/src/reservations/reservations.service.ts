@@ -925,6 +925,44 @@ async lookupByIdAndLookupCode(
     await this.timeSlotRepo.save(slot);
   }
 
+  private async ensureNoActiveDuplicateWhenRestore(
+    reservation: ReservationEntity,
+  ) {
+    const participant = await this.participantRepo.findOne({
+      where: {
+        groupParticipantId: Number(reservation.participantId),
+      },
+    });
+
+    if (!participant) {
+      throw new NotFoundException('找不到預約人資料');
+    }
+
+    const activeDuplicate = await this.reservationRepo
+      .createQueryBuilder('reservation')
+      .innerJoin(
+        GroupParticipantEntity,
+        'participant',
+        'participant.group_participant_id = reservation.participant_id',
+      )
+      .where('reservation.reservation_id != :reservationId', {
+        reservationId: Number(reservation.reservationId),
+      })
+      .andWhere('participant.id_number = :idNumber', {
+        idNumber: participant.idNumber,
+      })
+      .andWhere('reservation.reservation_status IN (:...activeStatuses)', {
+        activeStatuses: ['confirmed', 'checked_in'],
+      })
+      .getOne();
+
+    if (activeDuplicate) {
+      throw new BadRequestException(
+        '此預約人已有有效預約，不能將已取消紀錄改回已預約或已報到',
+      );
+    }
+  }
+
   async findAllAdmin(): Promise<AdminReservation[]> {
     const reservations = await this.reservationRepo.find({
       order: { reservationId: 'DESC' },
@@ -955,6 +993,7 @@ async lookupByIdAndLookupCode(
     }
 
     if (oldStatus === 'cancelled' && nextStatus.reservationStatus !== 'cancelled') {
+      await this.ensureNoActiveDuplicateWhenRestore(reservation);
       await this.restoreSlotQuota(Number(reservation.slotId));
     }
 
