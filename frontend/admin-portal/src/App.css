@@ -65,7 +65,7 @@
 }
 
 .sidebar-brand-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: #0f2742;
@@ -2403,4 +2403,50 @@
   color: #64748b;
   cursor: not-allowed;
   opacity: 0.8;
+}
+
+/* ===== iPad Safari layout fixes ===== */
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .admin-layout {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .admin-sidebar {
+    height: 100dvh;
+  }
+
+  .admin-content {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .admin-main {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-container {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar-menu {
+    padding-bottom: 40px;
+  }
+
+  .sidebar-footer {
+    padding-bottom: calc(34px + env(safe-area-inset-bottom));
+  }
+
+  .table-wrapper,
+  .roster-table-card,
+  .group-list-table-card {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  }
 }
