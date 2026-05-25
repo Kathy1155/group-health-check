@@ -113,7 +113,6 @@ function TimeSlotSettingPage() {
     setDate("");
     setTimeSlot("");
     setQuota("");
-    alert(null);
   };
 
   const todayText = new Date().toISOString().slice(0, 10);
@@ -150,7 +149,6 @@ function TimeSlotSettingPage() {
     };
 
     setIsLoading(true);
-    alert(null);
 
     try {
       const response = await fetch(API_ENDPOINT, {

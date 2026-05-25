@@ -458,7 +458,7 @@ function TimeSlotViewPage() {
   const renderTimeSlotTable = (items: TimeSlot[], showDateTag = false) => {
     return (
       <div className="table-wrapper">
-        <table className="data-table">
+        <table className="data-table time-slot-view-table">
           <thead>
             <tr>
               <th>院區</th>
