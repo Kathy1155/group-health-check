@@ -7,6 +7,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TimeSlotEntity } from './time-slot.entity';
 import { BranchPackageEntity } from '../branch-packages/entities/branch-package.entity';
+import { GroupEntity } from '../groups/group.entity';
+import { GroupParticipantEntity } from '../roster/group-participant.entity';
+import { ReservationEntity } from '../reservations/entities/reservation.entity';
 
 @Injectable()
 export class TimeslotsService {
@@ -16,6 +19,15 @@ export class TimeslotsService {
 
     @InjectRepository(BranchPackageEntity)
     private readonly branchPackageRepository: Repository<BranchPackageEntity>,
+
+    @InjectRepository(GroupEntity)
+    private readonly groupRepository: Repository<GroupEntity>,
+
+    @InjectRepository(GroupParticipantEntity)
+    private readonly participantRepository: Repository<GroupParticipantEntity>,
+
+    @InjectRepository(ReservationEntity)
+    private readonly reservationRepository: Repository<ReservationEntity>,
   ) {}
 
   private isSlotEnded(slot: TimeSlotEntity) {
@@ -24,6 +36,50 @@ export class TimeslotsService {
     const slotEndDateTime = new Date(`${dateText}T${endTimeText}:00`);
 
     return slotEndDateTime.getTime() < Date.now();
+  }
+
+  private async findActiveHeldSlotId(groupCode?: string, idNumber?: string) {
+    if (!groupCode || !idNumber) {
+      return null;
+    }
+
+    const group = await this.groupRepository.findOne({
+      where: { groupCode },
+    });
+
+    if (!group) {
+      return null;
+    }
+
+    const participant = await this.participantRepository.findOne({
+      where: {
+        groupId: group.groupId,
+        idNumber,
+      },
+    });
+
+    if (!participant) {
+      return null;
+    }
+
+    const reservation = await this.reservationRepository.findOne({
+      where: {
+        participantId: participant.groupParticipantId,
+        reservationStatus: 'pending',
+      },
+      order: { reservationId: 'DESC' },
+    });
+
+    if (
+      !reservation ||
+      reservation.confirmToken ||
+      !reservation.confirmTokenExpiresAt ||
+      new Date(reservation.confirmTokenExpiresAt) <= new Date()
+    ) {
+      return null;
+    }
+
+    return Number(reservation.slotId);
   }
 
   // 健檢中心後台列表
@@ -72,7 +128,13 @@ export class TimeslotsService {
   }
 
   // 員工前台查詢
-  async findByCondition(branchId: number, packageId: number, date: string) {
+  async findByCondition(
+    branchId: number,
+    packageId: number,
+    date: string,
+    groupCode?: string,
+    idNumber?: string,
+  ) {
     const branchPackage = await this.branchPackageRepository.findOne({
       where: {
         branchId,
@@ -89,11 +151,12 @@ export class TimeslotsService {
       };
     }
 
+    const heldSlotId = await this.findActiveHeldSlotId(groupCode, idNumber);
+
     const rows = await this.timeSlotRepository.find({
       where: {
         slotDate: date,
         branchPackageId: branchPackage.branchPackageId,
-        slotStatus: 'open',
       },
       order: {
         slotStartTime: 'ASC',
@@ -102,17 +165,25 @@ export class TimeslotsService {
 
     const slots = rows
       .filter((row) => !this.isSlotEnded(row))
+      .filter(
+        (row) =>
+          row.slotStatus === 'open' || Number(row.slotId) === heldSlotId,
+      )
       .map((row) => {
-        const remaining = row.slotCapacity - row.slotReservedCount;
+        const heldByCurrentUser = Number(row.slotId) === heldSlotId;
+        const remaining = heldByCurrentUser
+          ? Math.max(row.slotCapacity - row.slotReservedCount, 1)
+          : row.slotCapacity - row.slotReservedCount;
 
         return {
           slotId: row.slotId,
           time: `${row.slotStartTime}-${row.slotEndTime}`,
           capacity: row.slotCapacity,
           remaining,
+          heldByCurrentUser,
         };
       })
-      .filter((slot) => slot.remaining > 0);
+      .filter((slot) => slot.remaining > 0 || slot.heldByCurrentUser);
 
     return {
       branchId,

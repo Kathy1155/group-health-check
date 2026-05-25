@@ -6,6 +6,7 @@ export interface TimeslotDto {
   time: string;
   capacity: number;
   remaining: number;
+  heldByCurrentUser?: boolean;
 }
 
 export interface TimeslotResponse {
@@ -18,13 +19,22 @@ export interface TimeslotResponse {
 export async function fetchTimeslots(
   branchId: number,
   packageId: number,
-  date: string
+  date: string,
+  currentUser?: {
+    groupCode: string;
+    idNumber: string;
+  }
 ): Promise<TimeslotDto[]> {
   const params = new URLSearchParams({
     branchId: String(branchId),
     packageId: String(packageId),
     date,
   });
+
+  if (currentUser?.groupCode && currentUser.idNumber) {
+    params.set("groupCode", currentUser.groupCode);
+    params.set("idNumber", currentUser.idNumber);
+  }
 
   const res = await fetch(`${API_BASE_URL}/timeslots?${params.toString()}`);
 
