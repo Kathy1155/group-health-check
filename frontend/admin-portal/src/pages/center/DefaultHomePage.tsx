@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const RESERVATION_API_ENDPOINT = "http://localhost:3000/api/reservations";
-const TIMESLOT_API_ENDPOINT = "http://localhost:3000/api/timeslots";
-const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
+const RESERVATION_API_ENDPOINT = "/api/reservations";
+const TIMESLOT_API_ENDPOINT = "/api/timeslots";
+const BRANCH_API_ENDPOINT = "/api/branches";
 
 type ReservationItem = {
   id?: number;
