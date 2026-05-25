@@ -19,12 +19,16 @@ export class TimeslotsController {
     @Query('branchId') branchId: string,
     @Query('packageId') packageId: string,
     @Query('date') date: string,
+    @Query('groupCode') groupCode?: string,
+    @Query('idNumber') idNumber?: string,
   ) {
     if (branchId && packageId && date) {
       return this.timeslotsService.findByCondition(
         Number(branchId),
         Number(packageId),
         date,
+        groupCode,
+        idNumber,
       );
     }
 
