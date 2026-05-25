@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import hospitalLogo from "../assets/hospital-logo.png";
 
 function HomePage() {
   const navigate = useNavigate();
@@ -8,14 +7,6 @@ function HomePage() {
     <div className="home-page">
       <section className="home-hero">
         <div className="home-hero-left">
-          <div className="home-brand">
-            <img src={hospitalLogo} alt="醫院 logo" className="home-brand-logo" />
-            <div>
-              <p className="home-brand-title">團體健檢預約</p>
-              <p className="home-brand-subtitle">員工線上預約服務</p>
-            </div>
-          </div>
-
           <h1 className="home-title">團體健檢預約</h1>
 
           <p className="home-description">

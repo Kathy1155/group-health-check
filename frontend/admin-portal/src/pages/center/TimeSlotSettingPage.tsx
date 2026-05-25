@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 
-const API_ENDPOINT = "http://localhost:3000/api/timeslots";
-const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
-const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
-const BRANCH_PACKAGE_API_ENDPOINT ="http://localhost:3000/api/branches";
+const API_ENDPOINT = "/api/timeslots";
+const BRANCH_API_ENDPOINT = "/api/branches";
+const PACKAGE_API_ENDPOINT = "/api/packages";
+const BRANCH_PACKAGE_API_ENDPOINT = "/api/branches";
 
 function TimeSlotSettingPage() {
   const [branchId, setBranchId] = useState("");

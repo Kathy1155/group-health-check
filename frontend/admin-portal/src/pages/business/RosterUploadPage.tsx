@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useUnsavedChangesWarning } from "../../hooks/useUnsavedChangesWarning";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_BASE_URL || "/api";
 
 interface GroupInfo {
   code: string;

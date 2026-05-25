@@ -2131,3 +2131,182 @@
   width: 130px;
   margin: 0 auto;
 }
+
+/* ===== Mobile Safari final fixes ===== */
+
+/* 後台登入後頁面：固定整個後台畫面，只讓 admin-main 滾動 */
+@media (max-width: 768px) {
+  .admin-layout {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    display: flex;
+    background: #f4f9f9;
+    overflow: hidden;
+  }
+
+  .admin-content {
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .admin-topbar {
+    position: relative;
+    z-index: 80;
+    min-height: 72px;
+    height: 72px;
+    padding: 14px 18px;
+    flex-shrink: 0;
+    background: #ffffff;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-main {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 28px 22px calc(150px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-sidebar {
+    height: 100dvh;
+  }
+
+  .page-container {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+
+  input,
+  select,
+  textarea,
+  .form-input,
+  .form-select,
+  .login-field input,
+  .login-custom-select,
+  .login-custom-menu button,
+  .dashboard-branch-select-box select,
+  .dashboard-branch-actions select {
+    font-size: 16px;
+  }
+}
+
+/* 手機更窄時：後台內容再多留一點底部空間 */
+@media (max-width: 520px) {
+  .admin-main {
+    padding: 24px 16px calc(160px + env(safe-area-inset-bottom));
+  }
+
+  .page-container {
+    padding-bottom: calc(110px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 登入頁：獨立處理，不使用 admin-layout 的固定結構 */
+@media (max-width: 768px) {
+  .login-page {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    justify-content: flex-start;
+    padding: 34px 22px calc(240px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .login-brand-area {
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .login-logo-mark {
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+  }
+
+  .login-logo-img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .login-brand-text h1 {
+    font-size: 25px;
+  }
+
+  .login-brand-text p {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+  }
+
+  .login-card {
+    width: min(100%, 380px);
+    margin-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
+
+  .login-card-header {
+    padding: 22px 24px;
+    border-radius: 28px 28px 0 0;
+  }
+
+  .login-card-header h2 {
+    font-size: 22px;
+    letter-spacing: 0.24em;
+  }
+
+  .login-form {
+    padding: 26px 24px 32px;
+    gap: 15px;
+  }
+
+  .login-field input,
+  .login-custom-select {
+    min-height: 52px;
+    font-size: 16px;
+    border-radius: 16px;
+  }
+
+  .login-submit-button {
+    min-height: 54px;
+    font-size: 16px;
+    margin-top: 12px;
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .login-page {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .login-form {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .login-brand-text h1 {
+    font-size: 23px;
+  }
+}

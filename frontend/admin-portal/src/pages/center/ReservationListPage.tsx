@@ -37,10 +37,10 @@ const STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到", "已取�
 const ACTIVE_RESERVATION_STATUSES: ReservationStatus[] = ["已預約", "已報到"];
 const DEFAULT_VISIBLE_STATUS_OPTIONS: ReservationStatus[] = ["已預約", "已報到"];
 
-const RESERVATION_API_ENDPOINT = "http://localhost:3000/api/reservations";
-const PACKAGE_API_ENDPOINT = "http://localhost:3000/api/packages";
-const BRANCH_API_ENDPOINT = "http://localhost:3000/api/branches";
-const BRANCH_PACKAGE_API_ENDPOINT = "http://localhost:3000/api/branches";
+const RESERVATION_API_ENDPOINT = "/api/reservations";
+const PACKAGE_API_ENDPOINT = "/api/packages";
+const BRANCH_API_ENDPOINT = "/api/branches";
+const BRANCH_PACKAGE_API_ENDPOINT = "/api/branches";
 
 const toggleAll = <T,>(current: T[], allOptions: T[]) => {
   return current.length === allOptions.length ? [] : allOptions;
